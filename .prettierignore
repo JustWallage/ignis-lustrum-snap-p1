@@ -1,0 +1,10 @@
+dist/
+node_modules/
+pnpm-lock.yaml
+db/migrations/
+worker-configuration.d.ts
+playwright-report/
+test-results/
+.wrangler/
+.context/
+.claude/worktrees/

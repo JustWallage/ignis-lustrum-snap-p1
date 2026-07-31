@@ -1,0 +1,51 @@
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { eventStateSchema, type EventState } from "@shared/events";
+import type { WsEvent } from "@shared/ws-events";
+import { useLiveValue } from "@/hooks/useLiveValue";
+import { apiFetch } from "@/lib/api";
+
+export type EventAction = "start" | "abort" | "next";
+
+interface EventContextValue {
+  event: EventState | undefined;
+  run: (action: EventAction) => Promise<void>;
+}
+
+const EventContext = createContext<EventContextValue | null>(null);
+
+export function useEvent(): EventContextValue {
+  const value = useContext(EventContext);
+  if (value === null) {
+    throw new Error("useEvent must be used inside EventProvider");
+  }
+  return value;
+}
+
+function selectEvent(event: WsEvent): EventState | null {
+  return event.type === "event_changed" ? event.state : null;
+}
+
+export function EventProvider({ children }: { children: ReactNode }) {
+  const event = useLiveValue(
+    "/api/event",
+    eventStateSchema,
+    "event_changed",
+    selectEvent,
+  );
+
+  const value = useMemo<EventContextValue>(
+    () => ({
+      event,
+      run: async (action) => {
+        await apiFetch(`/api/admin/event/${action}`, eventStateSchema, {
+          method: "POST",
+        });
+      },
+    }),
+    [event],
+  );
+
+  return (
+    <EventContext.Provider value={value}>{children}</EventContext.Provider>
+  );
+}

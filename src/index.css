@@ -1,0 +1,1307 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.gb-stage {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #23252b;
+  user-select: none;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.gb-shell {
+  aspect-ratio: 90 / 148;
+  height: min(98dvh, calc(96vw * 148 / 90));
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  background: #c9c5bc;
+  border-radius: 3cqw 3cqw 14cqw 3cqw;
+  box-shadow:
+    inset 0 0 0 0.4cqw #a9a59c,
+    inset 0 -1.2cqw 2cqw rgb(0 0 0 / 0.15),
+    0 14px 50px rgb(0 0 0 / 0.65);
+  overflow: hidden;
+}
+
+.gb-topline {
+  height: 3.5cqw;
+  margin: 0 0 1cqw;
+  border-bottom: 0.5cqw solid #a9a59c;
+}
+
+.gb-bezel {
+  position: relative;
+  margin: 3cqw 6cqw 0;
+  padding: 2cqw 3cqw 4cqw;
+  background: #565361;
+  border-radius: 3cqw 3cqw 11cqw 3cqw;
+  box-shadow: inset 0 0 0 0.4cqw #3f3d49;
+}
+
+.gb-bezel-caption {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  color: #d6d3df;
+  font-size: 2.4cqw;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+.gb-bezel-caption::before,
+.gb-bezel-caption::after {
+  content: "";
+  flex: 1;
+  height: 1.6cqw;
+  border-top: 0.6cqw solid #8c1a4b;
+  border-bottom: 0.6cqw solid #2e2a5e;
+}
+
+.gb-bezel-inner {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  margin-top: 2.5cqw;
+}
+
+.gb-battery {
+  width: 12cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2cqw;
+  color: #d6d3df;
+  font-size: 1.9cqw;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+}
+.gb-battery-text {
+  max-width: 12cqw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gb-led {
+  width: 2.6cqw;
+  height: 2.6cqw;
+  border-radius: 9999px;
+  background: #4a1220;
+  box-shadow: inset 0 0 0.6cqw rgb(0 0 0 / 0.6);
+}
+.gb-led[data-lit="true"] {
+  background: #e23b3b;
+  box-shadow: 0 0 2cqw #e23b3b;
+}
+
+.gb-lcd-frame {
+  --gb-lcd-pad: 1.6cqw;
+  /* Three of MAP_W tiles, so 30% of the CANVAS. Not `30cqw`, which is 30% of the
+     whole shell (`container-type` is on `.gb-shell`) and comes out near 4.6 tiles;
+     and not a bare `30%`, which would count this frame's padding as screen. Safe in
+     `left` as well as `width`, because a horizontal percentage resolves against the
+     containing block's width either way. */
+  --gb-face: calc((100% - 2 * var(--gb-lcd-pad)) * 0.3);
+  position: relative;
+  flex: 1;
+  padding: var(--gb-lcd-pad);
+  background: #1c2030;
+  border-radius: 1.5cqw;
+}
+.gb-lcd {
+  display: block;
+  width: 100%;
+  aspect-ratio: 10 / 9;
+  image-rendering: pixelated;
+  /* Grass, so the first painted frame does not flash a different colour. */
+  background: #b8e090;
+}
+
+.gb-badge {
+  position: absolute;
+  top: 4%;
+  padding: 0.6cqw 1.4cqw;
+  background: #f8f8f8;
+  color: #202830;
+  border: 0.5cqw solid #202830;
+  border-radius: 1cqw;
+  font-size: 2.2cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.gb-badge.is-day {
+  right: 4%;
+}
+.gb-badge.is-theme {
+  left: 4%;
+  max-width: 56%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gb-badge.is-avatar {
+  left: 4%;
+  width: var(--gb-face);
+  aspect-ratio: 1;
+  padding: 0.4cqw;
+  object-fit: contain;
+}
+/* The theme badge owns this corner the rest of the day, and three tiles BELOW it
+   reaches into the bottom slot: the admin's menu is seven items tall on a phone,
+   which left the avatar sitting on the first of them. So the theme moves beside it
+   instead, for as long as the menu is open — and WRAPS there rather than ellipsising,
+   because beside the avatar the longest theme in `JURIES` does not fit a phone's
+   width on one line, and half a theme is not a theme. */
+.gb-badge.is-theme.is-nudged {
+  left: calc(4% + var(--gb-face) + 2%);
+  max-width: 40%;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+.gb-textbox {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 5%;
+  padding: 1cqw 1.6cqw;
+  background: #f8f8f8;
+  color: #202830;
+  border: 0.5cqw solid #202830;
+  border-radius: 1cqw;
+  box-shadow:
+    inset 0 0 0 0.4cqw #f8f8f8,
+    inset 0 0 0 0.8cqw #4870b8;
+  font-size: 2.6cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.gb-textbox-more {
+  position: absolute;
+  right: 1.6cqw;
+  bottom: 0.4cqw;
+  font-size: 2.2cqw;
+  animation: gb-blink 0.9s steps(1, end) infinite;
+}
+@keyframes gb-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.gb-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  margin-left: 0.4em;
+  vertical-align: middle;
+}
+.gb-pending i {
+  width: 0.35em;
+  height: 0.35em;
+  background: currentColor;
+  animation: gb-march 0.9s steps(1, end) infinite;
+}
+.gb-pending i:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.gb-pending i:nth-child(3) {
+  animation-delay: 0.6s;
+}
+@keyframes gb-march {
+  0%,
+  33% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.gb-say {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
+}
+.gb-say-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+}
+.gb-say-send {
+  flex: none;
+  background: #202830;
+  color: #f8f8f8;
+  border-radius: 0.8cqw;
+  padding: 0.2cqw 1.2cqw;
+  font: inherit;
+  cursor: pointer;
+}
+
+.gb-event {
+  position: absolute;
+  inset: 1.6cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6cqw;
+  padding: 2cqw;
+  background: #202830;
+  color: #f8f8f8;
+  border-radius: 1cqw;
+  text-align: center;
+}
+.gb-event-title {
+  font-size: 5cqw;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  animation: gb-blink 1.2s steps(1, end) infinite;
+}
+.gb-event-line {
+  font-size: 2.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  max-width: 80%;
+}
+.gb-event-day {
+  font-size: 2.2cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #98b8a0;
+}
+
+.gb-countdown {
+  font-size: 14cqw;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #f8f8f8;
+  text-shadow: 0.4cqw 0.4cqw 0 #306850;
+}
+
+.gb-reveal-photo {
+  max-width: 62%;
+  max-height: 46cqw;
+  image-rendering: pixelated;
+  border: 0.4cqw solid #98b8a0;
+}
+.gb-reveal-photo.is-winner {
+  max-height: 34cqw;
+  border-color: #f8f8f8;
+  box-shadow: 0 0 0 0.4cqw #306850;
+}
+.gb-reveal-count,
+.gb-reveal-score {
+  font-size: 2.2cqw;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #98b8a0;
+}
+.gb-reveal-name {
+  font-size: 4.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #f8f8f8;
+}
+.gb-reveal-critique {
+  max-width: 84%;
+  font-size: 2cqw;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: #cfe0d0;
+}
+
+.gb-event[data-phase="reveal"] {
+  gap: 0.9cqw;
+}
+/* `gb-reveal-*`, not `gb-podium-*`: the LEADERBOARD already owns that prefix. */
+.gb-reveal-place {
+  font-size: 3.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #98b8a0;
+}
+.gb-reveal-caption {
+  max-width: 84%;
+  font-size: 2.2cqw;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: #f8f8f8;
+}
+.gb-reveal-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.4cqw 1.2cqw;
+  max-width: 92%;
+  font-size: 2cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #98b8a0;
+}
+.gb-reveal-total {
+  font-size: 2.6cqw;
+  color: #f8f8f8;
+}
+.gb-reveal-rating {
+  font-size: 2.8cqw;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #f8f8f8;
+}
+.gb-reveal-rating-note {
+  font-size: 2cqw;
+  color: #98b8a0;
+}
+
+.gb-scoreboard {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqw;
+  padding-right: 0.8cqw;
+  text-align: left;
+}
+.gb-scoreboard-row {
+  border-bottom: 0.2cqw solid #306850;
+  padding-bottom: 0.6cqw;
+}
+.gb-scoreboard-head {
+  display: flex;
+  gap: 1.2cqw;
+  align-items: baseline;
+  font-size: 2.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f8f8f8;
+}
+.gb-scoreboard-head > :last-child {
+  margin-left: auto;
+}
+.gb-scoreboard-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2cqw 1.2cqw;
+  font-size: 1.9cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #98b8a0;
+}
+.gb-scoreboard-note {
+  font-size: 1.8cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #98b8a0;
+}
+
+.gb-event-snap {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.gb-event-snap img {
+  display: block;
+  max-width: 62%;
+  max-height: 22cqw;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  border: 0.4cqw solid #98b8a0;
+}
+.gb-event[data-phase="reveal"] .gb-event-snap img {
+  max-height: 15cqw;
+}
+
+/* Nothing here animates: the transform comes from the event state and the clock, and a
+   CSS transition would be a second opinion about where the wheel is. `height` and the
+   `flex-basis` below are `WHEEL_CQW`/`SEGMENT_CQW` in `WheelScreen.tsx`, so all four
+   copies move together or the wheel lands on the wrong segment. */
+.gb-wheel {
+  position: relative;
+  /* NEVER shrunk: the overlay is a flex column, and a wheel one pixel shorter than
+     the code thinks puts the marker off the centre of segment zero. */
+  flex: none;
+  width: 100%;
+  height: 33cqw;
+  overflow: hidden;
+  border-top: 0.4cqw solid #306850;
+  border-bottom: 0.4cqw solid #306850;
+}
+.gb-wheel-ribbon {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.gb-wheel-seg {
+  display: flex;
+  flex: 0 0 5.5cqw;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.2cqw;
+  border-bottom: 0.3cqw solid #306850;
+  font-size: 2.4cqw;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.gb-wheel-seg:nth-child(even) {
+  background: #2c3a44;
+}
+/* FRAMES the centre slot rather than drawing a line across it, because on a vertical
+   wheel that line runs through the words. Height is `SEGMENT_CQW` again. */
+.gb-wheel-marker {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 5.5cqw;
+  margin-top: -2.75cqw;
+  border-top: 0.5cqw solid #f8f8f8;
+  border-bottom: 0.5cqw solid #f8f8f8;
+  pointer-events: none;
+  z-index: 1;
+}
+.gb-wheel-prize {
+  font-size: 3.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f8f8f8;
+}
+.gb-wheel-spin {
+  padding: 0.8cqw 3cqw;
+  border: 0.4cqw solid #f8f8f8;
+  border-radius: 1cqw;
+  background: #306850;
+  color: #f8f8f8;
+  font: inherit;
+  font-size: 3cqw;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.gb-wheel-spin:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.gb-choices {
+  margin-top: 0.8cqw;
+  border-top: 0.4cqw solid #306850;
+  padding-top: 0.6cqw;
+}
+.gb-choice {
+  display: flex;
+  gap: 0.6cqw;
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gb-choice[data-selected="false"] {
+  opacity: 0.55;
+}
+
+.gb-pos {
+  position: absolute;
+  right: 3cqw;
+  bottom: 1cqw;
+  color: #8b8896;
+  font-size: 1.9cqw;
+  letter-spacing: 0.1em;
+}
+
+.gb-brand {
+  margin: 2.5cqw 7cqw 0;
+  color: #2e2a5e;
+  font-size: 4.6cqw;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.gb-brand span {
+  font-weight: 400;
+}
+.gb-brand i {
+  font-size: 2.4cqw;
+  vertical-align: super;
+}
+
+.gb-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 5cqw 7cqw 0;
+}
+
+.gb-dpad {
+  display: grid;
+  grid-template-areas: ". up ." "left center right" ". down .";
+  grid-template-columns: repeat(3, 9cqw);
+  grid-template-rows: repeat(3, 9cqw);
+  filter: drop-shadow(0 0.8cqw 0.8cqw rgb(0 0 0 / 0.35));
+}
+.gb-dpad-key,
+.gb-dpad-center {
+  background: #17171d;
+  border: none;
+  touch-action: none;
+  position: relative;
+}
+.gb-dpad-center {
+  grid-area: center;
+}
+.gb-dpad-center::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #2c2c34, #101014 70%);
+}
+.gb-dpad-key[data-dir="up"] {
+  border-radius: 1.6cqw 1.6cqw 0 0;
+}
+.gb-dpad-key[data-dir="down"] {
+  border-radius: 0 0 1.6cqw 1.6cqw;
+}
+.gb-dpad-key[data-dir="left"] {
+  border-radius: 1.6cqw 0 0 1.6cqw;
+}
+.gb-dpad-key[data-dir="right"] {
+  border-radius: 0 1.6cqw 1.6cqw 0;
+}
+.gb-dpad-key::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+}
+.gb-dpad-key[data-dir="up"]::after {
+  border-left: 1.6cqw solid transparent;
+  border-right: 1.6cqw solid transparent;
+  border-bottom: 2.2cqw solid #34343e;
+}
+.gb-dpad-key[data-dir="down"]::after {
+  border-left: 1.6cqw solid transparent;
+  border-right: 1.6cqw solid transparent;
+  border-top: 2.2cqw solid #34343e;
+}
+.gb-dpad-key[data-dir="left"]::after {
+  border-top: 1.6cqw solid transparent;
+  border-bottom: 1.6cqw solid transparent;
+  border-right: 2.2cqw solid #34343e;
+}
+.gb-dpad-key[data-dir="right"]::after {
+  border-top: 1.6cqw solid transparent;
+  border-bottom: 1.6cqw solid transparent;
+  border-left: 2.2cqw solid #34343e;
+}
+.gb-dpad-key:active {
+  background: #26262e;
+}
+
+.gb-ab {
+  display: flex;
+  gap: 4cqw;
+  transform: rotate(-25deg);
+}
+.gb-ab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1cqw;
+}
+.gb-ab-btn:last-child {
+  margin-top: -4cqw;
+}
+.gb-ab-btn button {
+  width: 13cqw;
+  height: 13cqw;
+  border-radius: 9999px;
+  border: none;
+  background: radial-gradient(circle at 35% 30%, #b03a68, #8b2650 65%);
+  box-shadow:
+    inset 0 -1cqw 1.5cqw rgb(0 0 0 / 0.35),
+    0 0.8cqw 1cqw rgb(0 0 0 / 0.35);
+  touch-action: none;
+}
+.gb-ab-btn button:active {
+  box-shadow: inset 0 1cqw 1.5cqw rgb(0 0 0 / 0.5);
+}
+.gb-ab-btn span {
+  color: #2e2a5e;
+  font-size: 3.2cqw;
+  font-weight: 700;
+}
+
+.gb-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: auto 7cqw 5cqw;
+  padding-top: 4cqw;
+}
+
+.gb-pills {
+  display: flex;
+  gap: 6cqw;
+  transform: rotate(-25deg) translateY(-2cqw);
+  margin-left: 12cqw;
+}
+.gb-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1cqw;
+}
+.gb-pill-cap {
+  display: block;
+  width: 10cqw;
+  height: 3.4cqw;
+  border-radius: 9999px;
+  border: none;
+  background: linear-gradient(#9a96a4, #77737f);
+  box-shadow:
+    inset 0 0.5cqw 0.5cqw rgb(255 255 255 / 0.3),
+    inset 0 -0.6cqw 0.8cqw rgb(0 0 0 / 0.4),
+    0 0.5cqw 0.8cqw rgb(0 0 0 / 0.3);
+  touch-action: none;
+}
+button.gb-pill-cap:active:not(:disabled) {
+  box-shadow: inset 0 0.6cqw 1cqw rgb(0 0 0 / 0.5);
+}
+button.gb-pill-cap:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+.gb-pill > span:last-child {
+  color: #2e2a5e;
+  font-size: 2.4cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.gb-speaker {
+  width: 24cqw;
+  height: 20cqw;
+  border-radius: 2cqw 2cqw 9cqw 2cqw;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0,
+    transparent 2.4cqw,
+    #6e6a72 2.4cqw,
+    #6e6a72 4cqw
+  );
+}
+
+.modal-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  overflow: hidden;
+  background: rgb(0 0 0 / 0.7);
+  color: inherit;
+}
+/* The geometry lives HERE rather than in utility classes on the element, because the
+   `<dialog>` reset above is unlayered CSS and beats them: a `p-4` passed in would
+   silently do nothing. */
+.modal-layer.is-full {
+  align-items: stretch;
+  padding: 0.5rem;
+}
+/* Never seen (the dialog covers the viewport), but still painted — and two of them
+   would double the tint. */
+.modal-layer::backdrop {
+  background: transparent;
+}
+
+.gb-window {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  background: #f8f8f0;
+  color: #071821;
+  border: 3px solid #071821;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 2px #f8f8f0,
+    inset 0 0 0 4px #071821,
+    0 10px 30px rgb(0 0 0 / 0.5);
+}
+
+.gb-btn {
+  background: #071821;
+  color: #e0f8cf;
+  border: 2px solid #071821;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.gb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.gb-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.gb-input {
+  display: block;
+  width: 100%;
+  background: #fff;
+  color: #071821;
+  border: 2px solid #071821;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.gb-error {
+  border: 2px solid #071821;
+  background: #e0f8cf;
+  color: #071821;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.gb-pick {
+  display: block;
+  width: 100%;
+  border: 2px solid #071821;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f8f8f0;
+  cursor: pointer;
+}
+.gb-pick-rank {
+  display: block;
+  padding: 0.1rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.gb-pick[aria-pressed="true"] {
+  border-color: #4870b8;
+}
+.gb-pick[aria-pressed="true"] .gb-pick-rank {
+  background: #4870b8;
+  color: #f8f8f0;
+}
+
+/* The BALLOT's podium strip — not `.gb-podium`, which is the archive's cumulative
+   table. A filled slot jumps to its snap; an empty one is inert. */
+.gb-ballot-slot {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.35rem;
+  border: 2px solid #071821;
+  border-radius: 4px;
+  background: #f8f8f0;
+  color: #071821;
+  cursor: pointer;
+}
+.gb-ballot-slot:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.gb-ballot-slot[data-filled="true"] {
+  border-color: #4870b8;
+}
+.gb-ballot-slot-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.gb-ballot-slot-thumb {
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  background: #071821;
+  object-fit: cover;
+}
+.gb-ballot-slot-empty {
+  margin-left: auto;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+}
+
+/* #99 licenses a modern photo-app look HERE AND NOWHERE ELSE. Every class below is
+   prefixed `arc-` and used only by `ArchiveDialog`: the look is quarantined by naming. */
+
+.arc-screen {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fbfbf8;
+  color: #14181d;
+  font-family: var(--font-sans);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.45);
+}
+
+.arc-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e2e0da;
+}
+.arc-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.arc-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: #eceae4;
+}
+/* Tighter than a chip in a rail: a THIRD pill up here clipped "Archive" at 375px, and
+   `.arc-title` has nowhere to go — it is the flex child that gives. */
+.arc-tabs .arc-tab {
+  padding-inline: 0.6rem;
+}
+.arc-tab,
+.arc-chip {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #4b545e;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.arc-tab[aria-pressed="true"],
+.arc-chip[aria-pressed="true"] {
+  background: #14181d;
+  color: #fbfbf8;
+}
+.arc-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: #eceae4;
+  color: #14181d;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.arc-rails {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e2e0da;
+}
+.arc-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.arc-rail-label {
+  flex-shrink: 0;
+  width: 2.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7b8590;
+}
+.arc-rail-scroll {
+  display: flex;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.arc-chip {
+  border: 1px solid #ddd9d1;
+  background: #fff;
+}
+
+.arc-feed {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* `max-content`, NOT `auto`: the feed's height is definite (it is the flex child
+     that scrolls), and `auto` rows share it out between them — which cropped every
+     card to a third of a screen and clipped the caption clean off. */
+  grid-auto-rows: max-content;
+  gap: 0.85rem;
+  align-content: start;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+.arc-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 24 29 / 0.1),
+    0 6px 16px rgb(20 24 29 / 0.06);
+}
+.arc-shot {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: #0e1116;
+  cursor: pointer;
+}
+.arc-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.arc-rank {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(14 17 22 / 0.7);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.arc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.8rem 0.8rem;
+}
+.arc-caption {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.arc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b747f;
+}
+.arc-who {
+  font-weight: 700;
+  color: #14181d;
+}
+.arc-rating {
+  font-weight: 700;
+  color: #14181d;
+}
+.arc-prize {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7a5a12;
+}
+.arc-details {
+  font-size: 0.78rem;
+  color: #4b545e;
+}
+.arc-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.arc-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  padding-top: 0.3rem;
+}
+.arc-critique {
+  padding-top: 0.3rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+.arc-panel {
+  flex: 1;
+  min-height: 0;
+  padding: 0.9rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.arc-faces {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 0.7rem;
+}
+.arc-face {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+/* Tinted rather than the panel's own near-white: the artist draws every sprite on
+   solid white, so on `#fbfbf8` the figure floats with no edge to it. */
+.arc-face-shot {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid #ddd9d1;
+  border-radius: 10px;
+  background: #e6e3dc;
+  object-fit: contain;
+}
+.arc-face-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+}
+
+.gb-podium {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem 0.2rem;
+  border: 2px solid #071821;
+  border-radius: 4px;
+  background: #f8f8f0;
+  text-align: center;
+}
+.gb-podium[data-rank="1"] {
+  padding-top: 0.9rem;
+  background: #e0f8cf;
+}
+.gb-podium[data-rank="2"] {
+  padding-top: 0.6rem;
+}
+.gb-podium-rank {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.gb-podium-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.gb-podium-total {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.gb-podium-record {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.gb-avatar-splash {
+  animation: gb-avatar-land 0.6s steps(4, end) 1 both;
+}
+@keyframes gb-avatar-land {
+  from {
+    transform: scale(0.25);
+  }
+  to {
+    transform: scale(1);
+  }
+}

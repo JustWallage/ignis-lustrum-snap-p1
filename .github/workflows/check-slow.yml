@@ -1,0 +1,29 @@
+name: Check (slow)
+
+# The other half of `pnpm check` — knip, jscpd and the unit tests — plus the
+# build. Runs BESIDE the e2e job rather than in front of it: none of it can tell
+# you anything that would stop a throwaway deploy, and putting it on the critical
+# path cost several minutes on every branch.
+#
+# No `dist` artifact is uploaded: ephemeral-e2e builds its own copy and
+# deploy-prod rebuilds with CLOUDFLARE_ENV=production. Nothing consumed it.
+
+on:
+  workflow_call:
+
+jobs:
+  check-slow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Knip, duplication and unit tests
+        run: pnpm cf-typegen && pnpm check:slow
+      - name: Build
+        run: pnpm build

@@ -1,0 +1,79 @@
+{
+  "name": "ignis-snaps",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  },
+  "scripts": {
+    "dev": "pnpm migrate:local && pnpm seed:local && vite",
+    "dev:e2e": "pnpm migrate:local:e2e && CLOUDFLARE_ENV=e2e vite --port 5174",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cf-typegen": "wrangler types --env-file /dev/null",
+    "check": "pnpm cf-typegen && pnpm check:fast && pnpm check:slow",
+    "verify": "pnpm check && pnpm test:e2e",
+    "check:fast": "pnpm check:format && pnpm check:lint && pnpm check:ts",
+    "check:slow": "pnpm check:knip && pnpm check:dup && pnpm test:unit",
+    "check:format": "prettier --check .",
+    "check:lint": "eslint .",
+    "check:ts": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.e2e.json",
+    "check:knip": "knip",
+    "check:dup": "jscpd",
+    "fix": "prettier --write . && eslint . --fix",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "playwright:install": "playwright install chromium",
+    "prepare": "lefthook install",
+    "migrate:gen": "drizzle-kit generate",
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "migrate:local:e2e": "wrangler d1 migrations apply DB --local --env e2e",
+    "seed:local": "node scripts/seed.mjs --local",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "bootstrap:gha": "bash scripts/bootstrap-gha-secrets.sh"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.2.9",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.25",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "shadcn": "^4.11.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.40.2",
+    "@cloudflare/vitest-pool-workers": "^0.16.15",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
+    "jscpd": "^5.0.8",
+    "jsqr": "^1.4.0",
+    "knip": "^6.16.1",
+    "lefthook": "^2.1.0",
+    "prettier": "^3.8.4",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.0",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8",
+    "wrangler": "^4.100.0"
+  }
+}

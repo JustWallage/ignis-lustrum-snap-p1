@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784919963161,
+      "tag": "0000_dizzy_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784919963162,
+      "tag": "0001_overworld_snaps",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784973000820,
+      "tag": "0002_game_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784977781128,
+      "tag": "0003_day_scoped_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784980678583,
+      "tag": "0004_one_submission_per_day",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784984890486,
+      "tag": "0005_photo_scores",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784986205981,
+      "tag": "0006_peer_votes",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784988271651,
+      "tag": "0007_prizes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784989682610,
+      "tag": "0008_avatars",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1785064436224,
+      "tag": "0009_prize_awards",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1785076882495,
+      "tag": "0010_jury_caption",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1785224032194,
+      "tag": "0011_avatar_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1785421569624,
+      "tag": "0012_worried_king_bedlam",
+      "breakpoints": true
+    }
+  ]
+}

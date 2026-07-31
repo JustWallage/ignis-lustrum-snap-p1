@@ -1,0 +1,196 @@
+name: Ephemeral E2E
+
+# Deploys a fully isolated copy of the app (worker incl. its own RealtimeDO
+# namespace + fresh D1) under a unique name, runs ONE Playwright project against
+# it, and always tears the D1 + worker down. Snap bytes live inside that
+# throwaway D1, so no other storage needs provisioning.
+#
+# Both callers invoke this TWICE IN PARALLEL, once per project, so the suite's
+# two halves finish in the time of the slower one. They must not share a
+# deployment: every test starts from `/api/test/reset`, which empties the world
+# for every user and then sets the day and the phase, and `game_state.phase` is
+# one row behind one `idFromName("global")` DO. Two projects against one Worker
+# would delete each other's rows and fight over the phase — `event` needs
+# `submission` and `reveal` at the same moments `town` does.
+#
+# Each job is therefore one worker, one database, one browser, `workers: 1` —
+# unchanged from when the whole suite ran in a single job.
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: >-
+          The Playwright project to run (see playwright.config.ts). Also names
+          this job's isolated resources, so the two callers never collide.
+        required: true
+        type: string
+
+jobs:
+  ephemeral-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # The PROJECT is part of the name. Without it the two jobs of one run share
+      # a worker and a database and tear each other down mid-suite.
+      E2E_NAME: ignis-snaps-e2e-${{ github.run_id }}-${{ inputs.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - id: playwright
+        name: Resolve the Playwright version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # ubuntu-latest already carries Chromium's system libraries, so
+      # `playwright install` runs WITHOUT `--with-deps` and does no apt-get. If
+      # Chromium ever fails to launch here, put `--with-deps` back into the
+      # `playwright:install` script rather than papering over it.
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Playwright browser
+        run: pnpm playwright:install
+
+      # The account is near the free plan's D1 database cap, and this pipeline
+      # now takes two databases per run rather than one. `cancel-in-progress` is
+      # on and agents push repeatedly, so runs are cancelled mid-flight
+      # constantly; a cancelled job only gets a grace period for its
+      # `if: always()` steps, and every teardown that does not finish is
+      # permanent consumption. An hour is far longer than the 20-minute job
+      # timeout, so nothing a live run is using is ever close to it.
+      - name: Sweep stale e2e databases
+        run: |
+          now="$(date -u +%s)"
+          cutoff=$((now - 3600))
+          if ! pnpm exec wrangler d1 list --json > /tmp/d1-list.json; then
+            echo "::warning::Could not list D1 databases — skipping the sweep."
+            exit 0
+          fi
+          if ! jq 'if type == "array" then . else (.result // []) end' /tmp/d1-list.json > /tmp/d1.json; then
+            echo "::warning::wrangler d1 list did not return JSON — skipping the sweep."
+            exit 0
+          fi
+          echo "The account currently holds $(jq 'length' /tmp/d1.json) D1 databases."
+          jq -r '.[] | select(.name | startswith("ignis-snaps-e2e-")) | [.name, (.created_at // "")] | @tsv' \
+            /tmp/d1.json > /tmp/e2e-dbs.tsv
+          swept=0
+          while IFS="$(printf '\t')" read -r name created; do
+            [ -n "$name" ] || continue
+            epoch="$(date -u -d "$created" +%s 2>/dev/null || true)"
+            if [ -z "$epoch" ]; then
+              echo "  keeping $name — no usable created_at (${created:-none}), so its age is unknown"
+            elif [ "$epoch" -ge "$cutoff" ]; then
+              echo "  keeping $name — $(((now - epoch) / 60))m old, a run may still be using it"
+            else
+              echo "  SWEEPING $name — $(((now - epoch) / 60))m old, its run is long gone"
+              pnpm exec wrangler delete --name "$name" --force || echo "    worker delete failed"
+              pnpm exec wrangler d1 delete "$name" --skip-confirmation || echo "    D1 delete failed"
+              swept=$((swept + 1))
+            fi
+          done < /tmp/e2e-dbs.tsv
+          echo "Swept $swept stale environment(s)."
+
+      - name: Create isolated D1 database
+        run: |
+          pnpm exec wrangler d1 create "$E2E_NAME"
+          echo "DB_ID=$(pnpm exec wrangler d1 info "$E2E_NAME" --json | jq -r '.uuid')" >> "$GITHUB_ENV"
+      - name: Prepare this run's configuration
+        run: |
+          sed -i "s/TEMPLATE_E2E_DB_ID/$DB_ID/" wrangler.jsonc
+          sed -i "s/\"database_name\": \"ignis-snaps-e2e\"/\"database_name\": \"$E2E_NAME\"/" wrangler.jsonc
+      - name: Apply migrations
+        run: pnpm exec wrangler d1 migrations apply DB --remote --env e2e
+      - name: Build and deploy isolated Worker
+        run: |
+          CLOUDFLARE_ENV=e2e pnpm build
+          pnpm exec wrangler deploy -c dist/ignis_snaps/wrangler.json --name "$E2E_NAME"
+
+      # Whichever spec sorts first would otherwise eat the cold start of a Worker
+      # deployed seconds ago, and SPLITTING THE SUITE MADE A SECOND FIRST FILE:
+      # `countdown.spec.ts` began flaking on exactly the beat `admin.spec.ts`
+      # used to. What it flakes on is a 404, not a 500 — a new deployment is
+      # eventually consistent across Cloudflare's edge, so one colo serves the
+      # script while another has never heard of it. `fixtures.ts` polls the seed
+      # and the reset, but a poll that keeps landing on a cold edge just burns
+      # its 30s and takes the test's timeout with it.
+      #
+      # So: seed from here first (it is public, idempotent, and what the fixture
+      # asks for anyway), then require CONSECUTIVE successes rather than one.
+      # A single 200 proves one edge node has the script, not that the deploy
+      # has landed everywhere.
+      - name: Wait for the isolated Worker to answer everywhere
+        env:
+          BASE_URL: https://${{ env.E2E_NAME }}.${{ secrets.WORKERS_DEV_SUBDOMAIN }}
+        run: |
+          for attempt in $(seq 1 40); do
+            if curl -fsS -o /dev/null -X POST "$BASE_URL/api/seed"; then
+              echo "seeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -eq 40 ]; then
+              echo "::error::the isolated Worker never seeded"
+              exit 1
+            fi
+            sleep 3
+          done
+          streak=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS -o /dev/null "$BASE_URL/api/state"; then
+              streak=$((streak + 1))
+              if [ "$streak" -ge 5 ]; then
+                echo "/api/state answered 5 times running — the deploy has propagated"
+                exit 0
+              fi
+            else
+              echo "  /api/state is still 404ing on some edge; streak reset"
+              streak=0
+            fi
+            sleep 2
+          done
+          echo "::error::the isolated Worker never answered /api/state consistently"
+          exit 1
+
+      - name: Run E2E against the live isolated Worker
+        env:
+          BASE_URL: https://${{ env.E2E_NAME }}.${{ secrets.WORKERS_DEV_SUBDOMAIN }}
+        run: |
+          echo "project ${{ inputs.project }} -> $BASE_URL (D1 $DB_ID)"
+          pnpm test:e2e --project="${{ inputs.project }}"
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 3
+
+      - name: Teardown isolated resources
+        if: always()
+        run: |
+          pnpm exec wrangler delete --name "$E2E_NAME" --force || echo "worker delete failed"
+          pnpm exec wrangler d1 delete "$E2E_NAME" --skip-confirmation || echo "D1 delete failed"
+      - name: Confirm nothing from this job survived
+        if: always()
+        run: |
+          pnpm exec wrangler d1 list --json > /tmp/after.json || echo "[]" > /tmp/after.json
+          survivors="$(jq -r --arg name "$E2E_NAME" \
+            'if type == "array" then . else (.result // []) end
+             | .[] | select(.name == $name) | .name' /tmp/after.json || echo "(could not read the D1 list)")"
+          if [ -n "$survivors" ]; then
+            echo "::warning::D1 database $E2E_NAME SURVIVED teardown"
+          else
+            echo "No D1 database named $E2E_NAME remains."
+          fi

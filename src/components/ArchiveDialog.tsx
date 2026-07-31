@@ -1,0 +1,374 @@
+import { useMemo, useState, type ReactNode } from "react";
+import { archiveSchema, type DayResult } from "@shared/api";
+import { juryForDay } from "@shared/juries";
+import { WINNING_RANK } from "@shared/leaderboard";
+import { AvatarGallery } from "@/components/AvatarGallery";
+import { DeleteSnapButton } from "@/components/DeleteSnapButton";
+import { GbPlaceholder } from "@/components/GbPending";
+import { Leaderboard } from "@/components/Leaderboard";
+import { LikeButton } from "@/components/LikeButton";
+import { Modal } from "@/components/Modal";
+import { SnapViewer } from "@/components/SnapViewer";
+import { useRealtimeEvents } from "@/context/WebSocketContext";
+import { useCachedFetch } from "@/hooks/useCachedFetch";
+import { usePhotoLike } from "@/hooks/usePhotoLike";
+import {
+  ALL,
+  dayInView,
+  feedOf,
+  photographers,
+  type ArchiveEntry,
+} from "@/lib/archive";
+import { curvedText, isFallbackRating, ratingText } from "@/lib/rating";
+import type { ViewerSnap } from "@/lib/viewer";
+
+const VIEWS = [
+  { id: "days", label: "Days" },
+  { id: "standings", label: "Standings" },
+  { id: "avatars", label: "Avatars" },
+] as const;
+
+type View = (typeof VIEWS)[number]["id"];
+
+function points(value: number): string {
+  return String(Math.round(value));
+}
+
+/** The card and the open photograph print the same line, so the wording — and what
+ * `null` means, which is a snap the jury never reached rather than a nought — lives
+ * once. The number itself is `lib/rating.ts`'s, as it is on every other surface. */
+function juryLine(result: DayResult): string {
+  const broke = isFallbackRating(result.aiStatus) ? " (machine broke)" : "";
+  return `Jury ${ratingText(result.aiScore)}${broke}`;
+}
+
+export function ArchiveDialog({
+  onDelete,
+  onClose,
+}: {
+  onDelete: (id: number) => void;
+  onClose: () => void;
+}) {
+  const archive = useCachedFetch("/api/days", archiveSchema);
+  const [chosenDay, setChosenDay] = useState<number | typeof ALL | null>(null);
+  const [who, setWho] = useState<string>(ALL);
+  const [view, setView] = useState<View>("days");
+  const [open, setOpen] = useState<number | null>(null);
+
+  useRealtimeEvents(archive.mutate);
+
+  const days = useMemo(() => archive.data?.days ?? [], [archive.data]);
+  const day = dayInView(days, chosenDay);
+  const names = useMemo(() => photographers(days), [days]);
+  const feed = useMemo(() => feedOf(days, { day, who }), [days, day, who]);
+  // The viewer pages through what the two rails left on screen, in the order it is in,
+  // so a filter still means something once a photograph is open.
+  const paging = useMemo<ViewerSnap[]>(
+    () => feed.map(({ result }) => ({ id: result.photoId, url: result.url })),
+    [feed],
+  );
+  const shown = feed.find(({ result }) => result.photoId === open);
+
+  return (
+    <>
+      <Modal label="Archive" full onClose={onClose}>
+        <div className="arc-screen" data-testid="archive">
+          <header className="arc-bar">
+            <h2 className="arc-title">Archive</h2>
+            <div className="arc-tabs">
+              {VIEWS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="arc-tab"
+                  aria-pressed={view === id}
+                  onClick={() => {
+                    setView(id);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="arc-close"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </header>
+          {/* Every view that is not the feed branches ABOVE the empty gate below:
+              inside it, a shelf nobody has revealed a day on would answer "Avatars"
+              with "nothing is in the archive". */}
+          {view === "standings" ? (
+            <div className="arc-panel">
+              <Leaderboard />
+            </div>
+          ) : view === "avatars" ? (
+            <div className="arc-panel">
+              <AvatarGallery />
+            </div>
+          ) : days.length === 0 ? (
+            <div className="arc-panel">
+              <GbPlaceholder
+                error={archive.error}
+                loading={archive.loading}
+                testId="archive-empty"
+              >
+                Nothing is in the archive until a day has been revealed.
+              </GbPlaceholder>
+            </div>
+          ) : (
+            <>
+              {/* Two rails of chips rather than two `<select>`s: on a phone a
+                  filter you can see the options of is a filter people use, and
+                  "back to everything" is one tap at the head of each rail. */}
+              <div className="arc-rails">
+                <Rail label="Day" testId="archive-days">
+                  <Chip
+                    label="All days"
+                    on={day === ALL}
+                    onPick={() => {
+                      setChosenDay(ALL);
+                    }}
+                  />
+                  {days.map((one) => (
+                    <Chip
+                      key={one.day}
+                      label={`Day ${String(one.day)}`}
+                      on={day === one.day}
+                      onPick={() => {
+                        setChosenDay(one.day);
+                      }}
+                    />
+                  ))}
+                </Rail>
+                <Rail label="By" testId="archive-people">
+                  <Chip
+                    label="Everyone"
+                    on={who === ALL}
+                    onPick={() => {
+                      setWho(ALL);
+                    }}
+                  />
+                  {names.map((name) => (
+                    <Chip
+                      key={name}
+                      label={name}
+                      on={who === name}
+                      onPick={() => {
+                        setWho(name);
+                      }}
+                    />
+                  ))}
+                </Rail>
+              </div>
+              {feed.length === 0 ? (
+                <p className="arc-panel" data-testid="archive-none">
+                  Nothing to show for that day and that photographer.
+                </p>
+              ) : (
+                <ul className="arc-feed" data-testid="archive-results">
+                  {feed.map((entry) => (
+                    <Card
+                      key={entry.result.photoId}
+                      entry={entry}
+                      onOpen={setOpen}
+                    />
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+      </Modal>
+      {shown !== undefined && (
+        <ArchiveViewer
+          entry={shown}
+          list={paging}
+          onOpen={setOpen}
+          onDelete={onDelete}
+          onClose={() => {
+            setOpen(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function ArchiveViewer({
+  entry: { day, prize, result },
+  list,
+  onOpen,
+  onDelete,
+  onClose,
+}: {
+  entry: ArchiveEntry;
+  list: readonly ViewerSnap[];
+  onOpen: (photoId: number) => void;
+  onDelete: (photoId: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <SnapViewer
+      list={list}
+      openId={result.photoId}
+      onOpen={onOpen}
+      onClose={onClose}
+      note={
+        <div className="shrink-0 space-y-1">
+          {result.juryCaption !== null && (
+            <p className="text-xs" data-testid="viewer-caption">
+              {result.juryCaption}
+            </p>
+          )}
+          <p className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-widest">
+            <span data-testid="viewer-who">{result.uploader.name}</span>
+            <span>Day {day}</span>
+            <span data-testid="viewer-rating">{juryLine(result)}</span>
+            {prize !== null && result.rank === WINNING_RANK && (
+              <span data-testid="viewer-prize">Won: {prize}</span>
+            )}
+          </p>
+        </div>
+      }
+      // Keyed by the photograph: `useCachedFetch` keeps the last path's data until the
+      // new one lands, and a stale `likedByMe` would send the wrong method — a heart
+      // that unlikes the snap you just paged onto.
+      controls={<SnapLike key={result.photoId} id={result.photoId} />}
+      trailing={
+        <DeleteSnapButton
+          uploaderId={result.uploader.id}
+          onDelete={() => {
+            onDelete(result.photoId);
+          }}
+        />
+      }
+    />
+  );
+}
+
+function SnapLike({ id }: { id: number }) {
+  const like = usePhotoLike(id);
+  return <LikeButton {...like} />;
+}
+
+function Rail({
+  label,
+  testId,
+  children,
+}: {
+  label: string;
+  testId: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="arc-rail" data-testid={testId}>
+      <span className="arc-rail-label">{label}</span>
+      <div className="arc-rail-scroll">{children}</div>
+    </div>
+  );
+}
+
+function Chip({
+  label,
+  on,
+  onPick,
+}: {
+  label: string;
+  on: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="arc-chip"
+      aria-pressed={on}
+      onClick={onPick}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Card({
+  entry: { day, prize, result },
+  onOpen,
+}: {
+  entry: ArchiveEntry;
+  onOpen: (photoId: number) => void;
+}) {
+  const jury = juryForDay(day);
+  return (
+    <li className="arc-card" data-testid="archive-card">
+      <button
+        type="button"
+        className="arc-shot"
+        aria-label={`Open ${result.uploader.name}'s snap from day ${String(day)}`}
+        onClick={() => {
+          onOpen(result.photoId);
+        }}
+      >
+        <img
+          loading="lazy"
+          src={result.url}
+          alt=""
+          data-testid="archive-photo"
+          className="arc-photo"
+        />
+        <span className="arc-rank">#{result.rank}</span>
+      </button>
+      <div className="arc-body">
+        {/* Null for a snap whose evaluation failed — the jury's line about a
+            photograph is theirs or nobody's, so the card shows none rather than
+            inventing one. */}
+        {result.juryCaption !== null && (
+          <p className="arc-caption" data-testid="archive-caption">
+            {result.juryCaption}
+          </p>
+        )}
+        <p className="arc-meta">
+          <span className="arc-who">{result.uploader.name}</span>
+          <span>Day {day}</span>
+          <span data-testid="archive-jury">Judged by {jury.name}</span>
+          {/* The jury's rating out of ten, on the line you read rather than
+              behind the `<details>` with the arithmetic — this card's own note
+              asked for it here, and #97 is precisely that a rating nobody could
+              find was a rating nobody had. */}
+          <span className="arc-rating" data-testid="archive-rating">
+            {juryLine(result)}
+          </span>
+        </p>
+        {/* What the wheel gave them, beside who won it. A day that never reached
+            a landing has no award and shows no slot for one. */}
+        {prize !== null && result.rank === WINNING_RANK && (
+          <p className="arc-prize" data-testid="archive-prize">
+            Won: {prize}
+          </p>
+        )}
+        <details className="arc-details">
+          <summary>{points(result.total)} points</summary>
+          <p className="arc-figures" data-testid="archive-figures">
+            <span>Rank #{result.rank}</span>
+            <span>Peer {points(result.peerNorm)}</span>
+            {/* The curved AI half, named as the curve. It used to be printed here
+                as "AI 43" — 0..HALF_WEIGHT under a label that reads like a score
+                out of ten, which is the readout #97 is about. The rating is on the
+                meta line above; this is what the day's curve made of it. */}
+            <span>{curvedText(result.aiNorm)}</span>
+            {result.bonus && <span>Bonus for {jury.bonusItem}</span>}
+            {result.noVotePenalty && <span>No vote ×0.5</span>}
+          </p>
+          {result.critique !== null && (
+            <p className="arc-critique" data-testid="archive-critique">
+              {result.critique}
+            </p>
+          )}
+        </details>
+      </div>
+    </li>
+  );
+}

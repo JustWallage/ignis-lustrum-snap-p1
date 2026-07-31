@@ -1,0 +1,6 @@
+[
+  { "name": "tester", "password": "test-password-123" },
+  { "name": "rival", "password": "rival-password-123" },
+  { "name": "voter", "password": "voter-password-123" },
+  { "name": "judge", "password": "judge-password-123" }
+]

@@ -1,0 +1,29 @@
+name: Check (fast)
+
+# The gate in FRONT of everything that costs Cloudflare: format, lint, types.
+# It exists so a branch that does not compile never provisions a D1 or deploys a
+# Worker — and it is deliberately the cheap half of `pnpm check`, because the
+# whole e2e job waits behind it. Everything slower lives in check-slow.yml and
+# runs BESIDE e2e, not in front of it.
+#
+# `pnpm check` == cf-typegen + check:fast + check:slow, so the two jobs together
+# still run exactly what the pre-commit hook does. Never move a step out of one
+# without moving it into the other.
+
+on:
+  workflow_call:
+
+jobs:
+  check-fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format, lint and types
+        run: pnpm cf-typegen && pnpm check:fast

@@ -1,0 +1,108 @@
+import { describe, expect, it } from "vitest";
+import {
+  REVALIDATE_EVENT_TYPES,
+  WS_EVENT_TYPES,
+  wsEventSchema,
+} from "./ws-events";
+
+describe("WS_EVENT_TYPES", () => {
+  it("covers every member of the event union", () => {
+    expect(WS_EVENT_TYPES).toHaveLength(wsEventSchema.options.length);
+    expect([...WS_EVENT_TYPES].sort()).toEqual([
+      "avatar_changed",
+      "comment_created",
+      "comment_deleted",
+      "event_changed",
+      "photo_created",
+      "photo_deleted",
+      "photo_liked",
+      "presence_here",
+      "presence_left",
+      "presence_moved",
+      "presence_said",
+      "prizes_changed",
+      "state_changed",
+      "votes_changed",
+    ]);
+  });
+
+  it("lists only types the schema actually discriminates on", () => {
+    for (const type of WS_EVENT_TYPES) {
+      const parsed = wsEventSchema.safeParse({ type });
+      expect(
+        parsed.error?.issues.map((issue) => issue.path) ?? [],
+      ).not.toContain(["type"]);
+    }
+  });
+});
+
+describe("REVALIDATE_EVENT_TYPES", () => {
+  it("is every event except presence", () => {
+    expect([...REVALIDATE_EVENT_TYPES].sort()).toEqual([
+      "avatar_changed",
+      "comment_created",
+      "comment_deleted",
+      "event_changed",
+      "photo_created",
+      "photo_deleted",
+      "photo_liked",
+      "prizes_changed",
+      "state_changed",
+      "votes_changed",
+    ]);
+    expect(REVALIDATE_EVENT_TYPES).toHaveLength(WS_EVENT_TYPES.length - 4);
+  });
+});
+
+describe("wsEventSchema", () => {
+  it("round-trips a state_changed event with its whole payload", () => {
+    const event = {
+      type: "state_changed",
+      state: { day: 3, phase: "countdown", submissionCount: 7 },
+    };
+    expect(wsEventSchema.parse(event)).toEqual(event);
+  });
+
+  it("round-trips an event_changed event with its whole payload", () => {
+    const event = {
+      type: "event_changed",
+      state: {
+        phase: "countdown",
+        day: 3,
+        countdownEndsAt: 1_700_000_010_000,
+        revealStartedAt: null,
+        revealPhotoIds: [],
+        winnerPhotoId: null,
+        winnerUserId: null,
+        hostUserId: 11,
+        podiumRank: null,
+        podiumNextAt: null,
+        stageEndsAt: null,
+        spunAt: null,
+        prizeIndex: null,
+        segments: [],
+      },
+    };
+    expect(wsEventSchema.parse(event)).toEqual(event);
+  });
+
+  it("carries a message as a socket id and its text, and nothing else", () => {
+    const event = { type: "presence_said", id: "sock-1", text: "HELLO" };
+    expect(wsEventSchema.parse(event)).toEqual(event);
+    expect(
+      wsEventSchema.safeParse({ ...event, text: "A".repeat(500) }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an unknown phase and an unknown event type", () => {
+    expect(
+      wsEventSchema.safeParse({
+        type: "state_changed",
+        state: { day: 1, phase: "brunch", submissionCount: 0 },
+      }).success,
+    ).toBe(false);
+    expect(wsEventSchema.safeParse({ type: "day_changed" }).success).toBe(
+      false,
+    );
+  });
+});

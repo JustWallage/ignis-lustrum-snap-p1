@@ -1,0 +1,89 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ignis-snaps",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "observability": { "enabled": true },
+  // JWT_SECRET and USERS_JSON are committed here ONLY as throwaway local/e2e
+  // values. Production overrides both with real Wrangler secrets (set at deploy),
+  // so its `vars` block below deliberately omits them. ADMIN_NAMES is a plain var.
+  // Four throwaway users, not one: a ballot ranks a top THREE out of other
+  // people's snaps, so filling one takes three uploaders plus the voter — and
+  // the voter's own snap is on the ballot too now, visible and never rankable.
+  "vars": {
+    "ENVIRONMENT": "local",
+    "ADMIN_NAMES": "just",
+    "JWT_SECRET": "local-dev-secret-not-for-production",
+    "USERS_JSON": "[{\"name\":\"tester\",\"password\":\"test-password-123\"},{\"name\":\"rival\",\"password\":\"rival-password-123\"},{\"name\":\"voter\",\"password\":\"voter-password-123\"},{\"name\":\"judge\",\"password\":\"judge-password-123\"}]",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ignis-snaps-local",
+      "database_id": "ignis-snaps-local",
+      "migrations_dir": "db/migrations",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RealtimeDO"] }],
+  "env": {
+    // E2E: deployed by CI as a uniquely named worker; the D1 id and DB name
+    // are substituted by the ephemeral-e2e workflow before deploy.
+    "e2e": {
+      "vars": {
+        "ENVIRONMENT": "e2e",
+        "ADMIN_NAMES": "tester",
+        "JWT_SECRET": "e2e-throwaway-secret",
+        "USERS_JSON": "[{\"name\":\"tester\",\"password\":\"test-password-123\"},{\"name\":\"rival\",\"password\":\"rival-password-123\"},{\"name\":\"voter\",\"password\":\"voter-password-123\"},{\"name\":\"judge\",\"password\":\"judge-password-123\"}]",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ignis-snaps-e2e",
+          "database_id": "TEMPLATE_E2E_DB_ID",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
+      },
+    },
+    // Production: D1 id substituted by CI from terraform output. JWT_SECRET and
+    // USERS_JSON are set as Wrangler secrets by the deploy job (not vars).
+    "production": {
+      "name": "ignis-snaps",
+      "routes": [{ "pattern": "snaps.justwallage.nl", "custom_domain": true }],
+      "vars": {
+        "ENVIRONMENT": "production",
+        "ADMIN_NAMES": "just",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ignis-snaps-prod",
+          "database_id": "TEMPLATE_PROD_DB_ID",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
+      },
+      // Workers AI, for the one NPC you can hold a conversation with. PRODUCTION
+      // ONLY, and not by choice: an `ai` binding has no local emulation at all, so
+      // wrangler answers one by opening a REMOTE proxy session — which needs
+      // Cloudflare credentials. Declare it in the top-level (local) block and
+      // `pnpm test:unit` cannot start; declare it in `e2e` and neither can
+      // `pnpm dev:e2e`, which is the server Playwright runs against locally.
+      // So local and e2e genuinely have no model, exactly like GEMINI_API_KEY, and
+      // `worker/lib/npc.ts` reads a missing binding as "the machine is asleep" and
+      // answers in the NPC's own voice instead. Do not move this up.
+      "ai": { "binding": "AI" },
+    },
+  },
+}

@@ -1,0 +1,35 @@
+# Product intent
+
+Why the design is what it is. The running system is described by the `CLAUDE.md` files; this does not
+repeat them, and where a ticket disagrees with it, this wins and the ticket gets fixed.
+
+A 14-day photo contest played on a Game Boy. There is no end: after day 14 the jury schedule wraps and
+play continues.
+
+- **Curving both halves of the score** is the only way peer votes and an AI score carry equal weight.
+  Normalising against a theoretical maximum leaves the AI dominating in practice.
+- **Photos are anonymous until their day is revealed** — that is the game, not a privacy feature. The
+  counterpart is that walking is public: an anonymous visitor sees the town and everybody in it.
+- **Players pass straight through each other**, so nobody can body-block the door or the jury. Names
+  are painted over the sprites, because a shared town where you cannot tell which friend walked past is
+  scenery rather than company.
+- **One image-in → image-out call for avatars**, not trait-extraction into a separate image model:
+  cheaper and a much better likeness. It never refuses — a non-human subject gets personified.
+- **The avatar caps are about money.** The image model charges per picture: the personal cap stops one
+  player sitting on the button, the shared one stops fourteen polite players adding up to a surprise.
+- **A jury failure never blocks an upload.** The alternative is a player whose photo will not go in
+  because a third party is down.
+- **The event runs itself** — no phase but the wheel waits for anybody to press anything.
+- **The reveal parades worst-first**, so the last snap shown is the winner's.
+- **Below `MIN_ENABLED_PRIZES` the START button refuses**, with the reason: an event that could not be
+  finished is worse than one that never began, and the admin is standing right there to be told. Three
+  phases later, on an alarm, there is no request left to answer.
+- **Game Boy Color screen, DMG shell.** Per-tile 4-colour ramps over the existing DMG art is how the
+  real hardware colourised DMG games, and far smaller than repainting every sprite.
+- **Sound is synthesised, no assets** — the channels the hardware had. Footsteps are per surface,
+  because the ground telling you what it is made of is most of what makes a town feel walked in.
+- **The archive is deliberately not a Game Boy** (#99): legibility beat consistency once, for the one
+  screen whose job is reading.
+
+Out of scope: **web push** (#32 — two tickets of VAPID plumbing, and on iOS only once installed), and
+**R2**, ever.

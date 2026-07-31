@@ -1,0 +1,462 @@
+import { DurableObject } from "cloudflare:workers";
+import { prizeAwards } from "../../db/schema";
+import {
+  countdownEvent,
+  eventStateSchema,
+  firstPodiumRank,
+  HOST_IDLE_MS,
+  idleEvent,
+  isAwaitingHost,
+  nextDeadline,
+  nextPodiumStage,
+  podiumAdvanceEvent,
+  podiumEvent,
+  revealEvent,
+  spunEvent,
+  wheelEvent,
+  type EventDraft,
+  type EventState,
+} from "../../shared/events";
+import {
+  isPresenceTooSoon,
+  isSayTooSoon,
+  presenceFrameSchema,
+  type PresenceMove,
+  type PresencePlayer,
+} from "../../shared/presence";
+import { MIN_ENABLED_PRIZES } from "../../shared/prizes";
+import type { GamePhase } from "../../shared/state";
+import { wsEventSchema, type WsEvent } from "../../shared/ws-events";
+import type { Bindings } from "../env";
+import { getDb } from "../lib/db";
+import { resultsForDays } from "../lib/day-results";
+import type { EventOutcome } from "../lib/event";
+import {
+  advanceDayStatement,
+  readGameState,
+  setGamePhase,
+} from "../lib/game-state";
+import { enabledPrizeLabels } from "../lib/wheel";
+import {
+  isPresent,
+  playerOf,
+  presenceName,
+  presenceSprite,
+  presenceUserId,
+  readSocketState,
+  roster,
+  writeSocketState,
+  type SocketState,
+} from "../lib/presence";
+
+const STATE_KEY = "state_changed";
+
+const EVENT_KEY = "event_state";
+
+function frame(event: WsEvent): string {
+  return JSON.stringify(wsEventSchema.parse(event));
+}
+
+function parseJson(message: string): unknown {
+  try {
+    return JSON.parse(message);
+  } catch {
+    return null;
+  }
+}
+
+function refuse(status: 403 | 409, error: string): EventOutcome {
+  return { ok: false, status, error };
+}
+
+function landingIndex(count: number): number {
+  const [value] = crypto.getRandomValues(new Uint32Array(1));
+  return (value ?? 0) % count;
+}
+
+/**
+ * ONE instance (`idFromName("global")`), and the ONLY writer of `game_state.phase`.
+ *
+ * Uses the WebSocket HIBERNATION API, so per-socket presence lives in the socket's
+ * ATTACHMENT: a field on this class would be a roster that quietly emptied itself.
+ */
+export class RealtimeDO extends DurableObject<Bindings> {
+  private transitions: Promise<unknown> = Promise.resolve();
+
+  private alone<T>(body: () => Promise<T>): Promise<T> {
+    const next = this.transitions.then(body, body);
+    this.transitions = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
+
+  override async fetch(request: Request): Promise<Response> {
+    if (request.headers.get("Upgrade") === "websocket") {
+      const pair = new WebSocketPair();
+      const socket = pair[1];
+      this.ctx.acceptWebSocket(socket);
+      const now = Date.now();
+      const upgrade = new URL(request.url);
+      writeSocketState(socket, {
+        id: crypto.randomUUID(),
+        name: presenceName(upgrade),
+        userId: presenceUserId(upgrade),
+        sprite: presenceSprite(upgrade),
+        at: null,
+        seenAt: now,
+        saidAt: null,
+      });
+      const snapshot = await this.ctx.storage.get<string>(STATE_KEY);
+      if (snapshot !== undefined) {
+        this.send(socket, snapshot);
+      }
+      // Sent WHATEVER it says, normal play included (#98): withholding it unless
+      // an event was running left a client that dropped its socket across the last
+      // transition of an evening stuck inside a wheel the world had left.
+      const event = eventStateSchema.safeParse(
+        await this.ctx.storage.get(EVENT_KEY),
+      );
+      if (event.success) {
+        this.send(socket, frame({ type: "event_changed", state: event.data }));
+      }
+      this.expireGhosts(now);
+      this.send(
+        socket,
+        frame({ type: "presence_here", players: this.roster(now) }),
+      );
+      return new Response(null, { status: 101, webSocket: pair[0] });
+    }
+
+    const url = new URL(request.url);
+    if (url.pathname === "/broadcast" && request.method === "POST") {
+      this.fanout(await request.text());
+      return new Response("OK");
+    }
+    // Store-only on purpose: /broadcast is what wakes the sockets. Keeping the two
+    // apart lets the worker warm a cold DO without re-notifying everyone.
+    if (url.pathname === "/state" && request.method === "POST") {
+      await this.ctx.storage.put(STATE_KEY, await request.text());
+      return new Response("OK");
+    }
+
+    return new Response("Not found", { status: 404 });
+  }
+
+  async readEvent(): Promise<EventState> {
+    const stored = eventStateSchema.safeParse(
+      await this.ctx.storage.get(EVENT_KEY),
+    );
+    if (stored.success) return stored.data;
+    const { day, phase } = await readGameState(getDb(this.env));
+    return eventStateSchema.parse({ ...idleEvent(), phase, day });
+  }
+
+  async startEvent(hostUserId: number): Promise<EventOutcome> {
+    return this.alone(async () => {
+      const current = await this.readEvent();
+      if (current.phase !== "submission") {
+        return refuse(409, "An event is already running");
+      }
+      const segments = await enabledPrizeLabels(getDb(this.env));
+      if (segments.length < MIN_ENABLED_PRIZES) {
+        return refuse(
+          409,
+          `The wheel needs at least ${String(MIN_ENABLED_PRIZES)} enabled prizes; ${String(segments.length)} is not a wheel. Turn more on in the prize manager.`,
+        );
+      }
+      return {
+        ok: true,
+        event: await this.publish(countdownEvent(Date.now(), hostUserId)),
+      };
+    });
+  }
+
+  async abortEvent(): Promise<EventOutcome> {
+    return this.alone(async () => {
+      const current = await this.readEvent();
+      if (current.phase === "submission") {
+        return refuse(409, "No event is running");
+      }
+      return { ok: true, event: await this.publish(idleEvent()) };
+    });
+  }
+
+  async spinWheel(userId: number): Promise<EventOutcome> {
+    return this.alone(async () => {
+      const event = await this.readEvent();
+      if (event.phase !== "wheel") {
+        return refuse(409, "The wheel is not up");
+      }
+      if (event.winnerUserId !== userId) {
+        return refuse(403, "Only the day's winner spins the wheel");
+      }
+      if (event.prizeIndex !== null) {
+        return refuse(409, "The wheel has already been spun");
+      }
+      const index = landingIndex(event.segments.length);
+      return {
+        ok: true,
+        event: await this.publish(spunEvent(event, Date.now(), index)),
+      };
+    });
+  }
+
+  async advancePodium(userId: number): Promise<EventOutcome> {
+    return this.alone(async () => {
+      const event = await this.readEvent();
+      if (event.phase !== "reveal") {
+        return refuse(409, "No reveal is running");
+      }
+      if (event.hostUserId !== userId) {
+        return refuse(403, "Only tonight's host moves the podium on");
+      }
+      if (event.podiumRank === null) {
+        return refuse(409, "The podium is not up yet");
+      }
+      if (event.podiumNextAt !== null) {
+        return refuse(409, "The next one is already on its way");
+      }
+      return {
+        ok: true,
+        event: await this.publish(podiumAdvanceEvent(event, Date.now())),
+      };
+    });
+  }
+
+  private hostStillThere(event: EventState, now: number): boolean {
+    const host = event.hostUserId;
+    if (host === null || !isAwaitingHost(event)) return false;
+    return isPresent(this.ctx.getWebSockets(), host, now);
+  }
+
+  /**
+   * Guards on the DEADLINE as well as the phase, because the reveal's stages all share
+   * the `reveal` phase and a duplicate firing would skip a page. An early delivery
+   * re-arms rather than dropping the transition.
+   */
+  override async alarm(): Promise<void> {
+    await this.alone(async () => {
+      const event = await this.readEvent();
+      const deadline = nextDeadline(event);
+      if (deadline === null) return;
+      const now = Date.now();
+      if (deadline > now) {
+        await this.ctx.storage.setAlarm(deadline);
+        return;
+      }
+      if (this.hostStillThere(event, now)) {
+        await this.ctx.storage.setAlarm(now + HOST_IDLE_MS);
+        return;
+      }
+      if (event.phase === "countdown") {
+        await this.publish(await this.revealDraft(event));
+        return;
+      }
+      if (event.phase === "reveal") {
+        await this.publish(await this.revealStep(event));
+        return;
+      }
+      if (event.phase === "wheel") {
+        await this.land(event);
+      }
+    });
+  }
+
+  /** The same `resultsForDays` the endpoint and the archive serve, so the wheel cannot
+   * spin for somebody the scoreboard disagrees with. */
+  private async revealDraft(event: EventState): Promise<EventDraft> {
+    const { day } = event;
+    const ranked =
+      (await resultsForDays(getDb(this.env), [day])).get(day) ?? [];
+    const winner = ranked[0];
+    return revealEvent(
+      Date.now(),
+      {
+        photoIds: [...ranked].reverse().map((result) => result.photoId),
+        winnerPhotoId: winner?.photoId ?? null,
+        winnerUserId: winner?.uploader.id ?? null,
+      },
+      event.hostUserId,
+    );
+  }
+
+  private async revealStep(event: EventState): Promise<EventDraft> {
+    const now = Date.now();
+    const stage = event.podiumRank;
+    if (stage === null) {
+      const first = firstPodiumRank(event.revealPhotoIds.length);
+      return first === null
+        ? this.wheelDraft(event)
+        : podiumEvent(event, first, now);
+    }
+    const next = nextPodiumStage(stage);
+    return next === null
+      ? this.wheelDraft(event)
+      : podiumEvent(event, next, now);
+  }
+
+  private async wheelDraft(event: EventState): Promise<EventDraft> {
+    if (event.winnerUserId === null) return idleEvent();
+    const segments = await enabledPrizeLabels(getDb(this.env));
+    if (segments.length < MIN_ENABLED_PRIZES) return idleEvent();
+    return wheelEvent(event, segments, Date.now());
+  }
+
+  private async land(event: EventState): Promise<void> {
+    const index = event.prizeIndex;
+    const winner = event.winnerUserId;
+    const label = index === null ? undefined : event.segments[index];
+    if (winner !== null && label !== undefined) {
+      const db = getDb(this.env);
+      await db.batch([
+        db.insert(prizeAwards).values({
+          day: event.day,
+          userId: winner,
+          prizeLabel: label,
+          createdAt: new Date(),
+        }),
+        advanceDayStatement(db, event.day),
+      ]);
+    }
+    await this.publish(idleEvent());
+  }
+
+  async setEventPhase(phase: GamePhase): Promise<EventState> {
+    return this.alone(() => this.publish({ ...idleEvent(), phase }));
+  }
+
+  /**
+   * The ONE write path. The day is READ rather than chosen, which is what makes
+   * "aborting does not increment the day" a property of the code. The alarm comes from
+   * `nextDeadline`, the same function the screens read, and a phase with no deadline
+   * CLEARS it rather than leaving a stale one to fire into the next event.
+   */
+  private async publish(draft: EventDraft): Promise<EventState> {
+    const db = getDb(this.env);
+    await setGamePhase(db, draft.phase);
+    const state = await readGameState(db);
+    const event = eventStateSchema.parse({ ...draft, day: state.day });
+    const eventFrame = frame({ type: "event_changed", state: event });
+    const stateFrame = frame({ type: "state_changed", state });
+    await this.ctx.storage.put(EVENT_KEY, event);
+    await this.ctx.storage.put(STATE_KEY, stateFrame);
+    const deadline = nextDeadline(event);
+    if (deadline === null) await this.ctx.storage.deleteAlarm();
+    else await this.ctx.storage.setAlarm(deadline);
+    this.fanout(eventFrame);
+    this.fanout(stateFrame);
+    return event;
+  }
+
+  override webSocketMessage(socket: WebSocket, message: string | ArrayBuffer) {
+    if (typeof message !== "string") return;
+    const state = readSocketState(socket);
+    if (state?.name == null) return;
+    const parsed = presenceFrameSchema.safeParse(parseJson(message));
+    if (!parsed.success) return;
+    const now = Date.now();
+    if (parsed.data.type === "say") this.said(socket, state, parsed.data, now);
+    else this.moved(socket, state, parsed.data, now);
+    this.expireGhosts(now);
+  }
+
+  private moved(
+    socket: WebSocket,
+    state: SocketState,
+    move: PresenceMove,
+    now: number,
+  ): void {
+    if (state.at !== null && isPresenceTooSoon(state.seenAt, now)) return;
+    const next: SocketState = {
+      ...state,
+      at: { x: move.x, y: move.y, facing: move.facing },
+      seenAt: now,
+    };
+    writeSocketState(socket, next);
+    const player = playerOf(next, now);
+    if (player !== null) {
+      this.fanout(frame({ type: "presence_moved", player }), socket);
+    }
+  }
+
+  private said(
+    socket: WebSocket,
+    state: SocketState,
+    say: { text: string },
+    now: number,
+  ): void {
+    if (playerOf(state, now) === null) return;
+    if (isSayTooSoon(state.saidAt, now)) return;
+    writeSocketState(socket, { ...state, saidAt: now });
+    this.fanout(
+      frame({ type: "presence_said", id: state.id, text: say.text }),
+      socket,
+    );
+  }
+
+  override webSocketClose(ws: WebSocket): void {
+    this.depart(ws);
+    try {
+      ws.close();
+    } catch {
+      // Already closed.
+    }
+  }
+
+  override webSocketError(ws: WebSocket): void {
+    this.depart(ws);
+  }
+
+  private depart(socket: WebSocket): void {
+    const state = readSocketState(socket);
+    if (state === null) return;
+    if (playerOf(state, Date.now()) === null) return;
+    this.fanout(frame({ type: "presence_left", id: state.id }), socket);
+  }
+
+  private roster(now: number): PresencePlayer[] {
+    return roster(this.ctx.getWebSockets(), now);
+  }
+
+  private expireGhosts(now: number): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      const state = readSocketState(socket);
+      if (state?.at == null) continue;
+      if (playerOf(state, now) !== null) continue;
+      writeSocketState(socket, { ...state, at: null });
+      this.fanout(frame({ type: "presence_left", id: state.id }), socket);
+    }
+  }
+
+  refreshSprite(userId: number, sprite: string | null): void {
+    const now = Date.now();
+    for (const socket of this.ctx.getWebSockets()) {
+      const state = readSocketState(socket);
+      if (state?.userId !== userId) continue;
+      if (state.sprite === sprite) continue;
+      const next: SocketState = { ...state, sprite };
+      writeSocketState(socket, next);
+      const player = playerOf(next, now);
+      if (player !== null) {
+        this.fanout(frame({ type: "presence_moved", player }), socket);
+      }
+    }
+  }
+
+  private fanout(message: string, except?: WebSocket): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      if (socket === except) continue;
+      this.send(socket, message);
+    }
+  }
+
+  private send(socket: WebSocket, message: string): void {
+    try {
+      socket.send(message);
+    } catch {
+      // Dead socket — hibernation API drops it on close/error.
+    }
+  }
+}
