@@ -381,9 +381,9 @@ function reusableGreenRun(branch, headSha) {
 }
 
 /**
- * Usually TWO runs per head sha — the push's and the pull request's — because GitHub
- * reports a `pull_request` run's `headSha` as the PR HEAD, not the merge commit. Only one
- * carries a `gate`, so the newest run is the wrong one to ask.
+ * GitHub reports a `pull_request` run's `headSha` as the PR HEAD, not the merge commit it
+ * built, so a sha carries every drafted skip and re-run attempt too. Only a run whose
+ * `gate` succeeded says anything, so the newest run is the wrong one to ask.
  */
 function pipelineRuns(sha) {
   return ghJson([
@@ -409,7 +409,8 @@ function requireGreenPipeline(branch, sha, changed) {
     return;
   }
 
-  // The push run finishes while the PR's is still queued, so settling once is not enough.
+  // A `synchronize` run can still be queued while an earlier attempt on the same sha has
+  // already completed, so settling once is not enough.
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const runs = pipelineRuns(sha);
     const verified = runs.find(
@@ -450,7 +451,8 @@ function requireGreenPipeline(branch, sha, changed) {
       "",
       "Open a pull request and mark it READY FOR REVIEW: the pipeline then runs on",
       "your head already merged into current `main`, which is the thing worth",
-      "testing. A draft PR runs nothing.",
+      "testing. A draft PR runs nothing, and there is no push trigger behind it.",
+      "Already ready? Re-run the RUN — `gh run rerun <id>`, never a draft flip.",
       "",
       "Rerun `ship` when it is green.",
     ].join("\n"),
@@ -499,7 +501,7 @@ function describeMain(status) {
     "everything after it landed on a tree that was already broken. Ownership is",
     "computed, not claimed — every agent reads the same answer out of `main-status`.",
     status.running
-      ? "A deploy is in flight right now, so a fix may already be landing. Wait for it."
+      ? "A deploy is in flight right now, so a fix may already be landing."
       : "Nothing is deploying, so nobody is currently fixing it.",
   ];
 }
@@ -531,9 +533,9 @@ function watchMain(sha, changed) {
       [
         ...describeMain(mainStatus(deployRuns())),
         "",
-        "Every other agent's `ship` is blocked until this is green. If the break is",
-        "yours, fix forward — this is the one case where pushing straight to `main`",
-        "is allowed:",
+        "Every other agent stops on a red main rather than queueing behind it, so",
+        "nobody else is coming. This deploy is yours: fix forward — the one case",
+        "where pushing straight to `main` is allowed:",
         `  gh run view ${settled.databaseId} --log-failed`,
         "  git switch main && git pull",
         "  ...fix, `pnpm check` must pass, then: git push origin main",
@@ -550,7 +552,11 @@ function watchMain(sha, changed) {
   say(...describeMain(status));
   if (status.state === "red") {
     throw new Error(
-      "main is red. Read the ownership line above: if it names your merge, it is yours.",
+      [
+        "main is red. Read the ownership line above: if it names YOUR merge it is",
+        "yours — fix forward or revert within ~10 minutes. If it names an EARLIER",
+        "one, your work is already on main and green: say so on the ticket and STOP.",
+      ].join("\n"),
     );
   }
 }
@@ -568,9 +574,10 @@ function ship(number, issues) {
       [
         ...describeMain(before),
         "",
-        "Nothing merges onto a red main. Wait for the owning agent — do not help",
-        "unless it is yours: two agents fixing one break is how a revert races a",
-        "fix-forward. `main-status` tells you when it clears.",
+        "Nothing merges onto a red main, and the line above names who owns it. Do",
+        "NOT wait and do NOT help — two agents on one break is how a revert races a",
+        "fix-forward, and waiting burns a session. Say so on the PR, `release`, STOP.",
+        "It keeps a ready, reviewed, green PR: the next agent's `ship` is one command.",
       ].join("\n"),
     );
   }
@@ -796,9 +803,11 @@ switch (command) {
         `  4. update issue #${pick.number}: labels = ${JSON.stringify(labelsFor(pick, "in-progress"))}`,
         `     (labels are REPLACED, not merged — send exactly that list)`,
         "",
-        `  Then work on branch ${branch}, and RE-POST that comment with a fresh`,
-        `  "beat:" timestamp at every checkpoint. It is your only liveness signal:`,
-        `  go quiet and another agent may reclaim the ticket out from under you.`,
+        `  Then work on branch ${branch}, and RE-POST that comment at every`,
+        `  checkpoint. It is your only liveness signal: go quiet and another agent`,
+        `  may reclaim the ticket out from under you. Liveness is the comment's own`,
+        `  GitHub "updated_at" — re-posting refreshes the lock, so never spend a turn`,
+        `  correcting a drifted "beat:" line, which nothing reads.`,
         fallbacks.length > 0
           ? `\nIf #${pick.number} is taken, the next candidates are ${fallbacks.map((i) => `#${i.number}`).join(", ")}.`
           : `\nThere is no fallback: #${pick.number} is the only claimable ticket.`,

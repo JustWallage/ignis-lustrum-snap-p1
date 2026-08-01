@@ -2,15 +2,14 @@ name: Branch pipeline
 
 # Checks + a full ephemeral E2E; never deploys to production.
 #
-# A `pull_request` event builds `refs/pull/N/merge` — head ALREADY MERGED into current
-# `main` — so being behind `main` costs nothing. Drafts run nothing. The `push` +
-# "run-pipeline" path is the pre-PR escape hatch; a push to a ready PR's branch fires
-# BOTH events, which sit in different concurrency groups, so both start and the push one
-# skips out in seconds. See docs/AGENT-WORKFLOW.md for why stale green is accepted.
+# PULL REQUESTS ONLY. A `pull_request` event builds `refs/pull/N/merge` — head ALREADY
+# MERGED into current `main` — so being behind `main` costs nothing. No `push` trigger:
+# a branch commit is not a thing anyone merges, and running the suite on one bought a
+# second run per sha that only confused `ship` about which one carried the `gate`.
+# Drafts run nothing, so pushing to one is free. Re-run a head by re-running the RUN
+# (`gh run rerun`), never by flipping the PR back to draft — that races its own event.
 
 on:
-  push:
-    branches-ignore: [main]
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
@@ -19,36 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-trigger:
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.parse.outputs.run }}
-    steps:
-      - id: parse
-        env:
-          EVENT: ${{ github.event_name }}
-          DRAFT: ${{ github.event.pull_request.draft }}
-          # Absent on pull_request events, which is why the branch below comes first.
-          COMMIT_TITLE: ${{ github.event.head_commit.message }}
-        run: |
-          if [ "$EVENT" = "pull_request" ]; then
-            if [ "$DRAFT" = "true" ]; then
-              echo "A draft pull request runs nothing. Mark it ready for review."
-              echo "run=false" >> "$GITHUB_OUTPUT"
-            else
-              echo "run=true" >> "$GITHUB_OUTPUT"
-            fi
-            exit 0
-          fi
-          if printf '%s' "$COMMIT_TITLE" | head -1 | grep -q "run-pipeline"; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
   check-fast:
-    needs: check-trigger
-    if: needs.check-trigger.outputs.run == 'true'
+    if: github.event.pull_request.draft == false
     uses: ./.github/workflows/check-fast.yml
 
   check-slow:
@@ -74,33 +45,21 @@ jobs:
     secrets: inherit
 
   gate:
-    needs:
-      [
-        check-trigger,
-        check-fast,
-        check-slow,
-        ephemeral-e2e-event,
-        ephemeral-e2e-town,
-      ]
-    # SKIPPED when nothing was triggered, so "gate succeeded" is the one fact `ship` has
-    # to establish. The run's own conclusion cannot carry it: a run whose jobs all skipped
-    # concludes `success` and must keep doing so, or an ordinary push shows red.
-    if: always() && needs.check-trigger.outputs.run == 'true'
+    needs: [check-fast, check-slow, ephemeral-e2e-event, ephemeral-e2e-town]
+    # SKIPPED on a draft, so "gate succeeded" is the one fact `ship` has to establish.
+    # The run's own conclusion cannot carry it: a run whose jobs all skipped concludes
+    # `success` and must keep doing so, or every draft shows red.
+    if: always() && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Every gate must have passed
         env:
-          TRIGGER: ${{ needs.check-trigger.result }}
           RESULTS: >-
             check-fast=${{ needs.check-fast.result }}
             check-slow=${{ needs.check-slow.result }}
             e2e-event=${{ needs.ephemeral-e2e-event.result }}
             e2e-town=${{ needs.ephemeral-e2e-town.result }}
         run: |
-          if [ "$TRIGGER" != "success" ]; then
-            echo "check-trigger did not succeed ($TRIGGER)."
-            exit 1
-          fi
           echo "$RESULTS"
           for pair in $RESULTS; do
             if [ "${pair#*=}" != "success" ]; then

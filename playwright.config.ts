@@ -10,24 +10,14 @@ const baseURL = process.env.BASE_URL ?? "http://localhost:5174";
 // slower half instead of the whole suite. Locally `pnpm test:e2e` runs both, in
 // order, exactly as before.
 //
-// The split is by MEASURED time, not by file count — the live event's phases
-// wait on the DO's alarms, so five files carry more than half the clock:
+// The split is by MEASURED time, not by file count — the live event's phases wait
+// on the DO's alarms, so these four carry about half the clock. `podium.spec.ts` is
+// the heaviest single file and sets the floor: splitting IT is the only way past it.
 //
-//   event  podium 252s · live-loop 116s · wheel 69s · live-event 5s     = 442s
-//   town   the other files                                              = 493s
-//
-// (`town` has since gained `town-avatars.spec.ts`, which that 493s predates.)
-//
-// (CI run 30494209666, retry time subtracted; the whole suite is 934s.) Those two
-// numbers are that run's, and town has gained `jury-bench.spec.ts` and
-// `delete-snap.spec.ts` since, plus three tests in `archive`/`voting` — 28 files and
-// about 25s more, measured locally, so it is still the heavier half. The
-// bound is 467s. Re-measure and re-balance when it drifts — the per-test times
-// are printed by the list reporter in each e2e job's log. `podium.spec.ts` alone
-// is 27% of the suite, so it sets the floor: no split of these files gets below
-// ~470s, and splitting podium itself is the only way past that. Two tickets have
-// now added to `town` without re-measuring it: take these numbers from the next CI
-// log rather than trusting them for the split after this one.
+// No measured times are recorded here ON PURPOSE. Every ticket that added a spec
+// restated them and every restatement was stale on landing, which made this block a
+// conflict on four branches at once. Read them off the list reporter in the e2e job's
+// log if you ever re-balance; nothing here is maintained per-ticket.
 //
 // `countdown.spec.ts` is in `town` DESPITE being the event's opening phase, and
 // it is not an oversight. Whichever file sorts first in a project pays the cold

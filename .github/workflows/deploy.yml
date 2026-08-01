@@ -13,8 +13,9 @@ jobs:
   # Same strategy as branch-pipeline.yml, and the same two reusable workflows:
   # check-fast is the cheap gate in front of everything that costs Cloudflare,
   # and check-slow runs beside the expensive jobs instead of in front of them.
-  # deploy.yml adds terraform + deploy-prod and has no check-trigger, because a
-  # push to main always runs.
+  # deploy.yml adds terraform + deploy-prod and gates on no draft state, because a
+  # push to main always runs. Re-running both checks and both E2E halves here BEFORE
+  # deploying is what makes a branch's stale green safe to merge on.
   check-fast:
     uses: ./.github/workflows/check-fast.yml
 

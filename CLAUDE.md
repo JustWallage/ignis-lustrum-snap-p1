@@ -10,8 +10,9 @@ Read `docs/AGENT-WORKFLOW.md` before starting work, and `docs/DEPLOY.md` before 
 
 ## Commands
 
-- `pnpm check` — format, lint, types, knip, jscpd, unit tests. Pre-commit hook; never bypass.
-- `pnpm verify` — `check` + Playwright. Run before opening a PR.
+- `pnpm check` — format, lint, types, knip, jscpd, unit tests. Pre-commit hook; never bypass, and
+  committing IS running it.
+- `pnpm verify` — `check` + Playwright. Both green on a named sha before any reviewer is dispatched.
 - `pnpm dev` — dev server on 5173. `node scripts/ticket.mjs` — the backlog CLI, bare for its help.
 
 ## Hard rules
@@ -25,7 +26,9 @@ Each is a failure that happened:
 - **jscpd fails at 1% duplication.** Build on the existing primitive, not a sibling copy.
 - **Comments are gotchas only** — the codebase sits near 3%. A comment must state what the code
   cannot: an outage it prevents, a platform behaviour, an ordering constraint, an alternative that
-  failed. Never restate the next line, explain a named function, or narrate structure.
+  failed. Never restate the next line, explain a named function, or narrate structure. **Name which
+  of those four it is before you write it, or delete it**; a FALSE comment is worse than none, and a
+  third copy of what the code and its `CLAUDE.md` already carry is one too many.
 - After changing `wrangler.jsonc`, run `pnpm cf-typegen`.
 
 ## What every directory agrees on

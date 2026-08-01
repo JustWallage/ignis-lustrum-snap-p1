@@ -7,8 +7,9 @@ gate before a PR.
   CONTEXT inside the test, and one left open leaves a rival standing on the map for every spec after.
 - `playwright.config.ts` splits specs into `event` and `town` by MEASURED time; CI runs them as two
   jobs, each with its own deployment and database. A new file lands in `town` on its own — move it
-  into `EVENT_SPECS` if it belongs with the live event, and re-check the balance numbers when a spec
-  grows.
+  into `EVENT_SPECS` if it belongs with the live event. **Adding a spec does not oblige you to
+  re-measure or re-document the split**: no timings are recorded in that config, deliberately, and
+  restating them per ticket is how it became a conflict on four branches at once.
 - `fixtures.ts` is the only shared file, deliberately: a per-spec copy of `walk` or `pressStart` is how
   the suite drifts. Every test starts seeded, reset and **anonymous**, because walking must work
   without a session.
