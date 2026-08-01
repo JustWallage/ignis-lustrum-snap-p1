@@ -59,11 +59,17 @@ fi
 set_secret JWT_SECRET "$jwt_secret"
 
 # Every login in production is hashed from this one value at deploy time, and a
-# malformed one fails there rather than here — where nobody is watching. Keep it
-# on ONE line in .env: `source` would otherwise stop at the first newline and
-# push a truncated roster that parses as nothing.
+# malformed one fails there rather than here — where nobody is watching.
 users_json="${USERS_JSON:-}"
 [ -n "$users_json" ] || die "Missing USERS_JSON in .env — this repo is public, so the roster lives only there."
+
+# Quote removal ate the inner quotes: `source` on USERS_JSON="[{"name":...}]"
+# strips every double quote and hands us [{name:...}], whose parse error points at
+# the roster rather than at the quoting that broke it. Single quotes in .env.
+case "$users_json" in
+*'"'*) ;;
+*) die "USERS_JSON in .env has no double quotes left — wrap the value in SINGLE quotes: USERS_JSON='[{ \"name\": ... }]'" ;;
+esac
 printf '%s' "$users_json" | node -e '
   let raw = "";
   process.stdin.on("data", (c) => (raw += c));

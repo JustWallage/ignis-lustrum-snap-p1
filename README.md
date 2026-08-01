@@ -25,3 +25,6 @@ Object carries the live event and everyone's footsteps. Walking is public — th
 
 Each directory's `CLAUDE.md` holds its invariants. `docs/SPEC.md` is the product intent,
 `docs/AGENT-WORKFLOW.md` the contributor protocol, `docs/DEPLOY.md` the pipeline.
+
+Public to read, not licensed for reuse — it's a private thing for 14 people that happens to be worth
+looking at. All rights reserved.
