@@ -46,6 +46,12 @@ export function useVoice(signedIn: boolean): Voice {
       setRefusal("no-microphone");
       return;
     }
+    // Refused HERE as well as at the DO, which would refuse it anyway: without this the
+    // lamp lights and the microphone opens for a transmission that never leaves, and a
+    // light that lies is worse than a bar that does nothing. Two people pressing in the
+    // same instant still race — the local light is local by design — but pressing while
+    // the green row is plainly lit is not a race.
+    if (channel.theirs !== null) return;
     // The press is a guaranteed user gesture, and on a screen that loaded into a running
     // event it is the ONLY one: `shouldSkipSplash` means nobody pressed START there, so
     // there is no AudioContext at all. `unlockAudio` no-ops once one exists.
@@ -70,7 +76,7 @@ export function useVoice(signedIn: boolean): Voice {
       // answers cannot hold the town's channel for as long as it stays open.
       socket.talk(true);
     });
-  }, [release, signedIn, socket]);
+  }, [channel.theirs, release, signedIn, socket]);
 
   // Signing in through the SELECT menu reloads nothing, so without this the line telling
   // a visitor what signing in buys would outlive their signing in.

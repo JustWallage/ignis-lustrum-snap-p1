@@ -8,7 +8,7 @@ import { audioContext, speakSamples } from "@/lib/sound";
 
 export const VOICE_SAMPLE_RATE = 8_000;
 
-/** 4096 frames at 48 kHz is ~85 ms, so ~12 sockets frames a second rather than the ~47
+/** 4096 frames at 48 kHz is ~85 ms, so ~12 socket frames a second rather than the ~47
  * a 1024-frame buffer would cost. */
 const CAPTURE_BUFFER = 4096;
 

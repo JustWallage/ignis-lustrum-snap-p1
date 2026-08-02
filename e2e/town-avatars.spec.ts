@@ -70,7 +70,7 @@ function encloses(outer: Box, inner: Box): boolean {
  * the shell is sized off the viewport, so no number here survives a second window size.
  * The CORNER as well as the size — `width` and `aspect-ratio` come from CSS, so a badge
  * dropped mid-screen or off the LCD entirely keeps its three tiles, and Playwright calls
- * anything with a box visible even when `.gb-shell`'s `overflow: hidden` has clipped it.
+ * anything with a box visible even when `.gb-shell`'s own clip has trimmed it.
  */
 function expectCornerBadge(face: Box, screen: Box): void {
   expect(encloses(screen, face), "on the LCD").toBe(true);

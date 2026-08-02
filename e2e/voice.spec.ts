@@ -47,28 +47,27 @@ test("the bar breaks the shell's silhouette and shares its band with the arrow",
   await page.goto("/");
   await pressStart(page);
 
-  // Playwright calls an element clipped by `overflow: hidden` visible, so the claim is
-  // about the boxes and never about `isVisible`.
+  // Playwright calls an element the shell has clipped visible, so the claim is about
+  // the boxes and never about `isVisible`.
   const shell = await boxOfShell(page);
   const bar = await boxOf(page, "ptt-bar");
   expect(bar.x).toBeLessThan(shell.x);
   expect(bar.x + bar.width).toBeGreaterThan(shell.x);
 
-  const arrow = await boxOf(page, "voice-arrow");
-  expect(Math.abs(centre(bar) - centre(arrow))).toBeLessThan(2);
-  expect(arrow.x).toBeGreaterThanOrEqual(bar.x + bar.width - 1);
-  expect(arrow.x + arrow.width).toBeLessThanOrEqual(
-    (await boxOf(page, "voice-mine")).x + 1,
-  );
-
   for (const size of [PHONE, { width: 1280, height: 900 }]) {
     await page.setViewportSize(size);
     const narrow = await boxOfShell(page);
     const shoulder = await boxOf(page, "ptt-bar");
+    const arrow = await boxOf(page, "voice-arrow");
     expect(shoulder.x).toBeLessThan(narrow.x);
-    expect(
-      Math.abs(centre(shoulder) - centre(await boxOf(page, "voice-arrow"))),
-    ).toBeLessThan(2);
+    expect(Math.abs(centre(shoulder) - centre(arrow))).toBeLessThan(2);
+    // MEETS the bar: bounded on both sides, because "does not overlap it" is just as
+    // true of an arrow that stops thirty pixels short and points at the bezel.
+    expect(arrow.x).toBeGreaterThanOrEqual(shoulder.x + shoulder.width - 1);
+    expect(arrow.x).toBeLessThanOrEqual(shoulder.x + shoulder.width + 1);
+    expect(arrow.x + arrow.width).toBeLessThanOrEqual(
+      (await boxOf(page, "voice-mine")).x + 1,
+    );
     expect(
       await page.evaluate(
         () =>
@@ -112,6 +111,15 @@ test("holding the bar puts one friend's voice in another's shell, and release en
     "false",
   );
   await expect(listener.getByTestId("voice-theirs")).toContainText("TESTER");
+
+  // The DO refuses a second speaker, so the listener's own bar must not light for a
+  // transmission that will never leave their shell.
+  await holdBar(listener);
+  await expect(lamp(listener, "voice-mine")).toHaveAttribute(
+    "data-lit",
+    "false",
+  );
+  await releaseBar(listener);
 
   await expect
     .poll(async () => (await voices(listener)).length, { timeout: 15_000 })

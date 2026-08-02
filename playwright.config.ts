@@ -55,9 +55,9 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     launchOptions: {
-      // A deterministic microphone and an auto-granted permission, so the push-to-talk
-      // specs neither wait on a permission dialog nor depend on a machine having a
-      // capture device. Unconditional: without them `getUserMedia` hangs in CI.
+      // A deterministic microphone and an auto-granted permission. Unconditional:
+      // headless Chromium on a machine with no capture device REJECTS `getUserMedia`,
+      // which is the refusal path, not the transmitting one these specs are about.
       args: [
         "--use-fake-device-for-media-stream",
         "--use-fake-ui-for-media-stream",

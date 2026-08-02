@@ -1140,9 +1140,10 @@ export function Overworld() {
                   onDone={dismissEvent}
                 />
               )}
-              {/* One slot at the bottom of the LCD, three things that can be
-                  in it: the message field, an open dialogue, or the hint for
-                  whatever the player is standing in front of. */}
+              {/* One slot at the bottom of the LCD, four things that can be
+                  in it: the message field, an open dialogue, the hint for
+                  whatever the player is standing in front of, or the bar's
+                  refusal — the one of the four an event does not displace. */}
               {splash ? null : dialog?.kind === "say" ? (
                 <SayBox onSay={onSay} onClose={closeDialog} />
               ) : dialog?.kind === "chat-say" ? (
