@@ -253,7 +253,10 @@
   align-self: stretch;
   display: grid;
   grid-template-rows: 1fr auto 1fr;
-  justify-items: center;
+  /* STRETCH, not centre: the rows shrink-to-fit under `center`, so the HOLD row's left
+     edge moved with however "HOLD TO SPEAK" happened to wrap and took the arrow — which
+     is positioned against that edge — off the bar. */
+  justify-items: stretch;
   gap: 1.2cqw;
   color: #d6d3df;
   font-size: 1.9cqw;
