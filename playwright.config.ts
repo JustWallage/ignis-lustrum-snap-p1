@@ -54,15 +54,20 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    // Sandboxes with a system-provided Chromium (e.g. Claude Code on the web)
-    // can point at it instead of downloading a browser.
-    ...(process.env.PLAYWRIGHT_CHROMIUM_PATH === undefined
-      ? {}
-      : {
-          launchOptions: {
-            executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH,
-          },
-        }),
+    launchOptions: {
+      // A deterministic microphone and an auto-granted permission, so the push-to-talk
+      // specs neither wait on a permission dialog nor depend on a machine having a
+      // capture device. Unconditional: without them `getUserMedia` hangs in CI.
+      args: [
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+      // Sandboxes with a system-provided Chromium (e.g. Claude Code on the web)
+      // can point at it instead of downloading a browser.
+      ...(process.env.PLAYWRIGHT_CHROMIUM_PATH === undefined
+        ? {}
+        : { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }),
+    },
   },
   projects: [
     {

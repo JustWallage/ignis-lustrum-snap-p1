@@ -434,7 +434,7 @@ export function lcd(page: Page): Locator {
 export async function joinAs(
   browser: Browser,
   name: keyof typeof USERS,
-  options: { wearing?: Buffer } = {},
+  options: { wearing?: Buffer; recording?: boolean } = {},
 ): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -442,6 +442,7 @@ export async function joinAs(
   if (options.wearing !== undefined) {
     await apiStoreAvatar(page, options.wearing);
   }
+  if (options.recording === true) await recordAudio(page);
   await page.goto("/");
   await page.getByTestId("start-button").click();
   await expect(page.getByTestId("player-name")).toHaveText(name);
@@ -553,6 +554,13 @@ export async function audioLog(page: Page): Promise<AudioLog> {
 
 export async function voices(page: Page): Promise<string[]> {
   return (await audioLog(page)).voices;
+}
+
+/** Counts every square-wave cue, which across a transmission means the squelch and
+ * nothing else: a PCM chunk is a `createBufferSource`, which the recorder logs as
+ * "noise" exactly like a noise `Note`, so the specs read deltas around a hold. */
+export async function chirps(page: Page): Promise<number> {
+  return (await voices(page)).filter((wave) => wave === "square").length;
 }
 
 export async function heard(

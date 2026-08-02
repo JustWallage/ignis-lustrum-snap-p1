@@ -38,9 +38,17 @@ export const presenceSaySchema = z.object({
     .refine((text) => text.trim() !== "", "a message has to say something"),
 });
 
+export const presenceTalkStartSchema = z.object({
+  type: z.literal("talk_start"),
+});
+
+export const presenceTalkEndSchema = z.object({ type: z.literal("talk_end") });
+
 export const presenceFrameSchema = z.discriminatedUnion("type", [
   presenceMoveSchema,
   presenceSaySchema,
+  presenceTalkStartSchema,
+  presenceTalkEndSchema,
 ]);
 
 /** A tab that dies without a close frame leaves a socket the runtime still believes
@@ -66,4 +74,33 @@ const SAY_MIN_INTERVAL_MS = 1_000;
 
 export function isSayTooSoon(saidAt: number | null, now: number): boolean {
   return saidAt !== null && now - saidAt < SAY_MIN_INTERVAL_MS;
+}
+
+export const TALK_MAX_MS = 20_000;
+
+/** Many chunks of silence at the ~85 ms `src/lib/voice.ts` sends at, so ordinary jitter
+ * is never read as a dead tab. The channel has no other way back: a tab that dies
+ * mid-sentence sends no `talk_end`. */
+const TALK_SILENCE_MS = 1_500;
+
+const TALK_MIN_INTERVAL_MS = 800;
+
+/** A capture frame is ~1.4 kB at the rate `src/lib/voice.ts` sends; the platform would
+ * take 1 MiB, which is not what this needs. */
+export const TALK_FRAME_MAX_BYTES = 4_096;
+
+export interface Talking {
+  since: number;
+  heardAt: number;
+}
+
+export function isTalkOver(talking: Talking, now: number): boolean {
+  return (
+    now - talking.since >= TALK_MAX_MS ||
+    now - talking.heardAt >= TALK_SILENCE_MS
+  );
+}
+
+export function isTalkTooSoon(talkedAt: number | null, now: number): boolean {
+  return talkedAt !== null && now - talkedAt < TALK_MIN_INTERVAL_MS;
 }

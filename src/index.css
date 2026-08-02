@@ -147,8 +147,17 @@
 }
 
 .gb-shell {
+  --gb-bezel-x: 6cqw;
+  --gb-face-pad: 3cqw;
+  --gb-inner-gap: 2cqw;
+  --gb-band-h: 22cqw;
+  --gb-ptt-w: 8cqw;
+  /* How far past the shell's own edge the bar breaks the silhouette. The width formula
+     below concedes the room for it: at 96vw the phone gutter was ~2vw a side and a bar
+     hanging into it was document-level horizontal scroll. */
+  --gb-ptt-out: 5cqw;
   aspect-ratio: 90 / 148;
-  height: min(98dvh, calc(96vw * 148 / 90));
+  height: min(98dvh, calc(88vw * 148 / 90));
   container-type: size;
   display: flex;
   flex-direction: column;
@@ -158,7 +167,11 @@
     inset 0 0 0 0.4cqw #a9a59c,
     inset 0 -1.2cqw 2cqw rgb(0 0 0 / 0.15),
     0 14px 50px rgb(0 0 0 / 0.65);
-  overflow: hidden;
+  /* `clip` rather than `hidden` so the clip can be WIDENED by exactly the bar's
+     protrusion: the four radii, the 14cqw foot included, still trim everything else.
+     Lifting the clip entirely was the alternative and gives those radii up. */
+  overflow: clip;
+  overflow-clip-margin: var(--gb-ptt-out);
 }
 
 .gb-topline {
@@ -169,8 +182,8 @@
 
 .gb-bezel {
   position: relative;
-  margin: 3cqw 6cqw 0;
-  padding: 2cqw 3cqw 4cqw;
+  margin: 3cqw var(--gb-bezel-x) 0;
+  padding: 2cqw var(--gb-face-pad) 4cqw;
   background: #565361;
   border-radius: 3cqw 3cqw 11cqw 3cqw;
   box-shadow: inset 0 0 0 0.4cqw #3f3d49;
@@ -197,20 +210,70 @@
 .gb-bezel-inner {
   display: flex;
   align-items: center;
-  gap: 2cqw;
+  gap: var(--gb-inner-gap);
   margin-top: 2.5cqw;
 }
 
+/* Escapes leftwards on its own margins so the rest of the row lands where it always
+   did: the negative margin is cancelled by the positive one, or the LCD would grow into
+   the bezel's right padding by exactly what the bar took. */
+.gb-ptt {
+  --gb-ptt-escape: calc(
+    var(--gb-bezel-x) + var(--gb-face-pad) + var(--gb-ptt-out)
+  );
+  flex: none;
+  width: var(--gb-ptt-w);
+  height: var(--gb-band-h);
+  margin-left: calc(-1 * var(--gb-ptt-escape));
+  margin-right: calc(
+    var(--gb-ptt-escape) - var(--gb-ptt-w) - var(--gb-inner-gap)
+  );
+  border: none;
+  border-radius: 2cqw 0 0 2cqw;
+  background: linear-gradient(#9a96a4, #77737f);
+  box-shadow:
+    inset 0 0.5cqw 0.5cqw rgb(255 255 255 / 0.25),
+    inset 0 -0.6cqw 0.8cqw rgb(0 0 0 / 0.4),
+    -0.4cqw 0.6cqw 1cqw rgb(0 0 0 / 0.4);
+  /* Same reason the D-pad has it: without it a touch-drag hands the pointer to the
+     browser's own gesture handling, which fires the `pointercancel` that kills the
+     transmission — on the device this is for. */
+  touch-action: none;
+}
+.gb-ptt[data-held="true"] {
+  background: linear-gradient(#b03a68, #8b2650);
+  box-shadow: inset 0 0.6cqw 1cqw rgb(0 0 0 / 0.5);
+}
+
+/* Three rows with equal 1fr shoulders, so the middle one sits at the column's centre —
+   which `align-items: center` on the row above makes the LCD's centre, and therefore the
+   bar's band. A centred stack with rows appended would drop them below it. */
 .gb-battery {
   width: 12cqw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  justify-items: center;
   gap: 1.2cqw;
   color: #d6d3df;
   font-size: 1.9cqw;
   letter-spacing: 0.08em;
-  overflow: hidden;
+}
+.gb-voice-power,
+.gb-voice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2cqw;
+}
+.gb-voice-power {
+  align-self: end;
+}
+.gb-voice.is-theirs {
+  align-self: start;
+}
+.gb-voice.is-mine {
+  position: relative;
 }
 .gb-battery-text {
   max-width: 12cqw;
@@ -218,16 +281,50 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.gb-voice-label {
+  max-width: 12cqw;
+  text-align: center;
+  line-height: 1.15;
+}
+/* Reaches from the HOLD TO SPEAK row across the face gutter to the bar's inner edge, in
+   the same band, so the two cannot drift apart on a phone. */
+.gb-voice-arrow {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  translate: 0 -50%;
+  width: calc(
+    var(--gb-bezel-x) + var(--gb-face-pad) + var(--gb-ptt-out) - var(--gb-ptt-w)
+  );
+  height: 0.6cqw;
+  background: #d6d3df;
+}
+.gb-voice-arrow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  border-top: 1.1cqw solid transparent;
+  border-bottom: 1.1cqw solid transparent;
+  border-right: 1.5cqw solid #d6d3df;
+}
 .gb-led {
+  --gb-led-on: #e23b3b;
+  --gb-led-off: #4a1220;
   width: 2.6cqw;
   height: 2.6cqw;
   border-radius: 9999px;
-  background: #4a1220;
+  background: var(--gb-led-off);
   box-shadow: inset 0 0 0.6cqw rgb(0 0 0 / 0.6);
 }
+.gb-led[data-hue="green"] {
+  --gb-led-on: #3ce06a;
+  --gb-led-off: #123a1e;
+}
 .gb-led[data-lit="true"] {
-  background: #e23b3b;
-  box-shadow: 0 0 2cqw #e23b3b;
+  background: var(--gb-led-on);
+  box-shadow: 0 0 2cqw var(--gb-led-on);
 }
 
 .gb-lcd-frame {

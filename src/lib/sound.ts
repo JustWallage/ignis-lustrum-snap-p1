@@ -33,7 +33,9 @@ type CueName =
   | "start"
   | "tick"
   | "wheelTick"
-  | "fanfare";
+  | "fanfare"
+  | "squelchOpen"
+  | "squelchClose";
 
 export const CUES: Record<CueName, Cue> = {
   stepGrass: {
@@ -226,6 +228,44 @@ export const CUES: Record<CueName, Cue> = {
       seconds: 0.18,
       peak: 0.4,
       attack: 0.08,
+    },
+  ],
+  squelchOpen: [
+    {
+      wave: "square",
+      from: 1180,
+      to: 1560,
+      seconds: 0.035,
+      peak: 0.3,
+      attack: 0.2,
+    },
+    {
+      wave: "noise",
+      from: 2400,
+      to: 1300,
+      seconds: 0.05,
+      peak: 0.2,
+      attack: 0.25,
+      q: 3,
+    },
+  ],
+  squelchClose: [
+    {
+      wave: "noise",
+      from: 1500,
+      to: 700,
+      seconds: 0.055,
+      peak: 0.2,
+      attack: 0.25,
+      q: 3,
+    },
+    {
+      wave: "square",
+      from: 720,
+      to: 480,
+      seconds: 0.045,
+      peak: 0.28,
+      attack: 0.2,
     },
   ],
 };
@@ -426,19 +466,67 @@ export function unlockAudio(): void {
   });
 }
 
+function whenLive(body: (audio: AudioContext, out: AudioNode) => void): void {
+  const audio = ctx;
+  const out = master;
+  if (audio === null || out === null) return;
+  const run = () => {
+    body(audio, out);
+  };
+  if (audio.state === "running") run();
+  else void live?.then(run);
+}
+
 export function playCue(
   name: CueName,
   options: Partial<CueOptions> = {},
 ): void {
-  const audio = ctx;
-  const out = master;
-  if (audio === null || out === null) return;
   const { gain = 1, walker = "local" } = options;
-  const play = () => {
-    // Checked here rather than at the top, so a cue that waited out the unlock still
-    // honours a mute toggled in the meantime.
+  whenLive((audio, out) => {
+    // Checked here rather than before the wait, so a cue that waited out the unlock
+    // still honours a mute toggled in the meantime.
     if (!isMuted()) emit(audio, out, name, { gain, walker });
-  };
-  if (audio.state === "running") play();
-  else void live?.then(play);
+  });
+}
+
+/** Capture needs a context and iOS caps how many a page may have, so voice borrows this
+ * module's rather than opening a second one that would fight it for the audio session.
+ * Null until `unlockAudio` has run. */
+export function audioContext(): AudioContext | null {
+  return ctx;
+}
+
+const VOICE_GAIN = 2.4;
+
+const VOICE_LEAD_SECONDS = 0.08;
+
+/** A cursor that has fallen behind the clock must not schedule into the past — the
+ * browser would play those buffers all at once, on top of each other. */
+export function nextPlayAt(cursor: number, now: number, lead: number): number {
+  return Math.max(cursor, now + lead);
+}
+
+let voiceCursor = 0;
+
+/** Deliberately does NOT ask `isMuted()`: mute is for the synthesised cues, and a muted
+ * player still hears their friends. */
+export function speakSamples(samples: Float32Array, rate: number): void {
+  if (samples.length === 0) return;
+  whenLive((audio, out) => {
+    const buffer = audio.createBuffer(1, samples.length, rate);
+    buffer.getChannelData(0).set(samples);
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    const gain = audio.createGain();
+    gain.gain.value = VOICE_GAIN;
+    source.connect(gain);
+    gain.connect(out);
+    const at = nextPlayAt(voiceCursor, audio.currentTime, VOICE_LEAD_SECONDS);
+    voiceCursor = at + samples.length / rate;
+    source.start(at);
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+    };
+  });
 }

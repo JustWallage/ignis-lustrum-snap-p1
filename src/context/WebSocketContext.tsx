@@ -3,12 +3,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   type ReactNode,
 } from "react";
 import {
   presenceMoveSchema,
   presenceSaySchema,
+  presenceTalkEndSchema,
+  presenceTalkStartSchema,
   PRESENCE_PING_MS,
   type PresenceMove,
 } from "@shared/presence";
@@ -28,6 +31,10 @@ interface WebSocketContextValue {
   subscribe: (type: WsEventType, handler: Handler) => () => void;
   announce: (standing: Standing) => void;
   say: (text: string) => void;
+  talk: (open: boolean) => void;
+  sendVoice: (bytes: ArrayBuffer) => void;
+  onVoice: (handler: (bytes: ArrayBuffer) => void) => () => void;
+  onLost: (handler: () => void) => () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -41,6 +48,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const identity = user?.id ?? null;
   const handlersRef = useRef(new Map<WsEventType, Set<Handler>>());
+  const lostRef = useRef(new Set<() => void>());
+  const voiceRef = useRef(new Set<(bytes: ArrayBuffer) => void>());
   const socketRef = useRef<WebSocket | null>(null);
   const standingRef = useRef<Standing | null>(null);
 
@@ -66,11 +75,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         `${protocol}//${window.location.host}/api/ws`,
       );
       socketRef.current = socket;
+      // Or the samples arrive as Blobs and every chunk costs an async read before it
+      // can be scheduled.
+      socket.binaryType = "arraybuffer";
       socket.onopen = () => {
         const standing = standingRef.current;
         if (standing !== null) post(standing);
       };
       socket.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          const bytes = event.data;
+          voiceRef.current.forEach((handler) => {
+            handler(bytes);
+          });
+          return;
+        }
         if (typeof event.data !== "string") {
           return;
         }
@@ -89,6 +108,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         });
       };
       socket.onclose = () => {
+        lostRef.current.forEach((handler) => {
+          handler();
+        });
         if (!disposed) {
           reconnectTimer = window.setTimeout(connect, RECONNECT_DELAY_MS);
         }
@@ -139,8 +161,41 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     socket.send(JSON.stringify(frame.data));
   }, []);
 
+  const talk = useCallback((open: boolean) => {
+    const socket = socketRef.current;
+    if (socket?.readyState !== WebSocket.OPEN) return;
+    const schema = open ? presenceTalkStartSchema : presenceTalkEndSchema;
+    socket.send(
+      JSON.stringify(schema.parse({ type: open ? "talk_start" : "talk_end" })),
+    );
+  }, []);
+
+  const sendVoice = useCallback((bytes: ArrayBuffer) => {
+    const socket = socketRef.current;
+    if (socket?.readyState !== WebSocket.OPEN) return;
+    socket.send(bytes);
+  }, []);
+
+  const onVoice = useCallback((handler: (bytes: ArrayBuffer) => void) => {
+    const handlers = voiceRef.current;
+    handlers.add(handler);
+    return () => {
+      handlers.delete(handler);
+    };
+  }, []);
+
+  const onLost = useCallback((handler: () => void) => {
+    const handlers = lostRef.current;
+    handlers.add(handler);
+    return () => {
+      handlers.delete(handler);
+    };
+  }, []);
+
   return (
-    <WebSocketContext.Provider value={{ subscribe, announce, say }}>
+    <WebSocketContext.Provider
+      value={{ subscribe, announce, say, talk, sendVoice, onVoice, onLost }}
+    >
       {children}
     </WebSocketContext.Provider>
   );
@@ -181,4 +236,19 @@ export function useAnnouncePresence(): (standing: Standing) => void {
 
 export function useSaySomething(): (text: string) => void {
   return useWebSocket().say;
+}
+
+export type VoiceSocket = Pick<
+  WebSocketContextValue,
+  "talk" | "sendVoice" | "onVoice" | "onLost"
+>;
+
+/** Memoised because `useVoice` hangs effects off it: the provider rebuilds its value
+ * object every render, and a fresh identity here would tear down the microphone. */
+export function useVoiceSocket(): VoiceSocket {
+  const { talk, sendVoice, onVoice, onLost } = useWebSocket();
+  return useMemo(
+    () => ({ talk, sendVoice, onVoice, onLost }),
+    [talk, sendVoice, onVoice, onLost],
+  );
 }

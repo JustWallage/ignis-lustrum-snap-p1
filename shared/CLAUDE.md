@@ -32,10 +32,15 @@ Everything both sides read. Change a schema here first.
 - The archive door is SOLID and carries the player two tiles in one stride; whether a step is that
   transit is the map's question (`stepsThroughDoor`), never derived from how far anybody moved.
 - NPC tiles are grass made unwalkable — a person is somebody you bump into, not terrain.
-- **`presenceFrameSchema` is all the DO parses**, so a third inbound frame is a member of it or it
-  does not exist. Neither member carries identity: name, id and sprite URL are resolved from the
-  cookie, so a client has nowhere to put one. The roster's sprite is an opaque URL rotating every
-  generation — what somebody wears, nothing about who they are.
+- **`presenceFrameSchema` is all the DO parses**, so a fifth inbound frame is a member of it or it
+  does not exist — and **none of its four carries identity**: name, id and sprite URL are resolved
+  from the cookie, so a client has nowhere to put one. The roster's sprite is an opaque URL rotating
+  every generation — what somebody wears, nothing about who they are. **The one inbound thing that
+  is NOT a member is a binary voice chunk**, which cannot be parsed at all: the DO takes bytes as
+  samples only from a socket already holding the channel through `talk_start`, drops anything over
+  `TALK_FRAME_MAX_BYTES`, and relays the rest untouched. A chunk is never an implicit press, which
+  is what lets it travel with no header saying whose it is — half-duplex settles that, and the lock
+  is what keeps it half-duplex.
 - `WS_EVENT_TYPES` and `REVALIDATE_EVENT_TYPES` are DERIVED from the schema union, never
   hand-maintained: a forgotten entry fails silently, and treating a position frame as content news
   turns a stroll into a load test.

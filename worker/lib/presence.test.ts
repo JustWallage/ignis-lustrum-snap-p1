@@ -47,6 +47,8 @@ function standing(
     at: { x: 3, y: 4, facing: "down" },
     seenAt,
     saidAt: null,
+    talking: null,
+    talkedAt: null,
   };
 }
 
@@ -210,6 +212,8 @@ describe("playerOf", () => {
       at: null,
       seenAt: 0,
       saidAt: null,
+      talking: null,
+      talkedAt: null,
     };
     expect(playerOf(state, 0)).toBeNull();
   });

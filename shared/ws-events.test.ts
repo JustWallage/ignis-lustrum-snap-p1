@@ -20,6 +20,8 @@ describe("WS_EVENT_TYPES", () => {
       "presence_left",
       "presence_moved",
       "presence_said",
+      "presence_talk_end",
+      "presence_talk_start",
       "prizes_changed",
       "state_changed",
       "votes_changed",
@@ -50,7 +52,7 @@ describe("REVALIDATE_EVENT_TYPES", () => {
       "state_changed",
       "votes_changed",
     ]);
-    expect(REVALIDATE_EVENT_TYPES).toHaveLength(WS_EVENT_TYPES.length - 4);
+    expect(REVALIDATE_EVENT_TYPES).toHaveLength(WS_EVENT_TYPES.length - 6);
   });
 });
 
@@ -92,6 +94,17 @@ describe("wsEventSchema", () => {
     expect(
       wsEventSchema.safeParse({ ...event, text: "A".repeat(500) }).success,
     ).toBe(false);
+  });
+
+  it("says who is transmitting on the way out, though the frame in says nobody", () => {
+    const started = {
+      type: "presence_talk_start",
+      id: "sock-1",
+      name: "tester",
+    };
+    expect(wsEventSchema.parse(started)).toEqual(started);
+    const ended = { type: "presence_talk_end", id: "sock-1" };
+    expect(wsEventSchema.parse({ ...ended, name: "tester" })).toEqual(ended);
   });
 
   it("rejects an unknown phase and an unknown event type", () => {
