@@ -28,6 +28,14 @@ play continues.
   real hardware colourised DMG games, and far smaller than repainting every sprite.
 - **Sound is synthesised, no assets** — the channels the hardware had. Footsteps are per surface,
   because the ground telling you what it is made of is most of what makes a town feel walked in.
+  The squelch around a transmission is two more of those, and mute is for them and not for voice: a
+  muted player still hears their friends.
+- **The voice channel is a walkie-talkie, not a phone.** Fourteen friends can pass each other forty
+  characters at a time; holding the shoulder bar is how you say the rest. Half-duplex on purpose —
+  one speaker at a time is what makes a chunk of samples need no header, and what stops fourteen
+  open microphones from being the feature. **Nothing about a transmission is stored**: it is relayed
+  and dropped, like `SayBox` speech, so there is no history, no replay to a late join and nothing to
+  delete.
 - **The archive is deliberately not a Game Boy** (#99): legibility beat consistency once, for the one
   screen whose job is reading.
 

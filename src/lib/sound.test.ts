@@ -7,6 +7,7 @@ import {
   footstepCue,
   footstepPitch,
   isMuted,
+  nextPlayAt,
   type Note,
   notesOf,
   setMuted,
@@ -57,6 +58,8 @@ describe("the cue table", () => {
       "confirm",
       "door",
       "fanfare",
+      "squelchClose",
+      "squelchOpen",
       "start",
       "stepFloor",
       "stepGrass",
@@ -285,5 +288,36 @@ describe("the mute flag", () => {
 
     const reloaded = await import("@/lib/sound");
     expect(reloaded.isMuted()).toBe(false);
+  });
+});
+
+describe("the voice playback cursor", () => {
+  it("schedules the first chunk a lead ahead of the clock", () => {
+    expect(nextPlayAt(0, 12.5, 0.08)).toBeCloseTo(12.58, 5);
+  });
+
+  it("butts the next chunk against the last, so a sentence has no seams", () => {
+    expect(nextPlayAt(12.7, 12.5, 0.08)).toBeCloseTo(12.7, 5);
+  });
+
+  it("never schedules into the past when the cursor has fallen behind", () => {
+    expect(nextPlayAt(9, 12.5, 0.08)).toBeCloseTo(12.58, 5);
+  });
+});
+
+describe("the squelch", () => {
+  it("brackets a transmission with two cues and no audio assets", () => {
+    for (const name of ["squelchOpen", "squelchClose"] as const) {
+      expect(notesOf(CUES[name]).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("carries a note the recorder can tell from a voice chunk", () => {
+    for (const name of ["squelchOpen", "squelchClose"] as const) {
+      const oscillators = notesOf(CUES[name]).filter(
+        ({ note }) => note.wave !== "noise",
+      );
+      expect(oscillators.length).toBe(1);
+    }
   });
 });

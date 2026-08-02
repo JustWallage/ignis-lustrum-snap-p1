@@ -2,12 +2,17 @@
 
 - **Dismissing the splash is the app's guaranteed user gesture, so that is where the AudioContext is
   created.** It is skipped outside `submission`, so nobody presses START to enter a running event —
-  which is also why such a screen hears none of the event's cues. Correct, not a bug.
+  and such a screen hears none of the event's cues UNTIL somebody holds the push-to-talk bar, which
+  is a guaranteed gesture of its own and calls `unlockAudio` (a no-op once a context exists). A
+  screen that never holds it has no context and so hears no voice either — the honest limit, which
+  the bar's own accessible name states rather than leaving silent.
 - START is a round trip to the splash and nothing else: not the session, not the tile, not the clock.
-- A live event covers the map and takes the buttons, with ONE per-player exception: **Done** on the
-  wheel's last page unfreezes walking for that screen. Safe, because uploading and voting are
-  `submission`-only and both routes 409 anyway. `EventOverlay` renders BEFORE the dialogue box so the
-  SELECT menu still opens on top — **Abort event** lives there.
+- A live event covers the map and takes the buttons, with TWO per-player exceptions: **Done** on the
+  wheel's last page unfreezes walking for that screen, and the **push-to-talk bar** is live
+  throughout — it sits outside the LCD the overlay covers, and touches no phase, route or clock.
+  Safe, because uploading and voting are `submission`-only and both routes 409 anyway.
+  `EventOverlay` renders BEFORE the dialogue box so the SELECT menu still opens on top —
+  **Abort event** lives there.
 - `interactableAt` + `OPENS` (a total `Record`) are why a seventh interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or
@@ -46,7 +51,14 @@
   which would give every idle friend a phantom footstep — and is asked BEFORE the roster moves on,
   because the tile somebody came from is the only thing that can answer it.
 - `unlockAudio` remembers its `resume()` promise and `playCue` awaits it: Safari resolves a tick late
-  and would swallow the first cue. **Never fix that with a timeout at a call site.**
+  and would swallow the first cue. **Never fix that with a timeout at a call site.** Voice waits on
+  the same `whenLive` and borrows the same context — iOS caps them and two would fight over the
+  audio session.
+- **The shoulder bar's band is structural, not a coordinate.** `.gb-bezel-inner` is
+  `align-items: center`, so the bar and the HOLD TO SPEAK row are both centred on the LCD; the
+  battery column is a `1fr auto 1fr` grid precisely so the middle row lands there, and `--gb-band-h`
+  is only how thick that band is. The bar escapes the shell on cancelling margins, and the shell
+  clips with `overflow: clip` + `overflow-clip-margin` so its four radii still trim everything else.
 - `SayBox` is a `Dialog` precisely so the shell stops handing out the D-pad and A while somebody
   types (`KEY_DIRS` reads W/A/S/D). Speech is fanned out and FORGOTTEN — no history, nothing to
   replay to a late join.

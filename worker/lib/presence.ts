@@ -60,6 +60,15 @@ const socketStateSchema = z.object({
   /** Kept apart from `seenAt` so speaking does not swallow the step after it.
    * Defaulted, so an attachment written before the field reads back as one of ours. */
   saidAt: z.number().nullable().default(null),
+  /** The town's half-duplex channel lock. In the ATTACHMENT rather than a storage key,
+   * which awaits and would therefore need `alone()` around a `webSocketMessage` that is
+   * synchronous and race-free without one — and `heardAt` moves on every chunk, which
+   * is a rate no storage key should be written at. */
+  talking: z
+    .object({ since: z.number(), heardAt: z.number() })
+    .nullable()
+    .default(null),
+  talkedAt: z.number().nullable().default(null),
 });
 
 export type SocketState = z.infer<typeof socketStateSchema>;

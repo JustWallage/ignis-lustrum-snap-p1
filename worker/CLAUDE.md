@@ -40,6 +40,13 @@
   would be a roster that quietly emptied itself. `presenceUpgrade` builds the DO's request FROM
   SCRATCH, so a client cannot smuggle a name, id or sprite. Expiry is by silence as well as by
   close, and the event's idle check works only because `PRESENCE_TTL_MS < HOST_IDLE_MS`.
+- **The voice fanout is the ONE filtered fanout.** Everything else reaches every socket, an
+  anonymous visitor's included, because walking is public — but `fanoutHeard` skips a socket with no
+  name, or the town's channel is open to anybody holding the URL. Both talk frames and every audio
+  chunk go through it. The channel LOCK lives in the socket's attachment as `talking`, beside
+  `saidAt`: `webSocketMessage` is synchronous, so an attachment needs no `alone()` where a storage
+  key would. It frees itself by SILENCE the way `expireGhosts` does, never by an alarm — the DO has
+  one slot and the event's deadlines own it — so a tab that dies mid-sentence cannot hold the town.
 - `lib/gemini.ts` (REST) and `lib/npc.ts` (Workers AI) are not interchangeable. **Verify both model
   ids against the provider's docs, never from memory.** `AVATAR_IMAGE_SIZE` is a PRICE. Gemini
   throws and callers decide differently on purpose; for the NPC, offline is a normal path.

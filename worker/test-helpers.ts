@@ -320,6 +320,9 @@ export interface TestSocket {
   next: () => Promise<WsEvent>;
   announce: (standing: { x: number; y: number; facing: string }) => void;
   sendRaw: (message: string) => void;
+  talk: (open: boolean) => void;
+  sendAudio: (bytes: ArrayBuffer) => void;
+  heardAudio: () => number;
   seen: () => WsEventType[];
   close: () => void;
 }
@@ -346,8 +349,12 @@ export async function openSocket(
 
   const queued: WsEvent[] = [];
   const waiting: ((event: WsEvent) => void)[] = [];
+  let audio = 0;
   socket.addEventListener("message", (message) => {
-    if (typeof message.data !== "string") return;
+    if (typeof message.data !== "string") {
+      audio += 1;
+      return;
+    }
     const event = wsEventSchema.parse(JSON.parse(message.data));
     const resolve = waiting.shift();
     if (resolve === undefined) queued.push(event);
@@ -378,6 +385,13 @@ export async function openSocket(
     sendRaw: (message) => {
       socket.send(message);
     },
+    talk: (open) => {
+      socket.send(JSON.stringify({ type: open ? "talk_start" : "talk_end" }));
+    },
+    sendAudio: (bytes) => {
+      socket.send(bytes);
+    },
+    heardAudio: () => audio,
     seen: () => queued.map((event) => event.type),
     close: () => {
       socket.close();

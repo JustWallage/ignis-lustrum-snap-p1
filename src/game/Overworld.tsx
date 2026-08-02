@@ -34,8 +34,10 @@ import { GbTextbox } from "@/components/GbTextbox";
 import { JuryBench } from "@/components/JuryBench";
 import { LoginDialog } from "@/components/LoginDialog";
 import { PrizeManager } from "@/components/PrizeManager";
+import { PttBar } from "@/components/PttBar";
 import { SayBox } from "@/components/SayBox";
 import { SnapDialog } from "@/components/SnapDialog";
+import { VoiceLights } from "@/components/VoiceLights";
 import { useAuth } from "@/context/AuthContext";
 import { useEvent, type EventAction } from "@/context/EventContext";
 import type { Standing } from "@/context/WebSocketContext";
@@ -83,6 +85,7 @@ import { useMySubmission } from "@/hooks/useMySubmission";
 import { useNpcChat } from "@/hooks/useNpcChat";
 import { usePresence } from "@/hooks/usePresence";
 import { useSnapUpload } from "@/hooks/useSnapUpload";
+import { useVoice, type Voice } from "@/hooks/useVoice";
 import { noVoteWarning } from "@/lib/ballot";
 import { IMAGE_ACCEPT } from "@/lib/image";
 import { SAY_MY_OWN } from "@/lib/npc-chat";
@@ -172,6 +175,12 @@ const VOTING_PAGES = [
 ];
 
 const FALLBACK_DAY = 1;
+
+const VOICE_REFUSALS: Record<NonNullable<Voice["refusal"]>, string> = {
+  "signed-out": "SIGN IN TO SPEAK · SIGNED-IN FRIENDS HEAR YOU LIVE",
+  "no-microphone":
+    "NO MICROPHONE · YOUR BROWSER TURNED IT DOWN, AND THE FIX IS IN ITS SETTINGS",
+};
 
 const EVENT_CONFIRM: Record<
   EventAction,
@@ -345,6 +354,7 @@ export function Overworld() {
     });
   }, []);
   const { roster, names: company, announce, say } = usePresence(hearStep);
+  const voice = useVoice(user !== null);
   const jury = juryForDay(gameState?.day ?? FALLBACK_DAY);
   const { mine, refresh: refreshMine } = useMySubmission(
     user?.id ?? null,
@@ -1040,9 +1050,14 @@ export function Overworld() {
   }, [advance, draw]);
 
   const start = startAction(splash, gameState);
-  const prompt = inEvent
-    ? null
-    : promptFor(interactableAt(neighbor(tile, facing)), jury, user !== null);
+  const prompt =
+    (inEvent
+      ? null
+      : promptFor(
+          interactableAt(neighbor(tile, facing)),
+          jury,
+          user !== null,
+        )) ?? (voice.refusal === null ? null : VOICE_REFUSALS[voice.refusal]);
   // ONE condition, because two of them drift: the badge it displaces reads the same
   // boolean.
   const menuFace =
@@ -1057,15 +1072,19 @@ export function Overworld() {
         <div className="gb-bezel">
           <p className="gb-bezel-caption">DOT MATRIX WITH STEREO SOUND</p>
           <div className="gb-bezel-inner">
+            <PttBar voice={voice} />
             <div className="gb-battery">
-              <span className="gb-led" data-lit={user !== null} />
-              <span className="gb-battery-text">
-                {user === null ? (
-                  "BATTERY"
-                ) : (
-                  <span data-testid="player-name">{user.name}</span>
-                )}
+              <span className="gb-voice-power">
+                <span className="gb-led" data-lit={user !== null} />
+                <span className="gb-battery-text">
+                  {user === null ? (
+                    "BATTERY"
+                  ) : (
+                    <span data-testid="player-name">{user.name}</span>
+                  )}
+                </span>
               </span>
+              <VoiceLights channel={voice.channel} />
             </div>
             <div className="gb-lcd-frame">
               <canvas
@@ -1121,9 +1140,10 @@ export function Overworld() {
                   onDone={dismissEvent}
                 />
               )}
-              {/* One slot at the bottom of the LCD, three things that can be
-                  in it: the message field, an open dialogue, or the hint for
-                  whatever the player is standing in front of. */}
+              {/* One slot at the bottom of the LCD, four things that can be
+                  in it: the message field, an open dialogue, the hint for
+                  whatever the player is standing in front of, or the bar's
+                  refusal — the one of the four an event does not displace. */}
               {splash ? null : dialog?.kind === "say" ? (
                 <SayBox onSay={onSay} onClose={closeDialog} />
               ) : dialog?.kind === "chat-say" ? (

@@ -20,7 +20,10 @@ import {
 import {
   isPresenceTooSoon,
   isSayTooSoon,
+  isTalkOver,
+  isTalkTooSoon,
   presenceFrameSchema,
+  TALK_FRAME_MAX_BYTES,
   type PresenceMove,
   type PresencePlayer,
 } from "../../shared/presence";
@@ -107,6 +110,8 @@ export class RealtimeDO extends DurableObject<Bindings> {
         at: null,
         seenAt: now,
         saidAt: null,
+        talking: null,
+        talkedAt: null,
       });
       const snapshot = await this.ctx.storage.get<string>(STATE_KEY);
       if (snapshot !== undefined) {
@@ -122,6 +127,15 @@ export class RealtimeDO extends DurableObject<Bindings> {
         this.send(socket, frame({ type: "event_changed", state: event.data }));
       }
       this.expireGhosts(now);
+      // BEFORE the roster, the way `event_changed` is: `openSocket` in
+      // `worker/test-helpers.ts` reads the greeting until the roster on the documented
+      // promise that the roster is last, and a frame after it desynchronises every DO
+      // test. A late join therefore lands INSIDE the transmission rather than hearing
+      // bytes from nobody.
+      const held = this.talkingNow(now);
+      if (held !== null && presenceName(upgrade) !== null) {
+        this.send(socket, held);
+      }
       this.send(
         socket,
         frame({ type: "presence_here", players: this.roster(now) }),
@@ -351,15 +365,103 @@ export class RealtimeDO extends DurableObject<Bindings> {
   }
 
   override webSocketMessage(socket: WebSocket, message: string | ArrayBuffer) {
-    if (typeof message !== "string") return;
+    const now = Date.now();
     const state = readSocketState(socket);
     if (state?.name == null) return;
+    if (typeof message !== "string") {
+      this.chunk(socket, message, now);
+      return;
+    }
     const parsed = presenceFrameSchema.safeParse(parseJson(message));
     if (!parsed.success) return;
-    const now = Date.now();
     if (parsed.data.type === "say") this.said(socket, state, parsed.data, now);
+    else if (parsed.data.type === "talk_start") this.talkStart(socket, now);
+    else if (parsed.data.type === "talk_end") this.talkEnd(socket, now);
     else this.moved(socket, state, parsed.data, now);
     this.expireGhosts(now);
+    this.expireTalk(now);
+  }
+
+  /**
+   * Samples ride as BINARY frames alongside the JSON, so there is no header saying whose
+   * they are — half-duplex is what makes that safe, and the channel lock is what makes
+   * it half-duplex. A chunk from a socket holding nothing is dropped rather than taken
+   * as an implicit press.
+   */
+  private chunk(socket: WebSocket, bytes: ArrayBuffer, now: number): void {
+    if (bytes.byteLength === 0) return;
+    if (bytes.byteLength > TALK_FRAME_MAX_BYTES) return;
+    const state = readSocketState(socket);
+    if (state?.talking == null) return;
+    if (isTalkOver(state.talking, now)) {
+      this.endTalk(socket, state, now);
+      return;
+    }
+    writeSocketState(socket, {
+      ...state,
+      talking: { ...state.talking, heardAt: now },
+    });
+    this.fanoutHeard(bytes, socket);
+  }
+
+  private talkStart(socket: WebSocket, now: number): void {
+    // Expired FIRST, so a speaker whose tab died mid-sentence is not still holding the
+    // town's channel against the next person to press.
+    if (this.expireTalk(now) !== null) return;
+    const state = readSocketState(socket);
+    if (state?.name == null) return;
+    if (isTalkTooSoon(state.talkedAt, now)) return;
+    writeSocketState(socket, {
+      ...state,
+      talking: { since: now, heardAt: now },
+    });
+    this.fanoutHeard(
+      frame({
+        type: "presence_talk_start",
+        id: state.id,
+        name: state.name,
+      }),
+      socket,
+    );
+  }
+
+  private talkEnd(socket: WebSocket, now: number): void {
+    const state = readSocketState(socket);
+    if (state?.talking == null) return;
+    this.endTalk(socket, state, now);
+  }
+
+  private endTalk(socket: WebSocket, state: SocketState, now: number): void {
+    writeSocketState(socket, { ...state, talking: null, talkedAt: now });
+    this.fanoutHeard(
+      frame({ type: "presence_talk_end", id: state.id }),
+      socket,
+    );
+  }
+
+  /** Frees the channel by SILENCE, the way `expireGhosts` does and for the same reason:
+   * a DO has one alarm slot and the event's deadlines own it. */
+  private expireTalk(now: number): WebSocket | null {
+    let holder: WebSocket | null = null;
+    for (const socket of this.ctx.getWebSockets()) {
+      const state = readSocketState(socket);
+      if (state?.talking == null) continue;
+      if (isTalkOver(state.talking, now)) this.endTalk(socket, state, now);
+      else holder ??= socket;
+    }
+    return holder;
+  }
+
+  private talkingNow(now: number): string | null {
+    const holder = this.expireTalk(now);
+    if (holder === null) return null;
+    const state = readSocketState(holder);
+    if (state?.name == null) return null;
+    return frame({
+      type: "presence_talk_start",
+      id: state.id,
+      name: state.name,
+    });
   }
 
   private moved(
@@ -412,7 +514,9 @@ export class RealtimeDO extends DurableObject<Bindings> {
   private depart(socket: WebSocket): void {
     const state = readSocketState(socket);
     if (state === null) return;
-    if (playerOf(state, Date.now()) === null) return;
+    const now = Date.now();
+    if (state.talking !== null) this.endTalk(socket, state, now);
+    if (playerOf(state, now) === null) return;
     this.fanout(frame({ type: "presence_left", id: state.id }), socket);
   }
 
@@ -452,7 +556,18 @@ export class RealtimeDO extends DurableObject<Bindings> {
     }
   }
 
-  private send(socket: WebSocket, message: string): void {
+  /** The ONE filtered fanout: everything else here reaches an anonymous visitor's socket
+   * on purpose, because walking is public. Voice is not — without this filter the town's
+   * channel would be open to anyone holding the URL. */
+  private fanoutHeard(message: string | ArrayBuffer, except: WebSocket): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      if (socket === except) continue;
+      if (readSocketState(socket)?.name == null) continue;
+      this.send(socket, message);
+    }
+  }
+
+  private send(socket: WebSocket, message: string | ArrayBuffer): void {
     try {
       socket.send(message);
     } catch {

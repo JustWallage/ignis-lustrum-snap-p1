@@ -4,12 +4,15 @@ import {
   isPresenceStale,
   isPresenceTooSoon,
   isSayTooSoon,
+  isTalkOver,
+  isTalkTooSoon,
   MESSAGE_MAX_CHARS,
   presenceFrameSchema,
   presenceMoveSchema,
   presencePlayerSchema,
   presenceSaySchema,
   PRESENCE_PING_MS,
+  TALK_MAX_MS,
 } from "./presence";
 
 const STANDING = { type: "presence", x: 4, y: 4, facing: "down" };
@@ -169,5 +172,52 @@ describe("isPresenceTooSoon", () => {
   it("drops a frame nothing but a script could have sent", () => {
     expect(isPresenceTooSoon(0, 0)).toBe(true);
     expect(isPresenceTooSoon(0, 16)).toBe(true);
+  });
+});
+
+describe("the talk frames", () => {
+  it("takes no identity, because the socket already knows whose it is", () => {
+    expect(presenceFrameSchema.parse({ type: "talk_start" })).toEqual({
+      type: "talk_start",
+    });
+    expect(
+      presenceFrameSchema.parse({
+        type: "talk_end",
+        name: "somebody-else",
+        id: "1",
+      }),
+    ).toEqual({ type: "talk_end" });
+  });
+});
+
+describe("the channel lock", () => {
+  const HELD = { since: 0, heardAt: 0 };
+
+  it("holds while the speaker is still being heard", () => {
+    expect(isTalkOver({ since: 0, heardAt: 4_000 }, 4_500)).toBe(false);
+  });
+
+  it("frees itself when a speaker goes silent, with nothing set to notice", () => {
+    expect(isTalkOver({ since: 0, heardAt: 1_000 }, 2_500)).toBe(true);
+  });
+
+  it("frees itself at the maximum length however hard somebody holds", () => {
+    const forever = { since: 0, heardAt: TALK_MAX_MS };
+    expect(isTalkOver(forever, TALK_MAX_MS - 1)).toBe(false);
+    expect(isTalkOver(forever, TALK_MAX_MS)).toBe(true);
+  });
+
+  it("is over at the silence boundary and not one tick before it", () => {
+    expect(isTalkOver(HELD, 1_499)).toBe(false);
+    expect(isTalkOver(HELD, 1_500)).toBe(true);
+  });
+
+  it("refuses a second press until the interval is out, from both sides", () => {
+    expect(isTalkTooSoon(1_000, 1_799)).toBe(true);
+    expect(isTalkTooSoon(1_000, 1_800)).toBe(false);
+  });
+
+  it("lets a first press through, having nothing to be too soon after", () => {
+    expect(isTalkTooSoon(null, 0)).toBe(false);
   });
 });

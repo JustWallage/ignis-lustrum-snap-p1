@@ -25,6 +25,14 @@ export const wsEventSchema = z.discriminatedUnion("type", [
     text: z.string().max(MESSAGE_MAX_CHARS),
   }),
   z.object({ type: z.literal("presence_left"), id: z.string() }),
+  // `presence_`-prefixed so `REVALIDATE_EVENT_TYPES` keeps excluding them by that one
+  // test: a revalidation per press would turn a conversation into a load test.
+  z.object({
+    type: z.literal("presence_talk_start"),
+    id: z.string(),
+    name: z.string(),
+  }),
+  z.object({ type: z.literal("presence_talk_end"), id: z.string() }),
 ]);
 
 export type WsEvent = z.infer<typeof wsEventSchema>;

@@ -34,7 +34,9 @@ Each is a failure that happened:
 ## What every directory agrees on
 
 - **Walking is public, content is not.** `/api/state` and `/api/event` are the ENTIRE public read
-  surface. Every image, ballot, scoreboard, sprite, comment and mutation is behind the cookie.
+  surface. Every image, ballot, scoreboard, sprite, comment, mutation and the town's VOICE is behind
+  the cookie — the voice in both directions, since a channel only signed-in friends may transmit on
+  is still public if anybody with the URL can listen.
 - **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, advanced
   in exactly ONE place — the wheel's landing. `phase` is a mirror only `RealtimeDO` writes.
 - **The live event is authoritative in `RealtimeDO`'s storage, not broadcast**, so a reload or late

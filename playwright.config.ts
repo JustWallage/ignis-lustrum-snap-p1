@@ -54,15 +54,20 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    // Sandboxes with a system-provided Chromium (e.g. Claude Code on the web)
-    // can point at it instead of downloading a browser.
-    ...(process.env.PLAYWRIGHT_CHROMIUM_PATH === undefined
-      ? {}
-      : {
-          launchOptions: {
-            executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH,
-          },
-        }),
+    launchOptions: {
+      // A deterministic microphone and an auto-granted permission. Unconditional:
+      // headless Chromium on a machine with no capture device REJECTS `getUserMedia`,
+      // which is the refusal path, not the transmitting one these specs are about.
+      args: [
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+      // Sandboxes with a system-provided Chromium (e.g. Claude Code on the web)
+      // can point at it instead of downloading a browser.
+      ...(process.env.PLAYWRIGHT_CHROMIUM_PATH === undefined
+        ? {}
+        : { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }),
+    },
   },
   projects: [
     {
