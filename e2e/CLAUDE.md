@@ -22,7 +22,9 @@ gate before a PR.
   through to the animating terrain.
 - `page.clock`: `setFixedTime` FREEZES (a screen pinned inside the parade never leaves it), so use
   `setSystemTime` when the point is that the event runs itself. Pin BEFORE the first paint when the
-  claim is about a late joiner.
+  claim is about a late joiner. It fakes the clock and leaves the page's own timers running, so a
+  pin reaches the screen on that page's next tick and NOT in the statement after it — read what it
+  changed through a polling assertion, never off a bare sample.
 - Nothing a spec does moves a phase except the host's Next and the winner's spin, so reaching one is a
   WAIT on the DO's alarm. When a press does turn a page, wait for the page to LAND read off the
   authority: waiting for a build-up line to disappear looks equivalent and is not, because it has not
