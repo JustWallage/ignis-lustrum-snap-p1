@@ -10,8 +10,9 @@ play continues.
 Walk with the arrow keys / WASD or the on-screen d-pad. `A` (Enter / Z) talks to whatever you face,
 `B` speaks, `SELECT` (`c`) opens the menu, `START` returns to the title screen.
 
-One Cloudflare Worker serves the React SPA and a Hono API; photos live base64 in D1, and one Durable
-Object carries the live event and everyone's footsteps. Walking is public — the SPA, `/api/state`,
+One Cloudflare Worker serves the React SPA and a Hono API; photo and sprite bytes live in R2 with D1
+holding the rows that name them, and one Durable Object carries the live event and everyone's
+footsteps. Walking is public — the SPA, `/api/state`,
 `/api/event` and `/api/ws`; everything else sits behind a JWT session cookie.
 
 ## Setup

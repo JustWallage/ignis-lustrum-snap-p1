@@ -151,7 +151,7 @@ test("the archive lists the town's drawn avatars, by sprite key", async ({
   const faces = page.getByTestId("archive-face");
   await expect(faces).toHaveCount(1);
   await expect(page.getByTestId("archive-faces")).toContainText("tester");
-  // The rotating handle, never the base64 and never `/api/avatar/image`.
+  // The rotating handle, never the bytes and never `/api/avatar/image`.
   await expect(faces.getByRole("img")).toHaveAttribute(
     "src",
     /^\/api\/sprites\/[0-9a-f]{16}$/,

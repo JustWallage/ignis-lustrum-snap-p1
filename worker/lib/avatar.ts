@@ -3,7 +3,8 @@ import { avatarGenerations, users } from "../../db/schema";
 import type { Bindings } from "../env";
 import { readAvatarCaps } from "./avatar-caps";
 import type { Db } from "./db";
-import { requestAvatar, type GeminiImage } from "./gemini";
+import { requestAvatar, type DrawnAvatar, type GeminiImage } from "./gemini";
+import { deleteImage, putImage, randomHandle, spriteObjectKey } from "./images";
 import { isWithinImageCap } from "./image-upload";
 
 type Reservation = { ok: true; used: number } | { ok: false; townIsOut: true };
@@ -145,7 +146,7 @@ export async function generateAvatar(
     };
   }
 
-  let drawn: GeminiImage;
+  let drawn: DrawnAvatar;
   try {
     drawn = await requestAvatar(apiKey, photo);
   } catch {
@@ -156,7 +157,7 @@ export async function generateAvatar(
       error: "The avatar machine coughed and drew nothing. Have another go.",
     };
   }
-  if (!isWithinImageCap(drawn.data)) {
+  if (!isWithinImageCap(drawn.bytes)) {
     await refund(db, user.id, day);
     return {
       ok: false,
@@ -165,34 +166,39 @@ export async function generateAvatar(
     };
   }
 
-  return { ok: true, key: await storeAvatar(db, user.id, drawn) };
+  return { ok: true, key: await storeAvatar(env, db, user.id, drawn) };
 }
 
-function spriteKey(): string {
-  return [...crypto.getRandomValues(new Uint8Array(8))]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
+/**
+ * Object first, then the row, then the superseded object: at no point does a live
+ * `avatar_key` name a sprite that is not in the bucket. The three columns still go
+ * together, and the OLD object is deleted rather than kept, so the bucket holds exactly
+ * one sprite per player wearing one — which is what makes an orphan sweep writable.
+ */
 export async function storeAvatar(
+  env: Bindings,
   db: Db,
   userId: number,
-  sprite: GeminiImage,
+  sprite: DrawnAvatar,
 ): Promise<string> {
-  const key = spriteKey();
+  const key = randomHandle();
+  const worn = await avatarKeyFor(db, userId);
+  await putImage(env, spriteObjectKey(env, key), sprite.bytes);
   await db
     .update(users)
     .set({
-      avatar: sprite.data,
       avatarContentType: sprite.contentType,
       avatarUpdatedAt: new Date(),
       avatarKey: key,
     })
     .where(eq(users.id, userId));
+  if (worn !== null) {
+    await deleteImage(env, spriteObjectKey(env, worn));
+  }
   return key;
 }
 
-/** The handle alone, without dragging the base64 out of D1. */
+/** The handle alone, without reaching for the bytes behind it. */
 export async function avatarKeyFor(
   db: Db,
   userId: number,
@@ -208,26 +214,24 @@ export async function avatarKeyFor(
 export async function findAvatarByKey(
   db: Db,
   key: string,
-): Promise<{ data: string; contentType: string } | null> {
+): Promise<{ contentType: string } | null> {
   const rows = await db
-    .select({ data: users.avatar, contentType: users.avatarContentType })
+    .select({ contentType: users.avatarContentType })
     .from(users)
     .where(eq(users.avatarKey, key))
     .limit(1);
-  const row = rows[0];
-  const data = row?.data ?? null;
-  const contentType = row?.contentType ?? null;
-  if (data === null || contentType === null) return null;
-  return { data, contentType };
+  const contentType = rows[0]?.contentType ?? null;
+  if (contentType === null) return null;
+  return { contentType };
 }
 
 export async function findAvatar(
   db: Db,
   userId: number,
-): Promise<{ data: string; contentType: string; updatedAt: Date } | null> {
+): Promise<{ key: string; contentType: string; updatedAt: Date } | null> {
   const rows = await db
     .select({
-      data: users.avatar,
+      key: users.avatarKey,
       contentType: users.avatarContentType,
       updatedAt: users.avatarUpdatedAt,
     })
@@ -235,21 +239,30 @@ export async function findAvatar(
     .where(eq(users.id, userId))
     .limit(1);
   const row = rows[0];
-  const data = row?.data ?? null;
+  const key = row?.key ?? null;
   const contentType = row?.contentType ?? null;
   const updatedAt = row?.updatedAt ?? null;
-  if (data === null || contentType === null || updatedAt === null) return null;
-  return { data, contentType, updatedAt };
+  if (key === null || contentType === null || updatedAt === null) return null;
+  return { key, contentType, updatedAt };
 }
 
-export async function clearAvatar(db: Db, userId: number): Promise<void> {
+/** Row first, then the object, so a half-done undress leaves an unreferenced sprite
+ * rather than a key serving a 404. */
+export async function clearAvatar(
+  env: Bindings,
+  db: Db,
+  userId: number,
+): Promise<void> {
+  const worn = await avatarKeyFor(db, userId);
   await db
     .update(users)
     .set({
-      avatar: null,
       avatarContentType: null,
       avatarUpdatedAt: null,
       avatarKey: null,
     })
     .where(eq(users.id, userId));
+  if (worn !== null) {
+    await deleteImage(env, spriteObjectKey(env, worn));
+  }
 }

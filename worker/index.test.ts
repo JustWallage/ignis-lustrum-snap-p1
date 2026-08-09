@@ -610,8 +610,8 @@ describe("snaps", () => {
     await uploadPhotoId(cookie);
     await expect(
       env.DB.prepare(
-        "INSERT INTO photos (user_id, data, content_type, day, created_at)" +
-          " SELECT user_id, data, content_type, day, created_at FROM photos",
+        "INSERT INTO photos (user_id, r2_key, content_type, day, created_at)" +
+          " SELECT user_id, r2_key, content_type, day, created_at FROM photos",
       ).run(),
     ).rejects.toThrow(/UNIQUE constraint failed/i);
   });
@@ -1513,11 +1513,20 @@ async function townUsed(): Promise<number> {
   return row?.town ?? 0;
 }
 
-async function storedAvatar(): Promise<string | null> {
+async function storedAvatarKey(): Promise<string | null> {
   const row = await env.DB.prepare(
-    "SELECT avatar FROM users WHERE name = 'tester'",
+    "SELECT avatar_key FROM users WHERE name = 'tester'",
   ).first();
-  return z.object({ avatar: z.string().nullable() }).parse(row).avatar;
+  return z.object({ avatar_key: z.string().nullable() }).parse(row).avatar_key;
+}
+
+/** The sprite the town would actually be served: the row carries the handle, the
+ * bucket carries the picture, and "no sprite" has to mean both are gone. */
+async function storedAvatar(): Promise<Uint8Array | null> {
+  const key = await storedAvatarKey();
+  if (key === null) return null;
+  const object = await env.IMAGES.get(`sprites/${key}`);
+  return object === null ? null : new Uint8Array(await object.arrayBuffer());
 }
 
 describe("avatar generation", () => {
@@ -1542,7 +1551,7 @@ describe("avatar generation", () => {
     if (state.avatar === null) throw new Error("no sprite came back");
     expect(state.avatar.url).toContain("/api/avatar/image?v=");
 
-    expect(await storedAvatar()).toBe(bytesToBase64(SPRITE_BYTES));
+    expect(await storedAvatar()).toEqual(SPRITE_BYTES);
     expect(fetched).toHaveBeenCalledTimes(1);
     expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT - 1);
   });
@@ -1682,11 +1691,7 @@ describe("avatar generation", () => {
         }),
       502,
     ],
-    [
-      "a sprite too big for a D1 value",
-      () => avatarReply("A".repeat(2_000_000)),
-      502,
-    ],
+    ["a sprite too big to keep", () => avatarReply("A".repeat(2_000_000)), 502],
   ];
 
   it.each(BROKEN_DRAWS)(

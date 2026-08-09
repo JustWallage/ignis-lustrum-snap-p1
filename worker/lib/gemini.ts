@@ -63,9 +63,27 @@ const RESPONSE_SCHEMA = {
   ],
 };
 
+/** What goes IN: base64, because that is the shape of an inline-data part. */
 export interface GeminiImage {
   data: string;
   contentType: string;
+}
+
+/** What comes OUT: bytes, because that is the shape R2 stores. The decode lives here
+ * rather than in `lib/bytes.ts` so nothing outside this module has a base64 reader to
+ * reach for — an image is bytes everywhere else in the worker. */
+export interface DrawnAvatar {
+  bytes: Uint8Array;
+  contentType: string;
+}
+
+function base64ToBytes(encoded: string): Uint8Array {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }
 
 const partSchema = z.object({
@@ -159,7 +177,7 @@ export const AVATAR_INSTRUCTIONS = [
 export async function requestAvatar(
   apiKey: string,
   photo: GeminiImage,
-): Promise<GeminiImage> {
+): Promise<DrawnAvatar> {
   const parts = await generateContent(
     apiKey,
     GEMINI_IMAGE_MODEL,
@@ -174,7 +192,10 @@ export async function requestAvatar(
   );
   for (const { inlineData } of parts) {
     if (inlineData?.mimeType.startsWith("image/") === true) {
-      return { data: inlineData.data, contentType: inlineData.mimeType };
+      return {
+        bytes: base64ToBytes(inlineData.data),
+        contentType: inlineData.mimeType,
+      };
     }
   }
   throw new Error("Gemini returned no image");

@@ -38,6 +38,10 @@ play continues.
   delete.
 - **The archive is deliberately not a Game Boy** (#99): legibility beat consistency once, for the one
   screen whose job is reading.
+- **Image bytes belong in a bucket, not in the database.** They were base64 in D1 only because the
+  documentation said the CI token could not reach R2, and it could; the row keeps the name, the bucket
+  keeps the picture. What does NOT change is who may look: the Worker serves every byte behind the
+  cookie, and no bucket is public and no URL escapes the auth boundary — walking is public, content is
+  not, and an anonymous socket already knows every walking player's sprite URL.
 
-Out of scope: **web push** (#32 — two tickets of VAPID plumbing, and on iOS only once installed), and
-**R2**, ever.
+Out of scope: **web push** (#32 — two tickets of VAPID plumbing, and on iOS only once installed).

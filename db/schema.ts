@@ -13,7 +13,6 @@ export const users = sqliteTable(
     name: text("name").notNull(),
     passwordHash: text("password_hash").notNull(),
     salt: text("salt").notNull(),
-    avatar: text("avatar"),
     avatarContentType: text("avatar_content_type"),
     avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
     avatarKey: text("avatar_key"),
@@ -46,7 +45,7 @@ export const photos = sqliteTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id),
-    data: text("data").notNull(),
+    r2Key: text("r2_key"),
     contentType: text("content_type").notNull(),
     day: integer("day").notNull().default(1),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

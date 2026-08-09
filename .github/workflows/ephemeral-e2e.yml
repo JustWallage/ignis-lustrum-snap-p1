@@ -2,8 +2,11 @@ name: Ephemeral E2E
 
 # Deploys a fully isolated copy of the app (worker incl. its own RealtimeDO
 # namespace + fresh D1) under a unique name, runs ONE Playwright project against
-# it, and always tears the D1 + worker down. Snap bytes live inside that
-# throwaway D1, so no other storage needs provisioning.
+# it, and always tears the D1 + worker down. Snap and sprite BYTES live in R2, in
+# one long-lived bucket every e2e run shares behind IMAGE_PREFIX — a bucket per
+# run would need emptying before it could be deleted and wrangler cannot list
+# objects to empty one, so the isolation is the prefix and `/api/test/reset`
+# sweeps it.
 #
 # Both callers invoke this TWICE IN PARALLEL, once per project, so the suite's
 # two halves finish in the time of the slower one. They must not share a
@@ -36,6 +39,7 @@ jobs:
       # The PROJECT is part of the name. Without it the two jobs of one run share
       # a worker and a database and tear each other down mid-suite.
       E2E_NAME: ignis-snaps-e2e-${{ github.run_id }}-${{ inputs.project }}
+      E2E_BUCKET: ignis-snaps-images-e2e
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -104,9 +108,17 @@ jobs:
         run: |
           pnpm exec wrangler d1 create "$E2E_NAME"
           echo "DB_ID=$(pnpm exec wrangler d1 info "$E2E_NAME" --json | jq -r '.uuid')" >> "$GITHUB_ENV"
+      # Shared and long-lived, so this is a create-if-absent rather than a create:
+      # it is NOT in Terraform, which only runs on main, and a branch pipeline
+      # must not have to wait for a production apply before it can test.
+      - name: Ensure the shared e2e bucket exists
+        run: |
+          pnpm exec wrangler r2 bucket create "$E2E_BUCKET" \
+            || echo "$E2E_BUCKET already exists — carrying on."
       - name: Prepare this run's configuration
         run: |
           sed -i "s/TEMPLATE_E2E_DB_ID/$DB_ID/" wrangler.jsonc
+          sed -i "s#TEMPLATE_E2E_IMAGE_PREFIX#$E2E_NAME/#" wrangler.jsonc
           sed -i "s/\"database_name\": \"ignis-snaps-e2e\"/\"database_name\": \"$E2E_NAME\"/" wrangler.jsonc
       - name: Apply migrations
         run: pnpm exec wrangler d1 migrations apply DB --remote --env e2e
@@ -177,9 +189,26 @@ jobs:
             test-results/
           retention-days: 3
 
+      # The reset comes FIRST and through the worker, because the worker is the only
+      # thing that can list this run's prefix — wrangler has no `r2 object list` —
+      # so once it is deleted nothing can name those objects again and they bill
+      # forever. It is behind the cookie like every other private route, hence the
+      # login; that password is the throwaway one wrangler.jsonc already commits.
       - name: Teardown isolated resources
         if: always()
+        env:
+          BASE_URL: https://${{ env.E2E_NAME }}.${{ secrets.WORKERS_DEV_SUBDOMAIN }}
         run: |
+          if curl -fsS -o /dev/null -c /tmp/e2e-cookies.txt \
+               -H "Content-Type: application/json" \
+               -d '{"name":"tester","password":"test-password-123"}' \
+               "$BASE_URL/api/login" \
+             && curl -fsS -o /dev/null -b /tmp/e2e-cookies.txt \
+               -X POST "$BASE_URL/api/test/reset"; then
+            echo "Swept $E2E_NAME/ out of $E2E_BUCKET."
+          else
+            echo "::warning::the image sweep did not run — $E2E_NAME/ may be left in $E2E_BUCKET"
+          fi
           pnpm exec wrangler delete --name "$E2E_NAME" --force || echo "worker delete failed"
           pnpm exec wrangler d1 delete "$E2E_NAME" --skip-confirmation || echo "D1 delete failed"
       - name: Confirm nothing from this job survived

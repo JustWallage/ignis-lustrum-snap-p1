@@ -7,9 +7,10 @@ import {
   quotaFor,
 } from "../lib/avatar";
 import { pushSprite } from "../lib/broadcast";
-import { base64ToBytes, bytesToBase64 } from "../lib/bytes";
+import { bytesToBase64 } from "../lib/bytes";
 import { getDb } from "../lib/db";
 import { readGameState } from "../lib/game-state";
+import { readImage, spriteObjectKey } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
 import { toAvatarState } from "../lib/serialize";
 import { spriteUrl } from "./sprites";
@@ -36,7 +37,11 @@ avatarRoutes.get("/image", async (c) => {
   if (avatar === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  return new Response(base64ToBytes(avatar.data), {
+  const bytes = await readImage(c.env, spriteObjectKey(c.env, avatar.key));
+  if (bytes === null) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  return new Response(bytes, {
     headers: {
       "Content-Type": avatar.contentType,
       "Cache-Control": "private, max-age=31536000, immutable",
@@ -75,7 +80,7 @@ avatarRoutes.delete("/", async (c) => {
   const user = c.get("user");
   const db = getDb(c.env);
   const { day } = await readGameState(db);
-  await clearAvatar(db, user.id);
+  await clearAvatar(c.env, db, user.id);
   await pushSprite(c.env, user.id, null);
   return c.json(
     toAvatarState({ updatedAt: null, ...(await quotaFor(db, user.id, day)) }),

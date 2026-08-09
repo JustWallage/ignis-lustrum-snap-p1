@@ -104,11 +104,13 @@ async function rowCount(): Promise<number> {
   return row?.rows ?? 0;
 }
 
-async function storedAvatar(): Promise<string | null> {
-  const row = await env.DB.prepare(
-    "SELECT avatar FROM users WHERE name = 'tester'",
-  ).first();
-  return z.object({ avatar: z.string().nullable() }).parse(row).avatar;
+/** The sprite the town would actually be served: the row carries the handle, the
+ * bucket carries the picture, and "no sprite" has to mean both are gone. */
+async function storedAvatar(): Promise<Uint8Array | null> {
+  const key = await storedAvatarKey();
+  if (key === null) return null;
+  const object = await env.IMAGES.get(`sprites/${key}`);
+  return object === null ? null : new Uint8Array(await object.arrayBuffer());
 }
 
 async function storedAvatarKey(): Promise<string | null> {
@@ -140,7 +142,7 @@ describe("avatar generation", () => {
     if (state.avatar === null) throw new Error("no sprite came back");
     expect(state.avatar.url).toContain("/api/avatar/image?v=");
 
-    expect(await storedAvatar()).toBe(bytesToBase64(SPRITE_BYTES));
+    expect(await storedAvatar()).toEqual(SPRITE_BYTES);
     expect(fetched).toHaveBeenCalledTimes(1);
     expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT - 1);
   });
@@ -280,11 +282,7 @@ describe("avatar generation", () => {
         }),
       502,
     ],
-    [
-      "a sprite too big for a D1 value",
-      () => avatarReply("A".repeat(2_000_000)),
-      502,
-    ],
+    ["a sprite too big to keep", () => avatarReply("A".repeat(2_000_000)), 502],
   ];
 
   it.each(BROKEN_DRAWS)(
@@ -327,7 +325,7 @@ describe("avatar generation", () => {
     expect((await generateAvatar(cookie, withAvatarKeyOnly())).status).toBe(
       201,
     );
-    expect(await storedAvatar()).toBe(bytesToBase64(SPRITE_BYTES));
+    expect(await storedAvatar()).toEqual(SPRITE_BYTES);
 
     const id = await uploadPhotoId(cookie, { bindings: withAvatarKeyOnly() });
     const scored = await storedScore(id);
@@ -541,7 +539,7 @@ describe("avatar generation", () => {
       local,
     );
     expect(res.status).toBe(200);
-    expect(await storedAvatar()).toBe(bytesToBase64(PHOTO_BYTES));
+    expect(await storedAvatar()).toEqual(PHOTO_BYTES);
 
     const state = await avatarState(cookie);
     expect(state.avatar?.url).toContain("/api/avatar/image?v=");

@@ -17,6 +17,7 @@ import { readAvatarCaps, writeAvatarCapsStatement } from "../lib/avatar-caps";
 import { bytesToBase64 } from "../lib/bytes";
 import { getDb, type Db } from "../lib/db";
 import { readGameState } from "../lib/game-state";
+import { readImage } from "../lib/images";
 import { avatarSpend, requestEvaluation } from "../lib/gemini";
 import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
@@ -43,7 +44,7 @@ async function askedDay(db: Db, query: string | undefined): Promise<number> {
 const SCORED_COLUMNS = {
   id: photos.id,
   day: photos.day,
-  data: photos.data,
+  r2Key: photos.r2Key,
   contentType: photos.contentType,
 } as const;
 
@@ -53,14 +54,27 @@ function isFailedOn(day: number) {
   return and(eq(photos.day, day), eq(photoScores.aiStatus, "failed"));
 }
 
-/** Sequential on purpose: fourteen multimodal calls at once earns a rate limit. */
+/** Sequential on purpose: fourteen multimodal calls at once earns a rate limit.
+ * A row whose object has gone is SKIPPED rather than re-scored: the jury would
+ * otherwise be handed an empty image and still write a verdict over it. */
 async function retry(
   env: Bindings,
-  rows: { id: number; day: number; data: string; contentType: string }[],
+  rows: {
+    id: number;
+    day: number;
+    r2Key: string | null;
+    contentType: string;
+  }[],
 ): Promise<{ attempted: number; ok: number; failed: number }> {
   let ok = 0;
   for (const row of rows) {
-    if ((await scorePhoto(env, row)) === "ok") ok += 1;
+    const bytes = await readImage(env, row.r2Key);
+    if (bytes === null) continue;
+    const scored = await scorePhoto(env, {
+      ...row,
+      data: bytesToBase64(bytes),
+    });
+    if (scored === "ok") ok += 1;
   }
   return { attempted: rows.length, ok, failed: rows.length - ok };
 }

@@ -3,10 +3,10 @@
 Required before touching `wrangler.jsonc`, `.github/` or `iac/`.
 
 - Push to `main` → `check-fast` (format, lint, types — the cheap gate in front of everything that
-  costs Cloudflare), then in parallel `check-slow`, Terraform (prod D1) and **two** ephemeral E2E jobs
-  (`project: event` and `project: town`, each creating its own throwaway Worker + D1 and running
-  `workers: 1`), then deploy, set secrets, seed prod D1. `branch-pipeline.yml` is the same graph minus
-  Terraform and the deploy.
+  costs Cloudflare), then in parallel `check-slow`, Terraform (prod D1 + the image bucket) and **two**
+  ephemeral E2E jobs (`project: event` and `project: town`, each creating its own throwaway Worker + D1 and running
+  `workers: 1`), then backfill images into R2, migrate, deploy, set secrets, seed prod D1.
+  `branch-pipeline.yml` is the same graph minus Terraform and the deploy.
 - Two concurrent throwaway databases is a ceiling, not a starting point: the account is near the free
   plan's D1 cap.
 - **`deploy-prod` must `need` every one of those jobs and name every one in its
@@ -16,8 +16,17 @@ Required before touching `wrangler.jsonc`, `.github/` or `iac/`.
   config, so every prod wrangler call passes only `-c "$CONFIG"`. With no matching env section wrangler
   falls back to legacy naming and acts on a phantom `ignis-snaps-production` worker — which is exactly
   how `JWT_SECRET` landed on the wrong worker and made every correct password 500.
-- `snaps.justwallage.nl` is a Wrangler `routes` entry, not Terraform. Terraform's state backend uses
-  the R2 bucket via its own S3 credentials, unaffected by the API token's missing R2 permissions.
+- `snaps.justwallage.nl` is a Wrangler `routes` entry, not Terraform. **Two different R2 credentials,
+  and the distinction survives the app moving into R2**: the Terraform STATE bucket is reached at
+  `init` time through separate S3 credentials, while the app's own bucket is provisioned by the
+  Cloudflare provider on the same API token that provisions D1.
+- **The image backfill runs BEFORE `d1 migrations apply`** and nowhere else: migration `0014` drops the
+  base64 columns it reads, and a D1 migration cannot write to R2. It is re-runnable and reports finding
+  the columns already gone as its own outcome, so a no-op cannot pass for a copy.
+- The ephemeral E2E bucket is NOT in Terraform: `ephemeral-e2e.yml` creates one shared bucket on demand,
+  because Terraform only runs on `main` and a branch pipeline cannot wait on a production apply. Runs
+  are isolated by `IMAGE_PREFIX`, and teardown signs in and calls `/api/test/reset` to sweep the prefix
+  while the Worker that can still list it exists.
 - **Two Gemini secrets, and NOTHING falls back between them**: `GEMINI_API_KEY` is the jury's,
   `GEMINI_API_KEY_PAID` is the one the image model bills per picture. Both are **deliberately optional
   everywhere** — without the jury's, every photograph scores 5; without the paid one, the avatar
