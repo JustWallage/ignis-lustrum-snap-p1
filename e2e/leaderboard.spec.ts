@@ -11,7 +11,7 @@ import {
 } from "./fixtures";
 
 /** `voter` and `judge` never upload, so the standings carry two players with nothing in
- * the archive — the case the last two tests click on. */
+ * the archive — `voter` is the single row below the podium, which the last test clicks. */
 async function twoRevealedDays(page: Page): Promise<void> {
   const mine = await apiUpload(page, "tester");
   await apiUpload(page, "rival");
