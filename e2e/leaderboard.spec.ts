@@ -10,8 +10,8 @@ import {
   walkToShelf,
 } from "./fixtures";
 
-/** Tester is in on both days and rival on one, which leaves judge and voter standing
- * with nothing of theirs in the archive — the case the last two tests are about. */
+/** `voter` and `judge` never upload, so the standings carry two players with nothing in
+ * the archive — the case the last two tests click on. */
 async function twoRevealedDays(page: Page): Promise<void> {
   const mine = await apiUpload(page, "tester");
   await apiUpload(page, "rival");
@@ -62,8 +62,8 @@ test("two revealed days add up into a podium on the shelf", async ({
   await expect(board).toContainText("voter");
 
   // Four seeded players leave ONE row below the podium, so nothing overflows here and
-  // "the last player is reachable" would pass against the 10rem cap this replaced. The
-  // claim is about boxes: no cap of the list's own, and a list that runs to the panel.
+  // "the last player is reachable" would pass against the 10rem cap this replaced —
+  // only the boxes catch it.
   await expect(board.getByTestId("standings")).toHaveCSS("max-height", "none");
   const list = await boxOf(page, "standings");
   const panel = await boxOf(page, "standings-panel");
@@ -92,8 +92,6 @@ test("tapping a plinth opens that player's photographs", async ({ page }) => {
       .getByTestId("archive-people")
       .getByRole("button", { name: "tester", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  // TWO cards, because the archive opens on the newest day alone: only a day rail
-  // genuinely moved to All days can show both of tester's.
   await expect(page.getByTestId("archive-card")).toHaveCount(2);
   await expect(page.getByTestId("archive-results")).not.toContainText("rival");
 });

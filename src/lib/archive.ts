@@ -19,9 +19,8 @@ export interface ArchiveFilter {
   who: string;
 }
 
-/** `selected` joins the rail even when the days never mention them, because the
- * standings send a player with nothing in here (#3) — and a rail built from the days
- * alone would leave that filter applied with no chip pressed anywhere. */
+/** The standings hand this a player the archive has nothing by (#3): a rail built from
+ * the days alone would leave that filter applied with no chip pressed anywhere. */
 export function photographers(
   days: readonly ArchiveDay[],
   selected: string,

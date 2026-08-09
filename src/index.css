@@ -1104,11 +1104,6 @@ button.gb-pill-cap:disabled {
   font-size: 0.75rem;
 }
 
-/* #99 licenses a modern photo-app look HERE AND NOWHERE ELSE. Every class below is
-   prefixed `arc-` and used only by what the archive puts on screen — `ArchiveDialog`
-   and the two panels it opens, `AvatarGallery` and `Leaderboard`: the look is
-   quarantined by naming. */
-
 .arc-screen {
   display: flex;
   flex: 1;
