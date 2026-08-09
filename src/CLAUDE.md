@@ -88,6 +88,9 @@
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
   nowhere else, so the modern look is quarantined by naming.
+- **A standing is a button, and its accessible name is the row it reads** — "#1 tester 75 2 days ·
+  2 won". `getByRole`'s `name` matches a substring, so inside the archive the **Days** tab must be
+  resolved with `exact: true` or it also finds every plinth whose record says "days".
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

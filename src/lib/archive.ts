@@ -19,10 +19,18 @@ export interface ArchiveFilter {
   who: string;
 }
 
-export function photographers(days: readonly ArchiveDay[]): string[] {
-  return [
-    ...new Set(days.flatMap((one) => one.results.map((r) => r.uploader.name))),
-  ].sort();
+/** `selected` joins the rail even when the days never mention them, because the
+ * standings send a player with nothing in here (#3) — and a rail built from the days
+ * alone would leave that filter applied with no chip pressed anywhere. */
+export function photographers(
+  days: readonly ArchiveDay[],
+  selected: string,
+): string[] {
+  const names = new Set(
+    days.flatMap((one) => one.results.map((r) => r.uploader.name)),
+  );
+  if (selected !== ALL) names.add(selected);
+  return [...names].sort();
 }
 
 export function feedOf(
