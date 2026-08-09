@@ -90,8 +90,14 @@ test("it scrolls downward and lands on the prize the server chose", async ({
   if (spunAt === null) throw new Error("the wheel was not spun");
 
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS / 2);
+  // The bare sample this replaces is what flaked: a frame that has applied the spin but
+  // not yet re-read the pinned clock sits at offset 0 WITHOUT the SPIN button, and
+  // losing that button re-centres the column and moves the ribbon DOWN — so it fails the
+  // other way rather than tying.
+  await expect
+    .poll(async () => (await ribbon.boundingBox())?.y ?? before.y)
+    .toBeLessThan(before.y);
   const during = await ribbon.boundingBox();
-  expect(during?.y ?? 0).toBeLessThan(before.y);
   expect(during?.x ?? -1).toBe(before.x);
 
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS + 200);
