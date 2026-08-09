@@ -37,11 +37,6 @@ resource "cloudflare_d1_database" "prod" {
   }
 }
 
-# Snap and sprite bytes. Addressed by NAME, so nothing is substituted into
-# wrangler.jsonc from an output here the way the D1 id is — the two names are the
-# same literal, exactly as `database_name` already is. Ephemeral E2E does NOT use
-# this bucket and does not come through Terraform: ephemeral-e2e.yml creates its
-# own shared one on demand, so a branch pipeline never waits on a prod apply.
 resource "cloudflare_r2_bucket" "images_prod" {
   account_id = var.cloudflare_account_id
   name       = "ignis-snaps-images-prod"

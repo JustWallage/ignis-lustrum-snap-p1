@@ -151,7 +151,6 @@ photosRoutes.post("/", async (c) => {
       ? null
       : await findSubmission(db, user.id, day);
 
-  // Before the row, and before the batch that would delete the one it replaces.
   const r2Key = newSnapKey(c.env);
   await putImage(c.env, r2Key, bytes);
 

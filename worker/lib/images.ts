@@ -1,20 +1,12 @@
 import type { Bindings } from "../env";
 
-/**
- * No R2 call can join a `db.batch`, so every ordering leaks one way or the other and only
- * ONE outcome is unacceptable: a row pointing at an object that is not there, which is a
- * player's snap gone. So the object is written BEFORE its row and deleted AFTER it, and
- * what leaks instead is an orphan nobody references — sweepable, because every live key
- * is either a `photos.r2_key` or `sprites/` + a `users.avatar_key`.
- *
- * A snap's key is GENERATED rather than derived from `photos.id` for that reason alone:
- * an autoincrement id does not exist until the insert has landed, so a derived key could
- * only ever be written after its row.
- */
 function prefix(env: Bindings): string {
   return env.IMAGE_PREFIX ?? "";
 }
 
+/** GENERATED rather than derived from `photos.id`: an autoincrement id does not exist
+ * until the insert has landed, so a derived key could only ever be written after its
+ * row — and the object has to exist first. */
 export function newSnapKey(env: Bindings): string {
   return `${prefix(env)}snaps/${randomHandle()}`;
 }

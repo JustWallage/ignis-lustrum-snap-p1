@@ -68,8 +68,7 @@ testResetRoute.post("/", async (c) => {
     }),
   ]);
   // The rows above are the only thing that knows a key, so the objects go with them or
-  // the bucket fills with rubbish nothing can name again. IMAGE_PREFIX is this run's
-  // alone, and the bucket is shared with every other e2e run.
+  // the bucket fills with rubbish nothing can name again.
   await sweepImages(c.env);
   await setGameDay(db, day);
   // The DO holds the live event AND caches the last state it was told about, so a

@@ -110,7 +110,6 @@ describe("image bytes in the bucket", () => {
 
     const res = await fetchImage(id, cookie);
     expect(res.status).toBe(404);
-    // The row is still there: this is the object being absent, not the snap.
     expect(await snapKeyOf(id)).not.toBe("");
   });
 

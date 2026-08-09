@@ -1520,8 +1520,6 @@ async function storedAvatarKey(): Promise<string | null> {
   return z.object({ avatar_key: z.string().nullable() }).parse(row).avatar_key;
 }
 
-/** The sprite the town would actually be served: the row carries the handle, the
- * bucket carries the picture, and "no sprite" has to mean both are gone. */
 async function storedAvatar(): Promise<Uint8Array | null> {
   const key = await storedAvatarKey();
   if (key === null) return null;

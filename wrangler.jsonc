@@ -47,13 +47,11 @@
         "ADMIN_NAMES": "tester",
         "JWT_SECRET": "e2e-throwaway-secret",
         "USERS_JSON": "[{\"name\":\"tester\",\"password\":\"test-password-123\"},{\"name\":\"rival\",\"password\":\"rival-password-123\"},{\"name\":\"voter\",\"password\":\"voter-password-123\"},{\"name\":\"judge\",\"password\":\"judge-password-123\"}]",
-        // Every ephemeral run gets its own D1, whose ids restart at 1 — so run B's
-        // photo 1 would land on run A's leftover object, behind an immutable
-        // Cache-Control and an ETag of "snap-1". The bucket is SHARED (unlike the
-        // database, because a bucket holding objects cannot be deleted and wrangler
-        // cannot list them to empty it), so this prefix is what isolates a run, and
-        // `/api/test/reset` sweeps exactly it. Substituted per run by
-        // ephemeral-e2e.yml, like TEMPLATE_E2E_DB_ID.
+        // Two ephemeral runs share ONE bucket (a bucket holding objects cannot be
+        // deleted, and wrangler cannot list them to empty it), and `/api/test/reset`
+        // sweeps BY PREFIX before every single test — with no prefix that sweep is the
+        // whole bucket, so the `event` run would delete the `town` run's live snaps
+        // mid-suite. Substituted per run by ephemeral-e2e.yml, like TEMPLATE_E2E_DB_ID.
         "IMAGE_PREFIX": "TEMPLATE_E2E_IMAGE_PREFIX",
       },
       "d1_databases": [

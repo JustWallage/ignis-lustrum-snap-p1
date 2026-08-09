@@ -169,12 +169,6 @@ export async function generateAvatar(
   return { ok: true, key: await storeAvatar(env, db, user.id, drawn) };
 }
 
-/**
- * Object first, then the row, then the superseded object: at no point does a live
- * `avatar_key` name a sprite that is not in the bucket. The three columns still go
- * together, and the OLD object is deleted rather than kept, so the bucket holds exactly
- * one sprite per player wearing one — which is what makes an orphan sweep writable.
- */
 export async function storeAvatar(
   env: Bindings,
   db: Db,
@@ -198,7 +192,6 @@ export async function storeAvatar(
   return key;
 }
 
-/** The handle alone, without reaching for the bytes behind it. */
 export async function avatarKeyFor(
   db: Db,
   userId: number,
@@ -246,8 +239,6 @@ export async function findAvatar(
   return { key, contentType, updatedAt };
 }
 
-/** Row first, then the object, so a half-done undress leaves an unreferenced sprite
- * rather than a key serving a 404. */
 export async function clearAvatar(
   env: Bindings,
   db: Db,

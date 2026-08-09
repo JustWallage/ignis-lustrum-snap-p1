@@ -63,15 +63,12 @@ const RESPONSE_SCHEMA = {
   ],
 };
 
-/** What goes IN: base64, because that is the shape of an inline-data part. */
+/** base64, not bytes: the shape a Gemini inline-data part has to arrive in. */
 export interface GeminiImage {
   data: string;
   contentType: string;
 }
 
-/** What comes OUT: bytes, because that is the shape R2 stores. The decode lives here
- * rather than in `lib/bytes.ts` so nothing outside this module has a base64 reader to
- * reach for — an image is bytes everywhere else in the worker. */
 export interface DrawnAvatar {
   bytes: Uint8Array;
   contentType: string;

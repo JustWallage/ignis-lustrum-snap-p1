@@ -1,6 +1,3 @@
-// Copies the base64 images out of D1 and into R2, through wrangler. It runs in
-// deploy.yml BEFORE `d1 migrations apply`, because migration 0014 drops the columns it
-// reads and a D1 migration cannot write to R2 itself.
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { backfillImages, describe } from "./backfill.mjs";
@@ -17,8 +14,6 @@ if (bucket === undefined) {
   throw new Error(`${configPath} declares no r2_buckets`);
 }
 
-// Never `--env production`: the config CI prepared is already flattened, and passing it
-// makes wrangler resolve a legacy worker that does not exist. Same rule as seed.mjs.
 function wrangler(argv, input) {
   const result = spawnSync("pnpm", ["exec", "wrangler", ...argv], {
     input,
@@ -48,9 +43,6 @@ function query(sql) {
   return JSON.parse(out)[0]?.results ?? [];
 }
 
-// Ten at a time: one row can carry 1.2 MB of base64, so the whole table in one response
-// is a memory profile nobody measured, and one row per call is a wrangler start-up per
-// photo.
 const PAGE = 10;
 
 function readPaged(table, columns, where) {

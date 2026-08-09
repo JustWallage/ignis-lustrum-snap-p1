@@ -4,9 +4,9 @@
 // present at runtime; neither Gemini key is in any `vars` block, so both are declared
 // here and OPTIONAL on purpose — local and e2e run without either. They are two keys
 // because only one of them is billed per call, and NOTHING falls back from one to the
-// other: see worker/lib/avatar.ts. IMAGE_PREFIX is widened for the same reason
-// ENVIRONMENT is: cf-typegen reads the literal in the e2e `vars` block, which
-// ephemeral-e2e.yml substitutes per run.
+// other: see worker/lib/avatar.ts. IMAGE_PREFIX is retyped because cf-typegen bakes in
+// the placeholder literal out of the e2e `vars` block, which ephemeral-e2e.yml
+// substitutes per run — and optional because no other block declares it at all.
 export type Bindings = Omit<
   Env,
   "ENVIRONMENT" | "JWT_SECRET" | "USERS_JSON" | "IMAGE_PREFIX"

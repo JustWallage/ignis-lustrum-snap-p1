@@ -104,8 +104,6 @@ async function rowCount(): Promise<number> {
   return row?.rows ?? 0;
 }
 
-/** The sprite the town would actually be served: the row carries the handle, the
- * bucket carries the picture, and "no sprite" has to mean both are gone. */
 async function storedAvatar(): Promise<Uint8Array | null> {
   const key = await storedAvatarKey();
   if (key === null) return null;
