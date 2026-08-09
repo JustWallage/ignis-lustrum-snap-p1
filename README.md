@@ -12,8 +12,8 @@ Walk with the arrow keys / WASD or the on-screen d-pad. `A` (Enter / Z) talks to
 
 One Cloudflare Worker serves the React SPA and a Hono API; photo and sprite bytes live in R2 with D1
 holding the rows that name them, and one Durable Object carries the live event and everyone's
-footsteps. Walking is public — the SPA, `/api/state`,
-`/api/event` and `/api/ws`; everything else sits behind a JWT session cookie.
+footsteps. Walking is public — the SPA, `/api/state`, `/api/event` and `/api/ws`; everything else
+sits behind a JWT session cookie.
 
 ## Setup
 

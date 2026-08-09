@@ -120,6 +120,13 @@ jobs:
           sed -i "s/TEMPLATE_E2E_DB_ID/$DB_ID/" wrangler.jsonc
           sed -i "s#TEMPLATE_E2E_IMAGE_PREFIX#$E2E_NAME/#" wrangler.jsonc
           sed -i "s/\"database_name\": \"ignis-snaps-e2e\"/\"database_name\": \"$E2E_NAME\"/" wrangler.jsonc
+          # A placeholder that stopped matching leaves BOTH parallel jobs on one
+          # literal prefix, each reset sweeping the other's live objects mid-suite.
+          if grep -q TEMPLATE_E2E_ wrangler.jsonc; then
+            echo "::error::a TEMPLATE_E2E_ placeholder survived substitution"
+            grep -n TEMPLATE_E2E_ wrangler.jsonc
+            exit 1
+          fi
       - name: Apply migrations
         run: pnpm exec wrangler d1 migrations apply DB --remote --env e2e
       - name: Build and deploy isolated Worker

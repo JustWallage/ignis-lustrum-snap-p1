@@ -19,11 +19,12 @@ deploys a schema without the column while everything stays green.
   the day. Values are integers; a cap of 0 is a closed machine, and `readAvatarCaps` falls back to the
   seeds so a lost row cannot 500 a route every player hits.
 - **No image bytes are in D1 at all** — snaps and sprites live in the `IMAGES` bucket, and these tables
-  only NAME them: `photos.r2_key` is the whole key, and a sprite's is `sprites/` + `users.avatar_key`.
-  A snap's key is generated before the insert rather than derived from `photos.id`, because an
-  autoincrement id does not exist until the row does and an object cannot be written before its name.
-  Migration `0013` stamps `snaps/<id>` on every row older than it, which is exactly what
-  `scripts/backfill-images.mjs` wrote to the bucket in the deploy step before it.
+  only NAME them: `photos.r2_key` is the whole key, and a sprite's is `sprites/` + `users.avatar_key`,
+  both prefixed by `IMAGE_PREFIX` where one is set. A snap's key is generated before the insert rather
+  than derived from `photos.id`, because an autoincrement id does not exist until the row does and an
+  object cannot be written before its name. Migration `0013` stamps `snaps/<id>` on every row the
+  backfill saw, which is exactly what `scripts/backfill-images.mjs` wrote to the bucket in the deploy
+  step before it.
 - The three avatar columns go together: any of them being null means "still on the default", so nothing
   may set them piecemeal. `avatar_key` is the rotating handle everybody ELSE loads through, and it is
   also the object's name — so a superseded sprite is DELETED with its columns and the bucket holds

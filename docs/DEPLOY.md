@@ -4,9 +4,9 @@ Required before touching `wrangler.jsonc`, `.github/` or `iac/`.
 
 - Push to `main` → `check-fast` (format, lint, types — the cheap gate in front of everything that
   costs Cloudflare), then in parallel `check-slow`, Terraform (prod D1 + the image bucket) and **two**
-  ephemeral E2E jobs (`project: event` and `project: town`, each creating its own throwaway Worker + D1 and running
-  `workers: 1`), then backfill images into R2, migrate, deploy, set secrets, seed prod D1.
-  `branch-pipeline.yml` is the same graph minus Terraform and the deploy.
+  ephemeral E2E jobs (`project: event` and `project: town`, each creating its own throwaway Worker +
+  D1 and running `workers: 1`), then backfill images into R2, migrate, deploy, set secrets, seed prod
+  D1. `branch-pipeline.yml` is the same graph minus Terraform and the deploy.
 - Two concurrent throwaway databases is a ceiling, not a starting point: the account is near the free
   plan's D1 cap.
 - **`deploy-prod` must `need` every one of those jobs and name every one in its

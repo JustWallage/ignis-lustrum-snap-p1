@@ -1,10 +1,10 @@
 /** Migration 0013 stamps exactly this on every row that existed before it, so the
  * objects this writes and the keys that migration records cannot drift apart. */
-export function snapKeyFor(id) {
+function snapKeyFor(id) {
   return `snaps/${id}`;
 }
 
-export function spriteKeyFor(avatarKey) {
+function spriteKeyFor(avatarKey) {
   return `sprites/${avatarKey}`;
 }
 
