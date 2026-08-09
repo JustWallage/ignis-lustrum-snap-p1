@@ -11,7 +11,7 @@ import {
 } from "./fixtures";
 
 // Every other spec asserts an upload SUCCEEDED. This one hands the jury a QR code and
-// reads it back, so a degraded pipeline (downscale, JPEG, base64, D1) fails loudly.
+// reads it back, so a degraded pipeline (downscale, JPEG, R2, back) fails loudly.
 //
 // The fixture is deliberately low density and under `compressImage`'s ceiling, so the
 // JPEG re-encode is the only thing acting on it. Enlarging it to make a failure go away

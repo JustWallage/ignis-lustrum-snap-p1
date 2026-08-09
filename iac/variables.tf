@@ -1,5 +1,5 @@
 variable "cloudflare_api_token" {
-  description = "Cloudflare API token with Workers and D1 permissions (no R2 needed)"
+  description = "Cloudflare API token with Workers, D1 and R2 permissions"
   type        = string
   sensitive   = true
 }

@@ -12,7 +12,8 @@
   `submission`**, enforced by `photos_user_day_idx`: the route reads no state, inserts, and turns
   the UNIQUE violation into a 409, so two racing POSTs cannot both land. Replace is purge + insert
   in ONE `db.batch`, or a landed delete leaves a player with nothing in. `purgePhoto` is the one
-  place a photo's dependants die. Nothing writes a photo caption (#72).
+  place a photo's dependants die — and one of them is not a table: the R2 object goes after the
+  batch, never inside it. Nothing writes a photo caption (#72).
 - **Anonymity is server-side.** `uploader: null` unless it is yours or the day is revealed;
   `/api/votes/candidates` selects no uploader column at all. `toPhoto` masks name and verdict as
   TWO decisions — your own snap always carries your name, and no verdict until the day is out,
@@ -54,7 +55,12 @@
   credential blob, and the prompt builder cannot leak a password it has no way to reach. NAMES only,
   and an unreadable roster drops the names line and nothing else.
 - **`AI` is production-only, not by choice**: no local emulation, so declaring it in `local` stops
-  `pnpm test:unit` and in `e2e` stops `pnpm dev:e2e`. `remote: false` does not help.
+  `pnpm test:unit` and in `e2e` stops `pnpm dev:e2e`. `remote: false` does not help. **`IMAGES` is
+  the opposite case and must not copy it**: miniflare simulates R2 in both the vitest pool and
+  `wrangler dev`, so the bucket is declared in all three blocks.
+- **`lib/images.ts` is the only module that touches the bucket.** Object BEFORE row, row BEFORE
+  object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
+  500, and the admin retry SKIPS a row whose object has gone rather than scoring an empty image.
 - **Two Gemini keys, no fallback between them**: `GEMINI_API_KEY` judges photographs,
   `GEMINI_API_KEY_PAID` draws avatars, and the billed one is the only thing `lib/avatar.ts` will
   reach for. Falling back either way spends the wrong key. Both are optional everywhere — without
@@ -68,8 +74,9 @@
   are STORED config an admin PATCHes (`settings`, seeded with what used to be compiled in), and 0 is
   legal — a closed machine. They are decided in ONE statement so two requests cannot spend the last slot;
   the slot is taken before the model call and refunded by every path that stores no sprite.
-  `storeAvatar` sets all four columns together. `/api/sprites/:key` is a router of its own so "whose
-  sprite?" never enters it; a key rotates per generation, so a URL is immutable and cacheable.
+  `storeAvatar` puts the object, sets all three columns together, then deletes the superseded object.
+  `/api/sprites/:key` is a router of its own so "whose sprite?" never enters it; a key rotates per
+  generation, so a URL is immutable and cacheable.
   **`/api/avatars` pairs a name with a key for everybody holding one, walking or not** — the
   question `/api/sprites/:key` refuses, and no new leak because the roster already pairs the two for
   whoever is online. `pushSprite` broadcasts `avatar_changed` as well as the roster frame, because

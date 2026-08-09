@@ -1,8 +1,8 @@
 # Ignis Snaps
 
 Game Boy-style overworld PWA for 14 friends: anyone walks the pixel town, signed-in friends drop
-one photo "snap" per day. ONE Worker serves the React SPA + Hono API, snap bytes live base64 in D1
-(**no R2 — the CI token has no R2 permissions**), ONE Durable Object (`RealtimeDO`,
+one photo "snap" per day. ONE Worker serves the React SPA + Hono API, image bytes live in ONE R2
+bucket (`IMAGES`) with D1 holding only the row that names them, ONE Durable Object (`RealtimeDO`,
 `idFromName("global")`) fans out every realtime event.
 
 Read `docs/AGENT-WORKFLOW.md` before starting work, and `docs/DEPLOY.md` before touching
@@ -37,6 +37,9 @@ Each is a failure that happened:
   surface. Every image, ballot, scoreboard, sprite, comment, mutation and the town's VOICE is behind
   the cookie — the voice in both directions, since a channel only signed-in friends may transmit on
   is still public if anybody with the URL can listen.
+- **The bucket and D1 cannot be atomic**, so the object is written BEFORE its row and deleted
+  AFTER it: what leaks is an orphan nobody references, never a row whose image 404s. The Worker
+  serves every byte itself — no public bucket, no signed URL.
 - **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, advanced
   in exactly ONE place — the wheel's landing. `phase` is a mirror only `RealtimeDO` writes.
 - **The live event is authoritative in `RealtimeDO`'s storage, not broadcast**, so a reload or late

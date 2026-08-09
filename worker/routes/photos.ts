@@ -15,9 +15,10 @@ import { mySubmissionSchema } from "../../shared/api";
 import type { AppEnv } from "../env";
 import { isAdmin } from "../lib/auth";
 import { broadcast, pushGameState } from "../lib/broadcast";
-import { base64ToBytes, bytesToBase64 } from "../lib/bytes";
+import { bytesToBase64 } from "../lib/bytes";
 import { getDb, type Db } from "../lib/db";
 import { isDayRevealed, readGameState } from "../lib/game-state";
+import { deleteImage, newSnapKey, putImage, readImage } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
 import { deletePhotoScore, scorePhoto } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
@@ -136,7 +137,7 @@ photosRoutes.post("/", async (c) => {
     return c.json({ error: upload.error }, 400);
   }
   const file = upload.file;
-  const data = bytesToBase64(new Uint8Array(await file.arrayBuffer()));
+  const bytes = new Uint8Array(await file.arrayBuffer());
   const db = getDb(c.env);
   const { day, phase } = await readGameState(db);
   if (phase !== "submission") {
@@ -150,13 +151,16 @@ photosRoutes.post("/", async (c) => {
       ? null
       : await findSubmission(db, user.id, day);
 
+  const r2Key = newSnapKey(c.env);
+  await putImage(c.env, r2Key, bytes);
+
   let row: PhotoRow | undefined;
   try {
     row = await writeSubmission(
       db,
       {
         userId: user.id,
-        data,
+        r2Key,
         contentType: file.type,
         day,
         createdAt: new Date(),
@@ -174,6 +178,7 @@ photosRoutes.post("/", async (c) => {
     return c.json({ error: "Insert failed" }, 500);
   }
   if (replacing !== null) {
+    await deleteImage(c.env, replacing.r2Key);
     await broadcast(c.env, { type: "photo_deleted", id: replacing.id });
   }
   await broadcast(c.env, { type: "photo_created", id: row.id });
@@ -184,7 +189,7 @@ photosRoutes.post("/", async (c) => {
     scorePhoto(c.env, {
       id: row.id,
       day,
-      data,
+      data: bytesToBase64(bytes),
       contentType: file.type,
     }),
   );
@@ -237,7 +242,11 @@ photosRoutes.get("/:id/image", async (c) => {
   if (photo === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  return new Response(base64ToBytes(photo.data), {
+  const bytes = await readImage(c.env, photo.r2Key);
+  if (bytes === null) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  return new Response(bytes, {
     headers: {
       "Content-Type": photo.contentType,
       "Cache-Control": "private, max-age=31536000, immutable",
@@ -275,6 +284,7 @@ photosRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
   await db.batch(purgePhoto(db, id));
+  await deleteImage(c.env, photo.r2Key);
   await broadcast(c.env, { type: "photo_deleted", id });
   await pushGameState(c.env, await readGameState(db));
   return c.json({ ok: true });

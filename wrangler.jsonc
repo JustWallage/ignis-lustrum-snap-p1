@@ -28,6 +28,12 @@
       "migrations_dir": "db/migrations",
     },
   ],
+  // Snap and sprite bytes. Declared in all three blocks — the OPPOSITE of the
+  // `ai` binding below, which is production-only because it has no local
+  // emulation at all: miniflare simulates R2 in both the vitest pool and
+  // `wrangler dev`, so a local bucket is a real bucket here. Do not copy the
+  // `ai` precedent onto storage.
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "ignis-snaps-images" }],
   "durable_objects": {
     "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
   },
@@ -41,6 +47,12 @@
         "ADMIN_NAMES": "tester",
         "JWT_SECRET": "e2e-throwaway-secret",
         "USERS_JSON": "[{\"name\":\"tester\",\"password\":\"test-password-123\"},{\"name\":\"rival\",\"password\":\"rival-password-123\"},{\"name\":\"voter\",\"password\":\"voter-password-123\"},{\"name\":\"judge\",\"password\":\"judge-password-123\"}]",
+        // Two ephemeral runs share ONE bucket (a bucket holding objects cannot be
+        // deleted, and wrangler cannot list them to empty it), and `/api/test/reset`
+        // sweeps BY PREFIX before every single test — with no prefix that sweep is the
+        // whole bucket, so the `event` run would delete the `town` run's live snaps
+        // mid-suite. Substituted per run by ephemeral-e2e.yml, like TEMPLATE_E2E_DB_ID.
+        "IMAGE_PREFIX": "TEMPLATE_E2E_IMAGE_PREFIX",
       },
       "d1_databases": [
         {
@@ -49,6 +61,9 @@
           "database_id": "TEMPLATE_E2E_DB_ID",
           "migrations_dir": "db/migrations",
         },
+      ],
+      "r2_buckets": [
+        { "binding": "IMAGES", "bucket_name": "ignis-snaps-images-e2e" },
       ],
       "durable_objects": {
         "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
@@ -70,6 +85,12 @@
           "database_id": "TEMPLATE_PROD_DB_ID",
           "migrations_dir": "db/migrations",
         },
+      ],
+      // No TEMPLATE here and no terraform output feeding it: a bucket is addressed
+      // by NAME, not by a generated id, so this string and iac/main.tf's are the
+      // same literal — the way `database_name` already is.
+      "r2_buckets": [
+        { "binding": "IMAGES", "bucket_name": "ignis-snaps-images-prod" },
       ],
       "durable_objects": {
         "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],

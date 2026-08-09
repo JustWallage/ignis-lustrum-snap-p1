@@ -164,8 +164,8 @@ describe("snaps", () => {
     // violation — so two POSTs racing each other cannot both land.
     await expect(
       env.DB.prepare(
-        "INSERT INTO photos (user_id, data, content_type, day, created_at)" +
-          " SELECT user_id, data, content_type, day, created_at FROM photos",
+        "INSERT INTO photos (user_id, r2_key, content_type, day, created_at)" +
+          " SELECT user_id, r2_key, content_type, day, created_at FROM photos",
       ).run(),
     ).rejects.toThrow(/UNIQUE constraint failed/i);
   });

@@ -23,7 +23,6 @@ export function readImageFile(form: FormData, field: string): ImageUpload {
   return { file };
 }
 
-export function isWithinImageCap(base64: string): boolean {
-  // 3 bytes per 4 characters; padding overestimates by at most two bytes.
-  return (base64.length * 3) / 4 <= MAX_SIZE;
+export function isWithinImageCap(bytes: Uint8Array): boolean {
+  return bytes.byteLength <= MAX_SIZE;
 }

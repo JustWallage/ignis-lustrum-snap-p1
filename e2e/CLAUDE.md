@@ -42,5 +42,7 @@ gate before a PR.
 - The e2e project cannot see `src/`, so a palette colour a spec needs is hardcoded (knip would read an
   e2e-only export as dead code).
 - `round-trip.spec.ts` decodes a low-density QR fixture back off the served `<img>`, so a degraded
-  round trip (downscale → JPEG → base64 → D1) fails loudly instead of passing as a 201. Enlarging the
+  round trip (downscale → JPEG → R2 → back) fails loudly instead of passing as a 201. Enlarging the
   fixture to make it pass misses the point.
+- Every e2e run shares ONE R2 bucket and is isolated by `IMAGE_PREFIX`, which `/api/test/reset` sweeps
+  — so the reset every test starts with empties the bucket as well as the tables.

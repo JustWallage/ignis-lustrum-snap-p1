@@ -187,7 +187,7 @@ export const avatarStateSchema = z.object({
 export type AvatarState = z.infer<typeof avatarStateSchema>;
 
 /** The town's drawn avatars, as a name beside the rotating `avatar_key` handle. Never
- * the base64 and never `/api/avatar/image`, which serves only your own. */
+ * the bytes and never `/api/avatar/image`, which serves only your own. */
 export const townAvatarsSchema = z.object({
   avatars: z.array(z.object({ user: userSchema, url: z.string() })),
 });

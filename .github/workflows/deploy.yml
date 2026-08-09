@@ -109,6 +109,14 @@ jobs:
       # `--env production` — wrangler would fall back to legacy env naming and
       # act on a phantom "ignis-snaps-production" worker instead (which is how
       # JWT_SECRET went missing from the real one and every login 500'd).
+      #
+      # BEFORE the migrations, and it is the only place it can go: migration 0014
+      # drops the base64 columns this reads, and a D1 migration cannot write to R2
+      # itself. It is re-runnable — the backfill derives its keys from the rows, so
+      # a second pass overwrites rather than duplicates — and it says out loud when
+      # it finds the columns already gone rather than reporting a silent nothing.
+      - name: Backfill image bytes into R2
+        run: node scripts/backfill-images.mjs --config "$CONFIG"
       - name: Apply production D1 migrations
         run: pnpm exec wrangler d1 migrations apply DB --remote -c "$CONFIG"
       - name: Deploy production Worker

@@ -26,14 +26,19 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
-# Production database (metadata AND image bytes — this app is D1-only; the CI
-# API token has no R2 permissions). The Worker and its custom domain
-# (snaps.justwallage.nl) are owned by Wrangler/CI, not Terraform — this only
-# provisions the stateful backing store.
+# Production metadata. Image bytes live in the bucket below. The Worker and its
+# custom domain (snaps.justwallage.nl) are owned by Wrangler/CI, not Terraform —
+# this only provisions the stateful backing stores.
 resource "cloudflare_d1_database" "prod" {
   account_id = var.cloudflare_account_id
   name       = "ignis-snaps-prod"
   read_replication = {
     mode = "disabled"
   }
+}
+
+resource "cloudflare_r2_bucket" "images_prod" {
+  account_id = var.cloudflare_account_id
+  name       = "ignis-snaps-images-prod"
+  location   = "WEUR"
 }

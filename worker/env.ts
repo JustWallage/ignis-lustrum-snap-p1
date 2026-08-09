@@ -4,14 +4,17 @@
 // present at runtime; neither Gemini key is in any `vars` block, so both are declared
 // here and OPTIONAL on purpose — local and e2e run without either. They are two keys
 // because only one of them is billed per call, and NOTHING falls back from one to the
-// other: see worker/lib/avatar.ts.
+// other: see worker/lib/avatar.ts. IMAGE_PREFIX is retyped because cf-typegen bakes in
+// the placeholder literal out of the e2e `vars` block, which ephemeral-e2e.yml
+// substitutes per run — and optional because no other block declares it at all.
 export type Bindings = Omit<
   Env,
-  "ENVIRONMENT" | "JWT_SECRET" | "USERS_JSON"
+  "ENVIRONMENT" | "JWT_SECRET" | "USERS_JSON" | "IMAGE_PREFIX"
 > & {
   ENVIRONMENT: string;
   JWT_SECRET: string;
   USERS_JSON: string;
+  IMAGE_PREFIX?: string;
   GEMINI_API_KEY?: string;
   GEMINI_API_KEY_PAID?: string;
 };
