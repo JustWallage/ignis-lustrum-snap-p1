@@ -14,7 +14,7 @@ function record(standing: Standing): string {
   return standing.wins === 0 ? days : `${days} · ${String(standing.wins)} won`;
 }
 
-export function Leaderboard() {
+export function Leaderboard({ onPick }: { onPick: (name: string) => void }) {
   const board = useCachedFetch("/api/leaderboard", leaderboardSchema);
   useRealtimeEvents(board.mutate);
 
@@ -37,31 +37,45 @@ export function Leaderboard() {
   const rest = standings.slice(PODIUM);
 
   return (
-    <div className="space-y-2" data-testid="leaderboard">
+    <div className="arc-board" data-testid="leaderboard">
       <ol className="flex items-end gap-2">
         {podium.map((standing) => (
-          <li
-            key={standing.user.id}
-            className="gb-podium"
-            data-rank={standing.rank}
-          >
-            <span className="gb-podium-rank">#{standing.rank}</span>
-            <span className="gb-podium-name">{standing.user.name}</span>
-            <span className="gb-podium-total">{points(standing.total)}</span>
-            <span className="gb-podium-record">{record(standing)}</span>
+          <li key={standing.user.id} className="flex flex-1">
+            <button
+              type="button"
+              className="gb-podium"
+              data-rank={standing.rank}
+              onClick={() => {
+                onPick(standing.user.name);
+              }}
+            >
+              <span className="gb-podium-rank">#{standing.rank}</span>
+              <span className="gb-podium-name">{standing.user.name}</span>
+              <span className="gb-podium-total">{points(standing.total)}</span>
+              <span className="gb-podium-record">{record(standing)}</span>
+            </button>
           </li>
         ))}
       </ol>
       {rest.length > 0 && (
-        <ul className="max-h-40 space-y-1 overflow-y-auto text-xs">
+        <ul className="arc-standings" data-testid="standings">
           {rest.map((standing) => (
-            <li key={standing.user.id} className="flex gap-2">
-              <span className="font-bold">#{standing.rank}</span>
-              <span className="min-w-0 flex-1 truncate uppercase">
-                {standing.user.name}
-              </span>
-              <span className="opacity-70">{record(standing)}</span>
-              <span className="font-bold">{points(standing.total)}</span>
+            <li key={standing.user.id}>
+              <button
+                type="button"
+                className="arc-standing"
+                data-testid="standing"
+                onClick={() => {
+                  onPick(standing.user.name);
+                }}
+              >
+                <span className="arc-standing-rank">#{standing.rank}</span>
+                <span className="arc-standing-name">{standing.user.name}</span>
+                <span className="arc-standing-record">{record(standing)}</span>
+                <span className="arc-standing-total">
+                  {points(standing.total)}
+                </span>
+              </button>
             </li>
           ))}
         </ul>

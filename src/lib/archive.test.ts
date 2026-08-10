@@ -32,11 +32,20 @@ const DAYS: ArchiveDay[] = [
 
 describe("photographers", () => {
   it("names everybody once, alphabetically", () => {
-    expect(photographers(DAYS)).toEqual(["rival", "tester"]);
+    expect(photographers(DAYS, ALL)).toEqual(["rival", "tester"]);
   });
 
   it("has nobody in an empty archive", () => {
-    expect(photographers([])).toEqual([]);
+    expect(photographers([], ALL)).toEqual([]);
+  });
+
+  it("carries a selected player the archive has nothing by", () => {
+    expect(photographers(DAYS, "voter")).toEqual(["rival", "tester", "voter"]);
+    expect(photographers([], "voter")).toEqual(["voter"]);
+  });
+
+  it("still names a selected photographer once", () => {
+    expect(photographers(DAYS, "tester")).toEqual(["rival", "tester"]);
   });
 });
 

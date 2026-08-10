@@ -1104,9 +1104,6 @@ button.gb-pill-cap:disabled {
   font-size: 0.75rem;
 }
 
-/* #99 licenses a modern photo-app look HERE AND NOWHERE ELSE. Every class below is
-   prefixed `arc-` and used only by `ArchiveDialog`: the look is quarantined by naming. */
-
 .arc-screen {
   display: flex;
   flex: 1;
@@ -1325,6 +1322,63 @@ button.gb-pill-cap:disabled {
   font-size: 0.85rem;
 }
 
+/* No cap and no scroller of its own: a 10rem list put eleven of fourteen players behind
+   a second scrollbar inside a modal that has the whole screen, so the panel scrolls. */
+.arc-board {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.arc-standings {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.arc-standing {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 24 29 / 0.1),
+    0 6px 16px rgb(20 24 29 / 0.06);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.arc-standing-rank {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.arc-standing-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.arc-standing-record {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7b8590;
+}
+.arc-standing-total {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
 .arc-faces {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
@@ -1363,7 +1417,10 @@ button.gb-pill-cap:disabled {
   border: 2px solid #071821;
   border-radius: 4px;
   background: #f8f8f0;
+  font: inherit;
+  color: inherit;
   text-align: center;
+  cursor: pointer;
 }
 .gb-podium[data-rank="1"] {
   padding-top: 0.9rem;

@@ -59,7 +59,7 @@ export function ArchiveDialog({
 
   const days = useMemo(() => archive.data?.days ?? [], [archive.data]);
   const day = dayInView(days, chosenDay);
-  const names = useMemo(() => photographers(days), [days]);
+  const names = useMemo(() => photographers(days, who), [days, who]);
   const feed = useMemo(() => feedOf(days, { day, who }), [days, day, who]);
   // The viewer pages through what the two rails left on screen, in the order it is in,
   // so a filter still means something once a photograph is open.
@@ -103,8 +103,14 @@ export function ArchiveDialog({
               inside it, a shelf nobody has revealed a day on would answer "Avatars"
               with "nothing is in the archive". */}
           {view === "standings" ? (
-            <div className="arc-panel">
-              <Leaderboard />
+            <div className="arc-panel" data-testid="standings-panel">
+              <Leaderboard
+                onPick={(name) => {
+                  setChosenDay(ALL);
+                  setWho(name);
+                  setView("days");
+                }}
+              />
             </div>
           ) : view === "avatars" ? (
             <div className="arc-panel">

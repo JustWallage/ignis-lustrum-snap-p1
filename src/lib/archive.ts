@@ -19,10 +19,17 @@ export interface ArchiveFilter {
   who: string;
 }
 
-export function photographers(days: readonly ArchiveDay[]): string[] {
-  return [
-    ...new Set(days.flatMap((one) => one.results.map((r) => r.uploader.name))),
-  ].sort();
+/** The standings hand this a player the archive has nothing by (#3): a rail built from
+ * the days alone would leave that filter applied with no chip pressed anywhere. */
+export function photographers(
+  days: readonly ArchiveDay[],
+  selected: string,
+): string[] {
+  const names = new Set(
+    days.flatMap((one) => one.results.map((r) => r.uploader.name)),
+  );
+  if (selected !== ALL) names.add(selected);
+  return [...names].sort();
 }
 
 export function feedOf(
