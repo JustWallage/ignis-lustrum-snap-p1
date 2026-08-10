@@ -205,14 +205,14 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <GbWindow title="Vote" onClose={onClose}>
-      <div className="space-y-3">
-        <p className="text-xs">
+    <GbWindow title="Vote" shape="full" onClose={onClose}>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <p className="shrink-0 text-xs">
           Tap a snap to judge it full screen. No photographer is named until the
           reveal.
         </p>
         {error !== "" && (
-          <p className="gb-error" role="alert">
+          <p className="gb-error shrink-0" role="alert">
             {error}
           </p>
         )}
@@ -225,7 +225,12 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
             Nobody has handed a snap in yet.
           </GbPlaceholder>
         ) : (
-          <ul className="grid grid-cols-3 gap-2" data-testid="vote-candidates">
+          // `content-start` because the grid is now a flex item that fills: stretched
+          // rows would blow a three-snap day up to the height of the screen.
+          <ul
+            className="grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto"
+            data-testid="vote-candidates"
+          >
             {list.map((candidate, index) => {
               const held = rankOf(picks, candidate.id);
               return (
@@ -242,7 +247,7 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
                     <img
                       src={candidate.url}
                       alt={`Snap ${index + 1}`}
-                      className="h-16 w-full bg-[#071821] object-cover"
+                      className="aspect-square w-full bg-[#071821] object-cover"
                     />
                     <span className="gb-pick-rank">
                       {candidate.isMine

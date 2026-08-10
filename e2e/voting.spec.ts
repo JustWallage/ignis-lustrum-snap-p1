@@ -19,6 +19,68 @@ function filledSlots(page: Page) {
   return page.getByTestId("podium").locator('[data-filled="true"]');
 }
 
+/** `.modal-layer.is-full`'s own padding, in px — the one gap a full-screen window is
+ * allowed to leave. */
+const LAYER_PAD = 8;
+
+/** `max-w-3xl`, the cap the one-photograph viewer keeps. */
+const WIDE_MAX = 768;
+
+async function windowBox(page: Page) {
+  const box = await page.locator(".gb-window").boundingBox();
+  if (box === null) throw new Error("no window is on screen");
+  return box;
+}
+
+test("the overview fills the viewport; the viewer and a narrow window keep their own", async ({
+  page,
+}) => {
+  await apiUpload(page, "tester");
+  await apiUpload(page, "rival");
+  await apiUpload(page, "voter");
+  await page.context().clearCookies();
+
+  const viewport = page.viewportSize();
+  if (viewport === null) throw new Error("this run has no viewport to measure");
+
+  // The narrow default first, while nobody is signed in: the sign-in window comes
+  // through the same shell, so it is what a leaking full-screen mode would break.
+  await page.goto("/");
+  await pressStart(page);
+  await walkToVotingNpc(page);
+  await page.keyboard.press("Enter");
+  await expect(
+    page.locator(".gb-window").getByRole("heading", { name: "Sign in" }),
+  ).toBeVisible();
+  const narrow = await windowBox(page);
+  expect(narrow.width).toBeLessThan(viewport.width / 2);
+
+  await apiSignIn(page, "judge");
+  await page.goto("/");
+  await pressStart(page);
+  await walkToVotingNpc(page);
+  await openBallot(page);
+
+  const overview = await windowBox(page);
+  expect(overview.x).toBeLessThanOrEqual(LAYER_PAD);
+  expect(overview.y).toBeLessThanOrEqual(LAYER_PAD);
+  expect(overview.width).toBeGreaterThanOrEqual(viewport.width - 2 * LAYER_PAD);
+  expect(overview.height).toBeGreaterThanOrEqual(
+    viewport.height - 2 * LAYER_PAD,
+  );
+  expect(overview.width).toBeLessThanOrEqual(viewport.width);
+  expect(overview.height).toBeLessThanOrEqual(viewport.height);
+
+  const viewer = await openSnapViewer(page, 1);
+  await expect(
+    viewer.getByRole("heading", { name: "Snap 1 of 3" }),
+  ).toBeVisible();
+  const shown = await windowBox(page);
+  expect(shown.width).toBeLessThanOrEqual(WIDE_MAX);
+  expect(shown.width).toBeLessThan(overview.width);
+  expect(shown.height).toBeLessThan(viewport.height);
+});
+
 test("the NPC explains the ballot, then hands over a full screen of snaps", async ({
   page,
 }) => {

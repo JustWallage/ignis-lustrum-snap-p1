@@ -78,7 +78,11 @@ export function SnapViewer({
   if (current === undefined) return null;
 
   return (
-    <GbWindow title={`Snap ${at + 1} of ${list.length}`} wide onClose={onClose}>
+    <GbWindow
+      title={`Snap ${at + 1} of ${list.length}`}
+      shape="wide"
+      onClose={onClose}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         {header}
         {/* The zones cover the photograph and nothing else, so a rank button, the
