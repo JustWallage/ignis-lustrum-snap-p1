@@ -25,7 +25,9 @@ rather than on the authority. Then dispatch `comment-auditor` and apply all of i
 `APPLY` findings and ship, fix a `BLOCKING` one and go again, max 3 rounds.
 
 Only then mark the PR ready — **that starts the pipeline** — mark the ticket done, and
-`node scripts/ticket.mjs ship <n>`. **Stay until your own deploy is green.** If it goes red, the
-red-`main` rule in `AGENT-WORKFLOW.md` decides whether it is yours to fix or yours to walk away from.
+`node scripts/ticket.mjs ship <n>` — **a green pipeline is not the finish line, and without `gh` the
+merge is still yours**, through the MCP tools every other write goes through. **Stay until your own
+deploy is green.** If it goes red, the red-`main` rule in `AGENT-WORKFLOW.md` decides whether it is
+yours to fix or yours to walk away from.
 
 Stuck or stopping early: `node scripts/ticket.mjs release <n>`.
