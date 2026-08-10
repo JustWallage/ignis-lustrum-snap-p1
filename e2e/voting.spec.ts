@@ -13,6 +13,7 @@ import {
   tapViewer,
   test,
   walkToVotingNpc,
+  windowBox,
 } from "./fixtures";
 
 function filledSlots(page: Page) {
@@ -25,12 +26,6 @@ const LAYER_PAD = 8;
 
 /** `max-w-3xl`, the cap the one-photograph viewer keeps. */
 const WIDE_MAX = 768;
-
-async function windowBox(page: Page) {
-  const box = await page.locator(".gb-window").boundingBox();
-  if (box === null) throw new Error("no window is on screen");
-  return box;
-}
 
 test("the overview fills the viewport; the viewer and a narrow window keep their own", async ({
   page,

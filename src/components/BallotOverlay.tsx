@@ -225,8 +225,9 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
             Nobody has handed a snap in yet.
           </GbPlaceholder>
         ) : (
-          // `content-start` because the grid is now a flex item that fills: stretched
-          // rows would blow a three-snap day up to the height of the screen.
+          // `content-start` because the grid now fills: under the default
+          // `align-content: stretch` its auto rows absorb the leftover height instead of
+          // packing at the top.
           <ul
             className="grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto"
             data-testid="vote-candidates"

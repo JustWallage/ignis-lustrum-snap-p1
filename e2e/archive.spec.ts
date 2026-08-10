@@ -16,6 +16,7 @@ import {
   test,
   walkPodiumToWheel,
   walkToShelf,
+  windowBox,
 } from "./fixtures";
 
 const EVENT_TIMEOUT_MS = 180_000;
@@ -32,12 +33,6 @@ function viewerTitle(page: Page, at: number, of: number) {
   return page
     .locator(".gb-window")
     .getByRole("heading", { name: `Snap ${at} of ${of}` });
-}
-
-async function windowBox(page: Page) {
-  const box = await page.locator(".gb-window").boundingBox();
-  if (box === null) throw new Error("the viewer is not on screen");
-  return box;
 }
 
 async function noSidewaysScroll(page: Page): Promise<void> {

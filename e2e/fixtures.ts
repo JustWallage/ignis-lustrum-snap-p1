@@ -182,6 +182,14 @@ export async function boxOf(page: Page, testId: string) {
   return box;
 }
 
+/** The box of whichever Game Boy window is open — every one of them comes through the
+ * same shell, so the geometry specs all measure the same locator. */
+export async function windowBox(page: Page) {
+  const box = await page.locator(".gb-window").boundingBox();
+  if (box === null) throw new Error("no window is on screen");
+  return box;
+}
+
 /** The big viewer's tap zones: left half back, right half on, over the photograph only. */
 export async function tapViewer(
   page: Page,
