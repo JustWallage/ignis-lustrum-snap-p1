@@ -7,6 +7,7 @@ import {
   dropSocket,
   expect,
   joinAs,
+  lcd,
   pressStart,
   readEvent,
   recordAudio,
@@ -186,6 +187,10 @@ test("muting silences the squelch and not the voice", async ({
 
   const speaker = await joinAs(browser, "tester");
   await expect(page.getByTestId("voice-theirs")).toBeVisible();
+  // A press on a socket that has not opened yet is DROPPED and never retried, and
+  // `joinAs` only waits on `/api/me`. Seeing the speaker in this screen's own company is
+  // the proof both ends are on the DO.
+  await expect(lcd(page)).toHaveAttribute("aria-label", /tester/i);
 
   await holdBar(speaker);
   await expect(lamp(page, "voice-theirs")).toHaveAttribute("data-lit", "true");
