@@ -94,7 +94,10 @@
   when something asks for them.
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
-  nowhere else, so the modern look is quarantined by naming.
+  nowhere else, so the modern look is quarantined by naming — with ONE crossing, the artist's
+  wardrobe, which is `AvatarGallery` inside a `.gb-window`. Sharing the one shelf is what keeps a
+  player from being offered different faces in the two places, and jscpd refuses the copy that would
+  avoid it; the `arc-` classes come along with it.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

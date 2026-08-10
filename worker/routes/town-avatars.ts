@@ -24,12 +24,7 @@ townAvatarRoutes.get("/", async (c) => {
       user: { id: row.userId, name: row.userName },
       sprites: [],
     };
-    group.sprites.push({
-      id: row.id,
-      url: spriteUrl(row.key),
-      worn: row.worn,
-      createdAt: row.createdAt.toISOString(),
-    });
+    group.sprites.push({ id: row.id, url: spriteUrl(row.key), worn: row.worn });
     players.set(row.userId, group);
   }
   return c.json(townAvatarsSchema.parse({ players: [...players.values()] }));

@@ -106,7 +106,7 @@ describe("the avatar history backfill", () => {
     const row = legacyRowSchema.parse(results[0]);
     expect(row.key).toBe("abc123abc123abc1");
     expect(row.content_type).toBe("image/png");
-    // The drawing's own time, not the deploy's: the gallery orders on it.
+    // The drawing's own time, not the deploy's.
     expect(row.created_at).toBe(1700);
   });
 

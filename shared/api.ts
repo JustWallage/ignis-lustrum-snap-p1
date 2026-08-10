@@ -193,12 +193,7 @@ export const townAvatarsSchema = z.object({
     z.object({
       user: userSchema,
       sprites: z.array(
-        z.object({
-          id: z.int(),
-          url: z.string(),
-          worn: z.boolean(),
-          createdAt: z.iso.datetime(),
-        }),
+        z.object({ id: z.int(), url: z.string(), worn: z.boolean() }),
       ),
     }),
   ),

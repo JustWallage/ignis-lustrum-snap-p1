@@ -83,9 +83,9 @@
   once, because an old sprite can be worn again.
 - **`POST /api/avatar/worn` draws nothing**: no model call, no slot taken, nothing refunded, since
   `avatar_generations` counts drawings and a switch is free. It takes an id out of `/api/avatars` and
-  answers 404 — never 403 — for one that is not yours, because a distinguishable refusal would make
-  the listing an oracle. It broadcasts what a fresh drawing broadcasts. `clearAvatar` takes off what
-  you WEAR and nothing else.
+  answers 404 for one that is not yours as well as for one nobody drew — ONE refusal, so the two
+  cannot disagree about which it is. It broadcasts what a fresh drawing broadcasts. `clearAvatar`
+  takes off what you WEAR and nothing else.
   **`/api/avatars` pairs a name with every key that name has ever drawn** — wider than the presence
   roster, which pairs a name only with what somebody is wearing. A deliberate widening, behind the
   cookie, going ONE way: owner → their keys. There is still no route answering "whose sprite is this
@@ -94,9 +94,9 @@
   roster frame skips the socket that generated.
 - **`commentRoutes(subject)` is ONE thread router mounted per subject**, under `/api/photos/:id` and
   `/api/avatars/:id` alike — a second router differing only in the noun is how the two would drift
-  apart on who may delete what. Both mounts go in ABOVE the listing they hang off, for the reason
-  `/api/photos/:id/comments` always did. Nothing on a sprite thread is anonymous: the gallery already
-  prints the name beside every face.
+  apart on who may delete what. The avatar mount sits above its listing to match the photos pair, not
+  because it must: `townAvatarRoutes` declares only `/`, so nothing there could swallow it. Nothing
+  on a sprite thread is anonymous: the gallery already prints the name beside every face.
 - ONE `isAdmin` gate on the admin sub-router, not per handler. What it serves is COUNTS and CONFIG,
   never scores or sprites: the caps PATCH is the one lever there, a count is not, and neither it nor
   a retry broadcasts. The bill is an ESTIMATE computed in the worker — Google reports no billing

@@ -205,8 +205,8 @@ async function wear(
     .where(eq(users.id, userId));
 }
 
-/** A sprite that is not yours is indistinguishable from one that does not exist: the
- * listing pairs a name with a key, and a 403 here would turn that into an oracle. */
+/** "Not yours" and "not there" come back as one refusal, so the route has one failure
+ * path rather than two that could disagree about which it is. */
 export async function wearSprite(
   db: Db,
   userId: number,
@@ -231,7 +231,6 @@ export interface TownSprite {
   id: number;
   key: string;
   worn: boolean;
-  createdAt: Date;
 }
 
 export async function townSprites(db: Db): Promise<TownSprite[]> {
@@ -242,7 +241,6 @@ export async function townSprites(db: Db): Promise<TownSprite[]> {
       id: avatarSprites.id,
       key: avatarSprites.key,
       worn: sql<number>`(${users.avatarKey} is not null and ${users.avatarKey} = ${avatarSprites.key})`,
-      createdAt: avatarSprites.createdAt,
     })
     .from(avatarSprites)
     .innerJoin(users, eq(users.id, avatarSprites.userId))
