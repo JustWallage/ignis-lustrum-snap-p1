@@ -132,7 +132,10 @@ export function SnapViewer({
           </button>
           {trailing}
         </div>
-        <div className="max-h-56 shrink-0 overflow-y-auto">
+        <div
+          className="max-h-56 shrink-0 overflow-y-auto"
+          data-testid="viewer-comments"
+        >
           {/* Keyed by the photograph, or a half-typed comment follows the reader onto the
               next one and is sent against a snap they were not looking at. */}
           <CommentThread key={current.id} subject="photo" id={current.id} />

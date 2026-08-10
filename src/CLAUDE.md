@@ -103,6 +103,14 @@
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner
   while the SELECT menu is open and the theme badge steps aside for it: three tiles BELOW the theme
   reach into the bottom slot, where an admin's menu already reaches.
+- **Double-tap zoom is killed once, globally, on `.gb-stage` plus a descendant selector** —
+  `touch-action` does not inherit, and every dialog is the stage's DOM child however the top layer
+  paints it, so nothing new has to remember to opt in. The value is `manipulation`, never `none`
+  (which stops the feeds, rails and comment lists scrolling), and **`user-scalable=no` is out**: the
+  archive exists to be read and a photograph you cannot pinch is a worse one. The rule is wrapped in
+  `:where()` so a control's own `touch-action: none` — D-pad, A/B, pill caps, shoulder bar — wins
+  from anywhere, and the effective value being the intersection down the chain is what keeps a thumb
+  on those from panning the page.
 - `SEGMENT_CQW`/`WHEEL_CQW` are duplicated into CSS on purpose because the ribbon is positioned in
   code: **move one and the other moves with it, or the wheel lands on the wrong segment.** Hence
   `.gb-wheel`'s `flex: none` — shrunk to fit, the marker left the centre of segment zero.
