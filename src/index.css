@@ -1403,8 +1403,6 @@ button.gb-pill-cap:disabled {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-/* The one sprite on its own, inside the modal layer: a column narrow enough that a
-   16x16 drawing is not blown across a desktop. */
 .arc-face-sheet {
   display: flex;
   width: min(22rem, 90vw);

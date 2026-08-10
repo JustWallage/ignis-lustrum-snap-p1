@@ -721,9 +721,6 @@ export function Overworld() {
                 openAvatarPicker();
               },
             },
-            // Offered whatever you are wearing: a player who took theirs off keeps
-            // every drawing and can put one back on. Nothing is spent, so unlike
-            // [Draw me] there is no quota to refuse it at the choice.
             {
               label: "Wear an old one",
               onPick: () => {

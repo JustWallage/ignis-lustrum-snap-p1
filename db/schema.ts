@@ -23,9 +23,6 @@ export const users = sqliteTable(
   ],
 );
 
-/** Insert-only: a row per drawing, never pruned and never updated, so `key` and
- * `content_type` describe bytes that cannot change under them. `users.avatar_key` points
- * at whichever of a player's rows they are WEARING. */
 export const avatarSprites = sqliteTable(
   "avatar_sprites",
   {
@@ -119,10 +116,6 @@ export const prizeAwards = sqliteTable(
   (t) => [uniqueIndex("prize_awards_day_idx").on(t.day)],
 );
 
-/** `subject_type` + `subject_id` rather than a second table, so one thread route and one
- * thread component serve snaps and sprites alike. The pair carries no foreign key — it
- * names two tables — so whatever deletes a subject deletes its comments (`purgePhoto`);
- * a sprite is never deleted, which is why nothing sweeps those. */
 export const comments = sqliteTable(
   "comments",
   {

@@ -33,9 +33,6 @@ async function subjectExists(
   return rows[0] !== undefined;
 }
 
-/** ONE thread implementation, mounted once per subject. A second router differing only
- * in the noun is what jscpd is there to refuse — and it is also how the two threads
- * would drift apart on who may delete what. */
 export function commentRoutes(subjectType: CommentSubject): Hono<AppEnv> {
   const routes = new Hono<AppEnv>();
 

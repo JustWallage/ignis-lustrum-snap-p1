@@ -12,8 +12,6 @@ import {
   walkToShelf,
 } from "./fixtures";
 
-/** A second drawing, so the two faces in a history are told apart by their key rather
- * than by an index nothing on screen agrees with. */
 const REDRAWN_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAJUlEQVR42mNgIAX8JwEwUKRhVMOohlENoxpGNYxqGNUwqmFwaAAAtRhfP2Ll8H4AAAAASUVORK5CYII=",
   "base64",
@@ -28,8 +26,7 @@ async function openAvatars(page: Page): Promise<Locator> {
   return archive;
 }
 
-/** The gallery is newest-first inside each player, so a face is addressed by its key —
- * the one thing on screen that names a particular drawing. */
+/** Newest-first inside each player, so `nth(1)` is the older drawing. */
 async function keyOfFace(faces: Locator, nth: number): Promise<string> {
   const src = await faces.nth(nth).getByRole("img").getAttribute("src");
   expect(src).toMatch(/^\/api\/sprites\/[0-9a-f]{16}$/);
@@ -55,11 +52,8 @@ test("the gallery keeps every drawing, not one face per player", async ({
   await pressStart(page);
   await openAvatars(page);
 
-  // MORE faces than players is the whole claim: a listing of one sprite each would
-  // pass every other assertion in this file.
   await expect(page.getByTestId("archive-face")).toHaveCount(3);
   await expect(page.getByTestId("archive-shelf")).toHaveCount(2);
-  // Only what each player has on is marked, and taking one off marks nothing.
   await expect(page.getByTestId("archive-face-worn")).toHaveCount(2);
 });
 
@@ -100,6 +94,10 @@ test("wearing an old sprite from the archive reaches a second screen", async ({
 test("the artist offers the same wardrobe, and wearing spends no ink", async ({
   page,
 }) => {
+  // A rival with a face of their own, or the shelf count below would read as `mineOnly`
+  // working when there was never anybody else's face to leave out.
+  await apiSignIn(page, "rival");
+  await apiStoreAvatar(page, AVATAR_PNG);
   await apiSignIn(page);
   await apiStoreAvatar(page, AVATAR_PNG);
   await apiStoreAvatar(page, REDRAWN_PNG);
@@ -125,9 +123,9 @@ test("the artist offers the same wardrobe, and wearing spends no ink", async ({
   await expect(
     wardrobe.getByRole("heading", { name: "Your avatars" }),
   ).toBeVisible();
-  // Yours ONLY: the rival above is in the archive's gallery and must not be here.
   await expect(page.getByTestId("archive-shelf")).toHaveCount(1);
   await expect(page.getByTestId("archive-face")).toHaveCount(2);
+  await expect(page.getByTestId("archive-faces")).not.toContainText("rival");
 
   const older = await keyOfFace(page.getByTestId("archive-face"), 1);
   await faceWith(page, older).getByRole("button").click();
@@ -136,7 +134,6 @@ test("the artist offers the same wardrobe, and wearing spends no ink", async ({
   await expect(
     faceWith(page, older).getByTestId("archive-face-worn"),
   ).toHaveCount(1);
-  // Nothing was drawn, so nothing was billed: a switch is free.
   expect(drew).toBe(false);
 });
 

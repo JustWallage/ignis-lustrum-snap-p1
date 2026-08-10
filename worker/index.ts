@@ -78,8 +78,6 @@ app.route("/api/days", daysRoutes);
 app.route("/api/leaderboard", leaderboardRoutes);
 
 app.route("/api/avatar", avatarRoutes);
-// The same shape as the photos pair above, and for the same reason: the thread's
-// mount goes in ABOVE the listing it hangs off.
 app.route(
   `${COMMENT_SUBJECT_PATH.avatar}/:id/comments`,
   commentRoutes("avatar"),

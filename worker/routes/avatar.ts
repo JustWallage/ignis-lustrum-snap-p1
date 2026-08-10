@@ -20,9 +20,6 @@ import { spriteUrl } from "./sprites";
 
 export const avatarRoutes = new Hono<AppEnv>();
 
-/** Read BACK rather than assembled from what the route just wrote: three of these four
- * have moved something, and a hand-built answer is how the quota a refund handed back
- * would go unreported. */
 async function stateFor(db: Db, userId: number, day: number) {
   const [avatar, quota] = await Promise.all([
     findAvatar(db, userId),
@@ -76,8 +73,6 @@ avatarRoutes.post("/", async (c) => {
   return c.json(await stateFor(db, user.id, day), 201);
 });
 
-// Wearing is as much news to every other screen as a fresh drawing, so it broadcasts
-// exactly what `POST /` does.
 avatarRoutes.post("/worn", async (c) => {
   const user = c.get("user");
   const parsed = wearAvatarSchema.safeParse(await parseJsonBody(c.req.raw));

@@ -180,8 +180,6 @@ export async function storeAvatar(
 ): Promise<string> {
   const key = randomHandle();
   const drawnAt = new Date();
-  // Object BEFORE row, as everywhere else: what an interrupted write leaks is an orphan
-  // nobody references, never a history row whose image 404s.
   await putImage(env, spriteObjectKey(env, key), sprite.bytes);
   await db.insert(avatarSprites).values({
     userId,
@@ -207,10 +205,8 @@ async function wear(
     .where(eq(users.id, userId));
 }
 
-/** Putting an old one back on: no model call, no quota slot taken and none refunded,
- * because `avatar_generations` counts DRAWINGS and this draws nothing. A sprite that is
- * not yours is indistinguishable from one that does not exist — the listing pairs a name
- * with a key, and a 403 here would turn that into an oracle. */
+/** A sprite that is not yours is indistinguishable from one that does not exist: the
+ * listing pairs a name with a key, and a 403 here would turn that into an oracle. */
 export async function wearSprite(
   db: Db,
   userId: number,
@@ -304,8 +300,6 @@ export async function findAvatar(
   return { key, contentType: row.contentType, updatedAt };
 }
 
-/** Takes what you are WEARING off and nothing else: the row and its object stay, so the
- * gallery keeps every face and any of them can be put back on. */
 export async function clearAvatar(db: Db, userId: number): Promise<void> {
   await db
     .update(users)

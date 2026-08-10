@@ -80,9 +80,6 @@ describe("GET /api/sprites/:key", () => {
   });
 
   it("keeps serving a key a second sprite superseded", async () => {
-    // The immutable cache is still honest — the same key still serves the same bytes
-    // forever. What has stopped being true is that a key is seen ONCE: an old sprite
-    // is re-wearable, and a history grid whose URLs 404 is a wall of broken images.
     const cookie = await signIn("tester");
     const first = await dress("rival");
     expect((await getSprite(first.key, cookie)).status).toBe(200);
@@ -109,7 +106,6 @@ describe("GET /api/sprites/:key", () => {
       env,
     );
     expect(removed.status).toBe(200);
-    // Nothing is WORN, and the drawing is still there to be put back on.
     expect(await storedKey("rival")).toBeNull();
     expect((await getSprite(key, watcher)).status).toBe(200);
   });

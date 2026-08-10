@@ -166,9 +166,6 @@ describe("image bytes in the bucket", () => {
 
     const second = await wearASprite(cookie);
     expect(second).not.toBe(first);
-    // Both, and in the order R2 lists them. Deleting the superseded object is what
-    // the history reverses: a row whose bytes have gone is a broken image nobody can
-    // put back on.
     expect((await storedKeys()).sort()).toEqual(
       [`sprites/${first}`, `sprites/${second}`].sort(),
     );

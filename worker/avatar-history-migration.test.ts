@@ -6,11 +6,12 @@ import { avatarSprites, comments } from "../db/schema";
 
 /**
  * The backfill in `0015_avatar_history.sql` is HAND-WRITTEN — drizzle-kit generates the
- * DDL and knows nothing about moving data into it — and nothing in `pnpm check` reads a
- * migration at all. So this holds that SQL and `db/schema.ts` together the way
- * `prizes.test.ts` holds the seeded wheel and `SEED_PRIZES`: rename a column here and
- * the statement that has to fill it fails in this file rather than on deploy, where
- * fourteen people would lose the avatar they are wearing out of their own history.
+ * DDL and knows nothing about moving data into it — and while the pool applies every
+ * migration to each test database, nothing else in `pnpm check` compares that SQL to
+ * `db/schema.ts`. So this holds the two together the way `prizes.test.ts` holds the
+ * seeded wheel and `SEED_PRIZES`: rename a column here and the statement that has to
+ * fill it fails in this file rather than on deploy, where fourteen people would lose the
+ * avatar they are wearing out of their own history.
  *
  * The pool hands the migrations to the test as `TEST_MIGRATIONS`, so what runs below is
  * the same text that will run against production, not a copy of it.
@@ -45,8 +46,6 @@ const legacyRowSchema = z.object({
   created_at: z.int(),
 });
 
-/** Puts `users` back into its pre-0015 shape, runs the migration's own statement, and
- * leaves the schema as it found it. */
 async function backfillFrom(
   rows: { name: string; key: string | null; contentType: string | null }[],
 ): Promise<unknown[]> {
@@ -126,7 +125,6 @@ describe("the avatar history backfill", () => {
     const { subjectType, subjectId } = getTableColumns(comments);
     expect(statement).toContain(`\`${subjectType.name}\` = 'photo'`);
     expect(statement).toContain(`\`${subjectId.name}\` = \`photo_id\``);
-    // 'photo' has to be one the column will actually accept.
     expect(subjectType.enumValues).toContain("photo");
   });
 });

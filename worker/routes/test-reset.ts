@@ -62,7 +62,6 @@ testResetRoute.post("/", async (c) => {
     // every test after it in this one shared database — and `e2e/admin.spec.ts` sorts
     // before `e2e/avatar.spec.ts`, whose unmocked POST asserts 503 and would get 429.
     writeAvatarCapsStatement(db, DEFAULT_AVATAR_CAPS),
-    // Nulled BEFORE the history rows go, since the worn key names one of them.
     db.update(users).set({ avatarUpdatedAt: null, avatarKey: null }),
     db.delete(avatarSprites),
   ]);

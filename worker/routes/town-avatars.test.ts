@@ -106,8 +106,6 @@ describe("GET /api/avatars", () => {
       env,
     );
     expect(removed.status).toBe(200);
-    // Discarding clears what you WEAR, not what you have drawn, so the face stays in
-    // the gallery with nothing marked and can be put back on.
     const sprites = (await readTown(cookie)).players[0]?.sprites ?? [];
     expect(sprites).toHaveLength(1);
     expect(sprites[0]?.worn).toBe(false);

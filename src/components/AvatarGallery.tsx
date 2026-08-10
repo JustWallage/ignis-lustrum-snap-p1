@@ -15,11 +15,6 @@ interface Face {
   user: User;
 }
 
-/**
- * Every sprite the town has ever drawn, or only your own — the artist's wardrobe and the
- * archive's shelf are the same grid asking for a different slice of one listing, so a
- * player cannot be offered one set of faces in one place and another set in the other.
- */
 export function AvatarGallery({
   mineOnly,
   onWorn,
@@ -59,8 +54,9 @@ export function AvatarGallery({
         );
         if (!res.ok) return;
         town.mutate();
-        // The push skips the socket that asked, so the wearer's own corner and walking
-        // sprite are refreshed here rather than waiting on a frame that never comes.
+        // `useMyAvatar` is on no socket event — `avatar_changed` reaches the wearer's own
+        // tab and refreshes nothing — so the corner and walking sprite move only when
+        // something asks for them.
         onWorn();
       } finally {
         setWearing(null);

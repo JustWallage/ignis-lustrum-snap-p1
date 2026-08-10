@@ -10,8 +10,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useRealtimeEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 
-/** One thread, whatever it hangs off: a snap or a drawn sprite. A second component
- * differing only in the noun is how the two would drift apart on who may delete what. */
 export function CommentThread({
   subject,
   id,

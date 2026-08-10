@@ -26,7 +26,6 @@ async function draw(cookie: string, bytes = PHOTO_BYTES): Promise<void> {
   expect(res.status).toBe(200);
 }
 
-/** What the gallery hands the browser, which is the only handle the wear route takes. */
 async function spritesOf(cookie: string, name: string) {
   const res = await app.request(
     "/api/avatars",
@@ -76,8 +75,6 @@ async function wornKey(name: string): Promise<string | null> {
   return z.object({ avatar_key: z.string().nullable() }).parse(row).avatar_key;
 }
 
-/** Steps past the roster frame `pushSprite` fans out first — the same shape the town
- * listing's own spec uses, because wearing broadcasts exactly what drawing does. */
 async function waitForAvatarChange(socket: TestSocket): Promise<void> {
   let seen = (await socket.next()).type;
   if (seen === "presence_moved") seen = (await socket.next()).type;
@@ -127,7 +124,6 @@ describe("POST /api/avatar/worn", () => {
     if (older === undefined) throw new Error("only one sprite was kept");
     expect((await wear(cookie, older.id)).status).toBe(200);
 
-    // Neither direction: a switch is free, and it hands nothing back either.
     expect(await usedToday()).toBe(3);
     const state = await readAvatarState(cookie);
     expect(state.remaining).toBe(state.limit - 3);
@@ -142,8 +138,6 @@ describe("POST /api/avatar/worn", () => {
 
     const hers = (await spritesOf(mine, "rival"))[0];
     if (hers === undefined) throw new Error("the rival drew nothing");
-    // 404 and not 403: the listing pairs a name with a key, so a distinguishable
-    // refusal would turn it into an oracle for which ids exist.
     expect((await wear(mine, hers.id)).status).toBe(404);
     expect((await wear(mine, 99_999)).status).toBe(404);
     expect(await wornKey("tester")).toBe(before);
