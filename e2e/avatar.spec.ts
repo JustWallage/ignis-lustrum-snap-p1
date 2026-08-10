@@ -64,7 +64,9 @@ test("picking a photo starts the drawing, with no dialog in between", async ({
   const choices = await readDialogue(page);
   await expect(patter).toContainText(/hand over any picture/i);
   await expect(patter).not.toContainText(/\d/);
-  await expect(choices.getByRole("button")).toHaveCount(2);
+  // [Draw me] [Wear an old one] [Cancel]. Counted rather than named, so a fourth
+  // choice cannot appear here without somebody deciding it should.
+  await expect(choices.getByRole("button")).toHaveCount(3);
 
   const dialog = page.locator(".gb-window");
   await choices.getByRole("button", { name: "Draw me" }).click();
@@ -171,7 +173,7 @@ test("the splash is where a finished sprite arrives, and OK wears it", async ({
 
   await page.keyboard.press("Enter");
   const wearing = await readDialogue(page);
-  await expect(wearing.getByRole("button")).toHaveCount(3);
+  await expect(wearing.getByRole("button")).toHaveCount(4);
   await expect(
     wearing.getByRole("button", { name: "Take it off" }),
   ).toBeVisible();
@@ -187,8 +189,13 @@ test("the splash is where a finished sprite arrives, and OK wears it", async ({
   await page.keyboard.press("Escape");
   await page.keyboard.press("Enter");
   const bare = await readDialogue(page);
-  await expect(bare.getByRole("button")).toHaveCount(2);
+  // Only [Take it off] goes: discarding clears what you WEAR, so the drawing is still
+  // in the history and [Wear an old one] is still the way back to it.
+  await expect(bare.getByRole("button")).toHaveCount(3);
   await expect(bare.getByRole("button", { name: "Take it off" })).toBeHidden();
+  await expect(
+    bare.getByRole("button", { name: "Wear an old one" }),
+  ).toBeVisible();
 });
 
 test("the word sprite is nowhere a player can read it", async ({ page }) => {

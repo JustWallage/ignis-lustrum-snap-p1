@@ -76,7 +76,11 @@ export function AvatarGallery({
         loading={town.loading}
         testId="archive-faces-empty"
       >
-        Nobody has been drawn yet. The artist is by the pond.
+        {/* The wardrobe is opened AT the artist, so sending a reader there is the one
+            direction that cannot help them. */}
+        {mineOnly
+          ? "You have not been drawn yet. Hand over a picture and I will fix that."
+          : "Nobody has been drawn yet. The artist is by the pond."}
       </GbPlaceholder>
     );
   }
