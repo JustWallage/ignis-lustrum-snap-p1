@@ -1,16 +1,27 @@
 import { useCallback, useState, type SyntheticEvent } from "react";
-import { commentListSchema, type Comment } from "@shared/api";
+import {
+  commentListSchema,
+  commentsPath,
+  type Comment,
+  type CommentSubject,
+} from "@shared/api";
 import { GbButton } from "@/components/GbPending";
 import { useAuth } from "@/context/AuthContext";
 import { useRealtimeEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 
-export function PhotoComments({ photoId }: { photoId: number }) {
+/** One thread, whatever it hangs off: a snap or a drawn sprite. A second component
+ * differing only in the noun is how the two would drift apart on who may delete what. */
+export function CommentThread({
+  subject,
+  id,
+}: {
+  subject: CommentSubject;
+  id: number;
+}) {
   const { user, isAdmin } = useAuth();
-  const comments = useCachedFetch(
-    `/api/photos/${photoId}/comments`,
-    commentListSchema,
-  );
+  const path = commentsPath(subject, id);
+  const comments = useCachedFetch(path, commentListSchema);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -28,7 +39,7 @@ export function PhotoComments({ photoId }: { photoId: number }) {
       if (sending || body.trim() === "") return;
       setSending(true);
       try {
-        await fetch(`/api/photos/${photoId}/comments`, {
+        await fetch(path, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body: body.trim() }),
@@ -39,28 +50,26 @@ export function PhotoComments({ photoId }: { photoId: number }) {
         setSending(false);
       }
     },
-    [photoId, body, refresh, sending],
+    [path, body, refresh, sending],
   );
 
   const deleteComment = useCallback(
     async (comment: Comment) => {
       setDeleting(comment.id);
       try {
-        await fetch(`/api/photos/${photoId}/comments/${comment.id}`, {
-          method: "DELETE",
-        });
+        await fetch(`${path}/${String(comment.id)}`, { method: "DELETE" });
         refresh();
       } finally {
         setDeleting(null);
       }
     },
-    [photoId, refresh],
+    [path, refresh],
   );
 
   return (
     <section
       className="space-y-2 border-t-2 border-[#071821] pt-2"
-      data-testid="photo-comments"
+      data-testid="comment-thread"
     >
       <ul className="max-h-32 space-y-1 overflow-y-auto text-xs">
         {(comments.data?.comments ?? []).map((comment) => (

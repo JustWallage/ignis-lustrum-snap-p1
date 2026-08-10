@@ -55,7 +55,7 @@ async function openOwnSnap(page: Page) {
   await pressStart(page);
   await handSnapToJury(page, SNAP);
   const dialog = page.locator(".gb-window");
-  await expect(dialog.getByTestId("photo-comments")).toBeVisible();
+  await expect(dialog.getByTestId("comment-thread")).toBeVisible();
   return dialog;
 }
 
@@ -74,7 +74,7 @@ test("a slow comment says it is sending, and stops once it has", async ({
   await expect(send.getByTestId("pending")).toBeVisible();
 
   post.release();
-  await expect(dialog.getByTestId("photo-comments")).toContainText("nice one");
+  await expect(dialog.getByTestId("comment-thread")).toContainText("nice one");
   await expect(send).toHaveAttribute("aria-busy", "false");
 });
 
@@ -94,10 +94,10 @@ test("two taps of Send post one comment", async ({ page }) => {
   await field.press("Enter");
 
   post.release();
-  await expect(dialog.getByTestId("photo-comments")).toContainText("only once");
+  await expect(dialog.getByTestId("comment-thread")).toContainText("only once");
   expect(post.count()).toBe(1);
   await expect(
-    dialog.getByTestId("photo-comments").getByRole("listitem"),
+    dialog.getByTestId("comment-thread").getByRole("listitem"),
   ).toHaveCount(1);
 });
 

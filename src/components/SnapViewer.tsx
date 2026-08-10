@@ -1,6 +1,6 @@
 import { useCallback, useEffect, type ReactNode } from "react";
 import { GbWindow } from "@/components/GbWindow";
-import { PhotoComments } from "@/components/PhotoComments";
+import { CommentThread } from "@/components/CommentThread";
 import { KEY_DIRS } from "@/game/keys";
 import { pageOf, stepId, type ViewerSnap } from "@/lib/viewer";
 
@@ -135,7 +135,7 @@ export function SnapViewer({
         <div className="max-h-56 shrink-0 overflow-y-auto">
           {/* Keyed by the photograph, or a half-typed comment follows the reader onto the
               next one and is sent against a snap they were not looking at. */}
-          <PhotoComments key={current.id} photoId={current.id} />
+          <CommentThread key={current.id} subject="photo" id={current.id} />
         </div>
         {footer}
       </div>

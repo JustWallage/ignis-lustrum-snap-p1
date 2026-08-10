@@ -13,7 +13,6 @@ export const users = sqliteTable(
     name: text("name").notNull(),
     passwordHash: text("password_hash").notNull(),
     salt: text("salt").notNull(),
-    avatarContentType: text("avatar_content_type"),
     avatarUpdatedAt: integer("avatar_updated_at", { mode: "timestamp" }),
     avatarKey: text("avatar_key"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -21,6 +20,26 @@ export const users = sqliteTable(
   (t) => [
     uniqueIndex("users_name_idx").on(t.name),
     uniqueIndex("users_avatar_key_idx").on(t.avatarKey),
+  ],
+);
+
+/** Insert-only: a row per drawing, never pruned and never updated, so `key` and
+ * `content_type` describe bytes that cannot change under them. `users.avatar_key` points
+ * at whichever of a player's rows they are WEARING. */
+export const avatarSprites = sqliteTable(
+  "avatar_sprites",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    key: text("key").notNull(),
+    contentType: text("content_type").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("avatar_sprites_key_idx").on(t.key),
+    index("avatar_sprites_user_idx").on(t.userId),
   ],
 );
 
@@ -100,17 +119,24 @@ export const prizeAwards = sqliteTable(
   (t) => [uniqueIndex("prize_awards_day_idx").on(t.day)],
 );
 
-export const comments = sqliteTable("comments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  photoId: integer("photo_id")
-    .notNull()
-    .references(() => photos.id),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
-  body: text("body").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
+/** `subject_type` + `subject_id` rather than a second table, so one thread route and one
+ * thread component serve snaps and sprites alike. The pair carries no foreign key — it
+ * names two tables — so whatever deletes a subject deletes its comments (`purgePhoto`);
+ * a sprite is never deleted, which is why nothing sweeps those. */
+export const comments = sqliteTable(
+  "comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    subjectType: text("subject_type", { enum: ["photo", "avatar"] }).notNull(),
+    subjectId: integer("subject_id").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    body: text("body").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [index("comments_subject_idx").on(t.subjectType, t.subjectId)],
+);
 
 export const likes = sqliteTable(
   "likes",

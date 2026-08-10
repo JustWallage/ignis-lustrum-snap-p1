@@ -28,9 +28,11 @@ import {
   useDialogueChain,
   type DialogueChain,
 } from "@/components/GbDialogue";
+import { AvatarGallery } from "@/components/AvatarGallery";
 import { AvatarMachine } from "@/components/AvatarMachine";
 import { AvatarSplash } from "@/components/AvatarSplash";
 import { GbTextbox } from "@/components/GbTextbox";
+import { GbWindow } from "@/components/GbWindow";
 import { JuryBench } from "@/components/JuryBench";
 import { LoginDialog } from "@/components/LoginDialog";
 import { PrizeManager } from "@/components/PrizeManager";
@@ -117,6 +119,7 @@ type Dialog =
   | { kind: "vote" }
   | { kind: "archive" }
   | { kind: "artist" }
+  | { kind: "wardrobe" }
   | { kind: "avatar-splash"; state: AvatarState }
   | { kind: "trophy" }
   | { kind: "chat" }
@@ -718,6 +721,15 @@ export function Overworld() {
                 openAvatarPicker();
               },
             },
+            // Offered whatever you are wearing: a player who took theirs off keeps
+            // every drawing and can put one back on. Nothing is spent, so unlike
+            // [Draw me] there is no quota to refuse it at the choice.
+            {
+              label: "Wear an old one",
+              onPick: () => {
+                setDialog({ kind: "wardrobe" });
+              },
+            },
             ...(quota?.avatar === undefined || quota.avatar === null
               ? []
               : [{ label: "Take it off", onPick: takeAvatarOff }]),
@@ -1293,7 +1305,16 @@ export function Overworld() {
       )}
       {dialog?.kind === "vote" && <BallotOverlay onClose={closeDialog} />}
       {dialog?.kind === "archive" && (
-        <ArchiveDialog onDelete={askDeleteFromArchive} onClose={closeDialog} />
+        <ArchiveDialog
+          onDelete={askDeleteFromArchive}
+          onWorn={refreshAvatar}
+          onClose={closeDialog}
+        />
+      )}
+      {dialog?.kind === "wardrobe" && (
+        <GbWindow title="Your avatars" onClose={closeDialog}>
+          <AvatarGallery mineOnly onWorn={refreshAvatar} />
+        </GbWindow>
       )}
       {dialog?.kind === "avatar-splash" && (
         <AvatarSplash

@@ -159,19 +159,24 @@ describe("image bytes in the bucket", () => {
     expect(fetched).not.toHaveBeenCalled();
   });
 
-  it("puts a new sprite in the superseded one's place", async () => {
+  it("keeps the superseded sprite's object beside the new one", async () => {
     const cookie = await signIn();
     const first = await wearASprite(cookie);
     expect(await storedKeys()).toEqual([`sprites/${first}`]);
 
     const second = await wearASprite(cookie);
     expect(second).not.toBe(first);
-    expect(await storedKeys()).toEqual([`sprites/${second}`]);
+    // Both, and in the order R2 lists them. Deleting the superseded object is what
+    // the history reverses: a row whose bytes have gone is a broken image nobody can
+    // put back on.
+    expect((await storedKeys()).sort()).toEqual(
+      [`sprites/${first}`, `sprites/${second}`].sort(),
+    );
   });
 
-  it("takes the sprite object away with the columns when a player undresses", async () => {
+  it("leaves the sprite object behind when a player undresses", async () => {
     const cookie = await signIn();
-    await wearASprite(cookie);
+    const key = await wearASprite(cookie);
 
     const res = await app.request(
       "/api/avatar",
@@ -179,7 +184,7 @@ describe("image bytes in the bucket", () => {
       env,
     );
     expect(res.status).toBe(200);
-    expect(await storedKeys()).toEqual([]);
+    expect(await storedKeys()).toEqual([`sprites/${key}`]);
   });
 
   it("sweeps the bucket when the world is reset", async () => {

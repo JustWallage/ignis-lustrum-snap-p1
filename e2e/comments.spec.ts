@@ -18,7 +18,7 @@ async function openThread(page: Page, nth: number) {
   await walkToVotingNpc(page);
   await openBallot(page);
   await openSnapViewer(page, nth);
-  const thread = page.getByTestId("photo-comments");
+  const thread = page.getByTestId("comment-thread");
   await expect(thread).toBeVisible();
   return thread;
 }
@@ -71,10 +71,10 @@ test("a comment written at the ballot is the same thread the snap's own viewer s
   await expect(
     viewer.getByRole("heading", { name: "Snap", exact: true }),
   ).toBeVisible();
-  await expect(viewer.getByTestId("photo-comments")).toContainText(
+  await expect(viewer.getByTestId("comment-thread")).toContainText(
     "second helping",
   );
-  await expect(viewer.getByTestId("photo-comments")).toContainText("voter");
+  await expect(viewer.getByTestId("comment-thread")).toContainText("voter");
 });
 
 test("a comment left at the ballot reaches the friend reading the same snap, live", async ({
@@ -119,7 +119,7 @@ test("a signed-out walker gets no thread at all", async ({ page }) => {
   await expect(
     page.locator(".gb-window").getByRole("heading", { name: "Sign in" }),
   ).toBeVisible();
-  await expect(page.getByTestId("photo-comments")).toBeHidden();
+  await expect(page.getByTestId("comment-thread")).toBeHidden();
 
   const denied = await page.request.get("/api/photos/1/comments");
   expect(denied.status()).toBe(401);

@@ -142,7 +142,7 @@ test("a card opens one big photograph over the archive, with the jury's line on 
   const rating = page.getByTestId("viewer-rating");
   await expect(rating).toContainText("5/10");
   await expect(rating).toContainText("machine broke");
-  await expect(page.getByTestId("photo-comments")).toBeVisible();
+  await expect(page.getByTestId("comment-thread")).toBeVisible();
 
   const phoneWindow = await windowBox(page);
   expect(phoneWindow.height).toBeGreaterThan(PHONE.height - 40);
@@ -246,7 +246,7 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   // them as walking), and `fill` sets a value without pressing a key at all. The archive
   // is the surface where those keys are NEW, so the letters are asserted here.
   const field = page
-    .getByTestId("photo-comments")
+    .getByTestId("comment-thread")
     .getByPlaceholder("Add a comment…");
   await field.pressSequentially("a dead ringer");
   await expect(field).toHaveValue("a dead ringer");

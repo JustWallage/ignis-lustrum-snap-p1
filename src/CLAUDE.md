@@ -86,6 +86,11 @@
 - **A viewer asks to delete; the shell deletes** (#93). `confirmChain` lives in the LCD's dialogue
   box, which the modal layer covers, so the question cannot be asked while the viewer is on screen:
   `confirm-delete` carries the id and where to put a cancelling reader back.
+- **`AvatarGallery` is the ONE sprite shelf** and `CommentThread` the ONE thread: the artist's
+  wardrobe asks the gallery for `mineOnly`, the archive's Avatars tab for everyone, and both wear
+  through the same route — a second grid is how one place would offer a player faces the other did
+  not. The gallery calls `onWorn` because `pushSprite` skips the socket that asked, so the wearer's
+  own corner and walking sprite are refreshed there rather than off a frame that never arrives.
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
   nowhere else, so the modern look is quarantined by naming.

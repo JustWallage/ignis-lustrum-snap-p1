@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { commentSubjectSchema } from "./api";
 import { eventStateSchema } from "./events";
 import { MESSAGE_MAX_CHARS, presencePlayerSchema } from "./presence";
 import { gameStateSchema } from "./state";
@@ -7,8 +8,16 @@ export const wsEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("photo_created"), id: z.int() }),
   z.object({ type: z.literal("photo_deleted"), id: z.int() }),
   z.object({ type: z.literal("photo_liked"), id: z.int() }),
-  z.object({ type: z.literal("comment_created"), photoId: z.int() }),
-  z.object({ type: z.literal("comment_deleted"), photoId: z.int() }),
+  z.object({
+    type: z.literal("comment_created"),
+    subjectType: commentSubjectSchema,
+    subjectId: z.int(),
+  }),
+  z.object({
+    type: z.literal("comment_deleted"),
+    subjectType: commentSubjectSchema,
+    subjectId: z.int(),
+  }),
   z.object({ type: z.literal("votes_changed"), day: z.int() }),
   z.object({ type: z.literal("prizes_changed") }),
   z.object({ type: z.literal("avatar_changed") }),

@@ -2,7 +2,7 @@ import { DeleteSnapButton } from "@/components/DeleteSnapButton";
 import { GbPlaceholder } from "@/components/GbPending";
 import { GbWindow } from "@/components/GbWindow";
 import { LikeButton } from "@/components/LikeButton";
-import { PhotoComments } from "@/components/PhotoComments";
+import { CommentThread } from "@/components/CommentThread";
 import { usePhotoLike } from "@/hooks/usePhotoLike";
 import { relativeTime } from "@/lib/format";
 import { ratingText } from "@/lib/rating";
@@ -62,7 +62,7 @@ export function SnapDialog({
               }}
             />
           </div>
-          <PhotoComments photoId={id} />
+          <CommentThread subject="photo" id={id} />
         </div>
       )}
     </GbWindow>

@@ -79,9 +79,10 @@ describe("GET /api/sprites/:key", () => {
     expect(apiErrorSchema.parse(await res.json()).error).toBe("Not found");
   });
 
-  it("retires the previous key when a second sprite is stored", async () => {
-    // This is what makes the immutable cache honest: a URL a friend's screen
-    // cached outlives nothing, because the key it named has moved on.
+  it("keeps serving a key a second sprite superseded", async () => {
+    // The immutable cache is still honest — the same key still serves the same bytes
+    // forever. What has stopped being true is that a key is seen ONCE: an old sprite
+    // is re-wearable, and a history grid whose URLs 404 is a wall of broken images.
     const cookie = await signIn("tester");
     const first = await dress("rival");
     expect((await getSprite(first.key, cookie)).status).toBe(200);
@@ -89,13 +90,15 @@ describe("GET /api/sprites/:key", () => {
     const redrawn = new Uint8Array([1, 1, 2, 3]);
     const second = await dress("rival", redrawn);
     expect(second.key).not.toBe(first.key);
-    expect((await getSprite(first.key, cookie)).status).toBe(404);
+    const kept = await getSprite(first.key, cookie);
+    expect(kept.status).toBe(200);
+    expect(new Uint8Array(await kept.arrayBuffer())).toEqual(SPRITE_BYTES);
     const res = await getSprite(second.key, cookie);
     expect(res.status).toBe(200);
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(redrawn);
   });
 
-  it("retires the key when the sprite is discarded", async () => {
+  it("keeps serving the key when the sprite is discarded", async () => {
     const watcher = await signIn("tester");
     const { cookie, key } = await dress("rival");
     expect((await getSprite(key, watcher)).status).toBe(200);
@@ -106,7 +109,8 @@ describe("GET /api/sprites/:key", () => {
       env,
     );
     expect(removed.status).toBe(200);
+    // Nothing is WORN, and the drawing is still there to be put back on.
     expect(await storedKey("rival")).toBeNull();
-    expect((await getSprite(key, watcher)).status).toBe(404);
+    expect((await getSprite(key, watcher)).status).toBe(200);
   });
 });

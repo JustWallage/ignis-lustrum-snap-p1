@@ -2,7 +2,8 @@
 
 - **Registration order in `index.ts` is load-bearing.** `app.use("/api/*", authMiddleware)` is the
   public/private boundary; above it only `/api/ws`, the auth routes, `/api/state`, `/api/event`.
-  `/api/photos/:id/comments` before `/api/photos`; `/api/photos/mine` before `/api/photos/:id`
+  `/api/photos/:id/comments` before `/api/photos` and `/api/avatars/:id/comments` before
+  `/api/avatars`; `/api/photos/mine` before `/api/photos/:id`
   (else `Number("mine")` 404s); `/api/event` twice — public `GET`, then `POST /spin` below.
 - **Identity comes only from `middleware/auth.ts`.** Routes read `c.get("user")`, never the cookie.
   `/api/ws` sits above the middleware and calls `optionalUser(c)` from that same module.
@@ -74,13 +75,28 @@
   are STORED config an admin PATCHes (`settings`, seeded with what used to be compiled in), and 0 is
   legal — a closed machine. They are decided in ONE statement so two requests cannot spend the last slot;
   the slot is taken before the model call and refunded by every path that stores no sprite.
-  `storeAvatar` puts the object, sets all three columns together, then deletes the superseded object.
-  `/api/sprites/:key` is a router of its own so "whose sprite?" never enters it; a key rotates per
-  generation, so a URL is immutable and cacheable.
-  **`/api/avatars` pairs a name with a key for everybody holding one, walking or not** — the
-  question `/api/sprites/:key` refuses, and no new leak because the roster already pairs the two for
-  whoever is online. `pushSprite` broadcasts `avatar_changed` as well as the roster frame, because
-  `presence_*` is not content news and the roster frame skips the socket that generated.
+  `storeAvatar` puts the object, inserts the `avatar_sprites` row, then points `users` at it — and
+  **deletes nothing**, which is what makes the history re-wearable. `/api/sprites/:key` is a router
+  of its own so "whose sprite?" never enters it, and it resolves against the HISTORY: the moment a
+  key stopped being worn it used to 404, which is a gallery of broken images. A URL is still
+  immutable and cacheable — the same key serves the same bytes forever — but a key is no longer seen
+  once, because an old sprite can be worn again.
+- **`POST /api/avatar/worn` draws nothing**: no model call, no slot taken, nothing refunded, since
+  `avatar_generations` counts drawings and a switch is free. It takes an id out of `/api/avatars` and
+  answers 404 — never 403 — for one that is not yours, because a distinguishable refusal would make
+  the listing an oracle. It broadcasts what a fresh drawing broadcasts. `clearAvatar` takes off what
+  you WEAR and nothing else.
+  **`/api/avatars` pairs a name with every key that name has ever drawn** — wider than the presence
+  roster, which pairs a name only with what somebody is wearing. A deliberate widening, behind the
+  cookie, going ONE way: owner → their keys. There is still no route answering "whose sprite is this
+  key?", which `/api/sprites/:key` refuses and must keep refusing. `pushSprite` broadcasts
+  `avatar_changed` as well as the roster frame, because `presence_*` is not content news and the
+  roster frame skips the socket that generated.
+- **`commentRoutes(subject)` is ONE thread router mounted per subject**, under `/api/photos/:id` and
+  `/api/avatars/:id` alike — a second router differing only in the noun is how the two would drift
+  apart on who may delete what. Both mounts go in ABOVE the listing they hang off, for the reason
+  `/api/photos/:id/comments` always did. Nothing on a sprite thread is anonymous: the gallery already
+  prints the name beside every face.
 - ONE `isAdmin` gate on the admin sub-router, not per handler. What it serves is COUNTS and CONFIG,
   never scores or sprites: the caps PATCH is the one lever there, a count is not, and neither it nor
   a retry broadcasts. The bill is an ESTIMATE computed in the worker — Google reports no billing

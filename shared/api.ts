@@ -186,11 +186,35 @@ export const avatarStateSchema = z.object({
 });
 export type AvatarState = z.infer<typeof avatarStateSchema>;
 
-/** The town's drawn avatars, as a name beside the rotating `avatar_key` handle. Never
- * the bytes and never `/api/avatar/image`, which serves only your own. */
+/** Every sprite the town has ever drawn, grouped by who drew it, newest first — keys
+ * beside names, never the bytes and never `/api/avatar/image`, which serves only your
+ * own. A key here need not be worn: `/api/sprites/:key` answers for any of them.
+ *
+ * A deliberate widening over the presence roster, which pairs a name only with what
+ * somebody is wearing right now. It goes ONE way — a name to their keys — and there is
+ * still no route answering "whose sprite is this key?".
+ *
+ * `worn` is false for every sprite of a player wearing none: taking an avatar off clears
+ * what you wear, not what you have drawn. */
 export const townAvatarsSchema = z.object({
-  avatars: z.array(z.object({ user: userSchema, url: z.string() })),
+  players: z.array(
+    z.object({
+      user: userSchema,
+      sprites: z.array(
+        z.object({
+          id: z.int(),
+          url: z.string(),
+          worn: z.boolean(),
+          createdAt: z.iso.datetime(),
+        }),
+      ),
+    }),
+  ),
 });
+
+/** Which of your OWN sprites to put back on, by the id the listing carries. Nothing is
+ * drawn, so no quota is spent and none is refunded. */
+export const wearAvatarSchema = z.object({ id: z.int() });
 
 /** An amount the WORKER multiplied out, so the price per image never ships to a
  * browser. */
@@ -207,9 +231,27 @@ export const avatarCountsSchema = avatarCapsSchema.extend({
   players: z.array(z.object({ user: userSchema, used: z.int().min(0) })),
 });
 
+/** A thread hangs off a snap or off a drawn sprite, and the two are the same thread: one
+ * route, one component, one table. Nothing is anonymous on either — the archive's
+ * gallery already prints the name beside every face. */
+export const commentSubjectSchema = z.enum(["photo", "avatar"]);
+export type CommentSubject = z.infer<typeof commentSubjectSchema>;
+
+/** The one place a thread's path is spelled: the worker mounts its router under these
+ * and the browser builds its URLs from them, so the two cannot drift apart. */
+export const COMMENT_SUBJECT_PATH: Record<CommentSubject, string> = {
+  photo: "/api/photos",
+  avatar: "/api/avatars",
+};
+
+export function commentsPath(subject: CommentSubject, id: number): string {
+  return `${COMMENT_SUBJECT_PATH[subject]}/${String(id)}/comments`;
+}
+
 export const commentSchema = z.object({
   id: z.int(),
-  photoId: z.int(),
+  subjectType: commentSubjectSchema,
+  subjectId: z.int(),
   author: userSchema,
   body: z.string(),
   createdAt: z.iso.datetime(),

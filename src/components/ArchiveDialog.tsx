@@ -44,9 +44,11 @@ function juryLine(result: DayResult): string {
 
 export function ArchiveDialog({
   onDelete,
+  onWorn,
   onClose,
 }: {
   onDelete: (id: number) => void;
+  onWorn: () => void;
   onClose: () => void;
 }) {
   const archive = useCachedFetch("/api/days", archiveSchema);
@@ -114,7 +116,7 @@ export function ArchiveDialog({
             </div>
           ) : view === "avatars" ? (
             <div className="arc-panel">
-              <AvatarGallery />
+              <AvatarGallery mineOnly={false} onWorn={onWorn} />
             </div>
           ) : days.length === 0 ? (
             <div className="arc-panel">
