@@ -182,9 +182,6 @@ const VOICE_REFUSALS: Record<NonNullable<Voice["refusal"]>, string> = {
     "NO MICROPHONE · YOUR BROWSER TURNED IT DOWN, AND THE FIX IS IN ITS SETTINGS",
 };
 
-/** The spin is asked for like Start and Abort because it is as irreversible as they are:
- * the landing awards a prize and turns the day over. It is no `EventAction` all the same
- * — that union builds `/api/admin/event/…`, and the winner who spins is no admin. */
 type HostAction = EventAction | "spin";
 
 const EVENT_CONFIRM: Record<

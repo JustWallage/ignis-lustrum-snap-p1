@@ -154,9 +154,9 @@ export async function postSpin(cookie: string): Promise<Response> {
   );
 }
 
-/** The host is frozen from the session that presses START, so which of them hosts cannot
- * be decided after the fact. `judge` hands nothing in, which makes a wheel hosted by them
- * the one whose host CANNOT also be its winner. */
+/** The pool pins `ADMIN_NAMES` to `tester`, so a wheel hosted by anybody else needs the
+ * binding overridden on the START itself. `judge` hands nothing in, which is what makes a
+ * wheel they host the one whose host cannot also be its winner. */
 export async function aWheel(host: "tester" | "judge" = "tester") {
   const mine = await signIn("tester");
   const theirs = await signIn("rival");

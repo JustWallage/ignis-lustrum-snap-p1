@@ -61,9 +61,6 @@ export const MENU_ITEMS: readonly MenuItem[] = [
   {
     id: "eventSpin",
     label: () => "Spin the wheel",
-    // The HOST, not any admin: `hostUserId` is frozen at the START that opened the
-    // event, so the second admin is refused a 403 by the route and would be reading a
-    // menu item that cannot work.
     visible: (ctx) => ctx.isHost && ctx.wheelUnspun,
   },
   {

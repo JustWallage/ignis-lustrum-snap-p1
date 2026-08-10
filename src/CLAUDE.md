@@ -12,7 +12,8 @@
   throughout — it sits outside the LCD the overlay covers, and touches no phase, route or clock.
   Safe, because uploading and voting are `submission`-only and both routes 409 anyway.
   `EventOverlay` renders BEFORE the dialogue box so the SELECT menu still opens on top —
-  **Abort event** lives there.
+  **Abort event** lives there, and so does **Spin the wheel**, offered to the frozen host of an
+  unspun wheel as the way past a winner who never presses.
 - `interactableAt` + `OPENS` (a total `Record`) are why a seventh interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or

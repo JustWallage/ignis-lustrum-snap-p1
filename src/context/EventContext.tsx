@@ -45,9 +45,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         });
       },
       // Its own call rather than a fourth `EventAction`: the winner who presses SPIN is
-      // no admin, so the route is not under `/api/admin/event/`. What comes back is the
-      // REFUSAL and nothing else — a phase change reaches a screen by fan-out, never
-      // from the caller's own response.
+      // no admin, so the route is not under `/api/admin/event/`.
       spin: async () => {
         const res = await fetch("/api/event/spin", { method: "POST" });
         return res.ok ? null : await readApiError(res, SPIN_REFUSED);
