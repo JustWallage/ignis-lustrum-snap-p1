@@ -69,7 +69,10 @@ test("the jury's viewer asks before tearing a snap up, and Cancel keeps it", asy
   await confirmed.getByRole("button", { name: "Delete it" }).click();
   await goneFor(page, mine);
 
-  // The jury is taking submissions again, so the shell heard about it too.
+  // The 404 above is the SERVER's answer; the shell hands the map back only once it has
+  // re-read its own submission, so pressing A before the box closes reopens the
+  // conversation the snap was still in.
+  await expect(page.getByTestId("dialogue-text")).toBeHidden();
   await expect(
     page.getByText(new RegExp(`talk to ${TODAY.name}`, "i")),
   ).toBeVisible();

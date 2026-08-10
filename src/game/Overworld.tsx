@@ -453,7 +453,7 @@ export function Overworld() {
     }, []),
     onSent: useCallback(
       (id: number) => {
-        refreshMine();
+        void refreshMine();
         setDialog({ kind: "view", id });
       },
       [refreshMine],
@@ -496,7 +496,9 @@ export function Overworld() {
         setDialog({ kind: "note", pages: [DELETING_PAGE], busy: true });
         try {
           await deleteSnap(id);
-          refreshMine();
+          // AWAITED before the screen comes back, or the very next A on the jury's tile
+          // reopens the conversation this snap was still in and offers to show it.
+          await refreshMine();
           setDialog(back === "archive" ? { kind: "archive" } : null);
         } catch (cause: unknown) {
           setDialog({
