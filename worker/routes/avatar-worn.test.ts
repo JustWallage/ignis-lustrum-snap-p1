@@ -50,6 +50,16 @@ async function wear(cookie: string, id: number): Promise<Response> {
   );
 }
 
+async function readAvatarState(cookie: string) {
+  const res = await app.request(
+    "/api/avatar",
+    { headers: { Cookie: cookie } },
+    env,
+  );
+  expect(res.status).toBe(200);
+  return avatarStateSchema.parse(await res.json());
+}
+
 async function usedToday(): Promise<number> {
   const row = await env.DB.prepare(
     "SELECT coalesce(sum(used), 0) AS n FROM avatar_generations",
@@ -99,15 +109,28 @@ describe("POST /api/avatar/worn", () => {
     const cookie = await signIn();
     await draw(cookie);
     await draw(cookie);
-    // `/api/test/avatar` stores a sprite without reserving, so this is 0 either way —
-    // which is the point: what must not move is the counter, in either direction.
-    const before = await usedToday();
+    // A REAL row first: `/api/test/avatar` reserves nothing, so against an empty table
+    // both a spend and a refund are no-ops and the counter would sit at 0 either way.
+    const spent = await app.request(
+      "/api/test/quota",
+      {
+        method: "POST",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ used: 3 }),
+      },
+      LOCAL,
+    );
+    expect(spent.status).toBe(200);
+    expect(await usedToday()).toBe(3);
 
     const older = (await spritesOf(cookie, "tester"))[1];
     if (older === undefined) throw new Error("only one sprite was kept");
     expect((await wear(cookie, older.id)).status).toBe(200);
 
-    expect(await usedToday()).toBe(before);
+    // Neither direction: a switch is free, and it hands nothing back either.
+    expect(await usedToday()).toBe(3);
+    const state = await readAvatarState(cookie);
+    expect(state.remaining).toBe(state.limit - 3);
   });
 
   it("refuses somebody else's sprite the way it refuses one that does not exist", async () => {

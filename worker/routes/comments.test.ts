@@ -138,18 +138,34 @@ describe("comments on a drawn sprite", () => {
       `/api/avatars/${spriteId}/comments`,
     );
     expect(onSprite.map((one) => one.body)).toEqual(["good hat"]);
-    expect(onSprite[0]).toMatchObject({
+    const said = onSprite[0];
+    expect(said).toMatchObject({
       subjectType: "avatar",
       subjectId: spriteId,
       author: { name: "tester" },
     });
-    // The two ids are unrelated counters, so a subject-blind thread would serve one
-    // list to both routes the moment they collided.
     expect(
       (await threadAt(cookie, `/api/photos/${photoId}/comments`)).map(
         (one) => one.body,
       ),
     ).toEqual(["good light"]);
+
+    // The sprite's id read as the OTHER subject — the collision two unrelated counters
+    // make inevitable, and a subject-blind thread serves one list to both routes the
+    // moment it happens. Neither verb checks that a subject exists, so this holds
+    // whether or not there is a photo with that id.
+    expect(await threadAt(cookie, `/api/photos/${spriteId}/comments`)).toEqual(
+      [],
+    );
+    const crossed = await app.request(
+      `/api/photos/${spriteId}/comments/${String(said?.id ?? 0)}`,
+      { method: "DELETE", headers: { Cookie: cookie } },
+      env,
+    );
+    expect(crossed.status).toBe(404);
+    expect(
+      await threadAt(cookie, `/api/avatars/${spriteId}/comments`),
+    ).toHaveLength(1);
   });
 
   it("404s a sprite id nobody drew, and stores nothing for it", async () => {
