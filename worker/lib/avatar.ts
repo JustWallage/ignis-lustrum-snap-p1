@@ -1,10 +1,10 @@
-import { and, eq, sql } from "drizzle-orm";
-import { avatarGenerations, users } from "../../db/schema";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { avatarGenerations, avatarSprites, users } from "../../db/schema";
 import type { Bindings } from "../env";
 import { readAvatarCaps } from "./avatar-caps";
 import type { Db } from "./db";
 import { requestAvatar, type DrawnAvatar, type GeminiImage } from "./gemini";
-import { deleteImage, putImage, randomHandle, spriteObjectKey } from "./images";
+import { putImage, randomHandle, spriteObjectKey } from "./images";
 import { isWithinImageCap } from "./image-upload";
 
 type Reservation = { ok: true; used: number } | { ok: false; townIsOut: true };
@@ -169,6 +169,9 @@ export async function generateAvatar(
   return { ok: true, key: await storeAvatar(env, db, user.id, drawn) };
 }
 
+/** Nothing here deletes the sprite it supersedes, in the bucket or in D1. A history of
+ * rows whose objects had been swept is a gallery of broken images, and re-wearing one
+ * would 404 — which is why the object outliving its turn is the whole point. */
 export async function storeAvatar(
   env: Bindings,
   db: Db,
@@ -176,20 +179,73 @@ export async function storeAvatar(
   sprite: DrawnAvatar,
 ): Promise<string> {
   const key = randomHandle();
-  const worn = await avatarKeyFor(db, userId);
+  const drawnAt = new Date();
   await putImage(env, spriteObjectKey(env, key), sprite.bytes);
+  await db.insert(avatarSprites).values({
+    userId,
+    key,
+    contentType: sprite.contentType,
+    createdAt: drawnAt,
+  });
+  await wear(db, userId, key, drawnAt);
+  return key;
+}
+
+/** The one write that says what somebody is wearing — both columns in a single
+ * statement, so nothing can leave a key without the timestamp its `?v=` is cut from. */
+async function wear(
+  db: Db,
+  userId: number,
+  key: string,
+  at: Date,
+): Promise<void> {
   await db
     .update(users)
-    .set({
-      avatarContentType: sprite.contentType,
-      avatarUpdatedAt: new Date(),
-      avatarKey: key,
-    })
+    .set({ avatarUpdatedAt: at, avatarKey: key })
     .where(eq(users.id, userId));
-  if (worn !== null) {
-    await deleteImage(env, spriteObjectKey(env, worn));
-  }
+}
+
+/** "Not yours" and "not there" come back as one refusal, so the route has one failure
+ * path rather than two that could disagree about which it is. */
+export async function wearSprite(
+  db: Db,
+  userId: number,
+  spriteId: number,
+): Promise<string | null> {
+  const rows = await db
+    .select({ key: avatarSprites.key })
+    .from(avatarSprites)
+    .where(
+      and(eq(avatarSprites.id, spriteId), eq(avatarSprites.userId, userId)),
+    )
+    .limit(1);
+  const key = rows[0]?.key;
+  if (key === undefined) return null;
+  await wear(db, userId, key, new Date());
   return key;
+}
+
+export interface TownSprite {
+  userId: number;
+  userName: string;
+  id: number;
+  key: string;
+  worn: boolean;
+}
+
+export async function townSprites(db: Db): Promise<TownSprite[]> {
+  return db
+    .select({
+      userId: users.id,
+      userName: users.name,
+      id: avatarSprites.id,
+      key: avatarSprites.key,
+      worn: sql<number>`(${users.avatarKey} is not null and ${users.avatarKey} = ${avatarSprites.key})`,
+    })
+    .from(avatarSprites)
+    .innerJoin(users, eq(users.id, avatarSprites.userId))
+    .orderBy(asc(users.name), desc(avatarSprites.id))
+    .then((rows) => rows.map((row) => ({ ...row, worn: row.worn !== 0 })));
 }
 
 export async function avatarKeyFor(
@@ -204,17 +260,20 @@ export async function avatarKeyFor(
   return rows[0]?.key ?? null;
 }
 
+/** Answers the HISTORY, not the worn column: the moment a sprite stops being current its
+ * URL would otherwise 404 and the gallery would be a wall of broken images. It still
+ * says nothing about whose sprite it is. */
 export async function findAvatarByKey(
   db: Db,
   key: string,
 ): Promise<{ contentType: string } | null> {
   const rows = await db
-    .select({ contentType: users.avatarContentType })
-    .from(users)
-    .where(eq(users.avatarKey, key))
+    .select({ contentType: avatarSprites.contentType })
+    .from(avatarSprites)
+    .where(eq(avatarSprites.key, key))
     .limit(1);
-  const contentType = rows[0]?.contentType ?? null;
-  if (contentType === null) return null;
+  const contentType = rows[0]?.contentType;
+  if (contentType === undefined) return null;
   return { contentType };
 }
 
@@ -225,35 +284,23 @@ export async function findAvatar(
   const rows = await db
     .select({
       key: users.avatarKey,
-      contentType: users.avatarContentType,
+      contentType: avatarSprites.contentType,
       updatedAt: users.avatarUpdatedAt,
     })
     .from(users)
+    .innerJoin(avatarSprites, eq(avatarSprites.key, users.avatarKey))
     .where(eq(users.id, userId))
     .limit(1);
   const row = rows[0];
   const key = row?.key ?? null;
-  const contentType = row?.contentType ?? null;
   const updatedAt = row?.updatedAt ?? null;
-  if (key === null || contentType === null || updatedAt === null) return null;
-  return { key, contentType, updatedAt };
+  if (row === undefined || key === null || updatedAt === null) return null;
+  return { key, contentType: row.contentType, updatedAt };
 }
 
-export async function clearAvatar(
-  env: Bindings,
-  db: Db,
-  userId: number,
-): Promise<void> {
-  const worn = await avatarKeyFor(db, userId);
+export async function clearAvatar(db: Db, userId: number): Promise<void> {
   await db
     .update(users)
-    .set({
-      avatarContentType: null,
-      avatarUpdatedAt: null,
-      avatarKey: null,
-    })
+    .set({ avatarUpdatedAt: null, avatarKey: null })
     .where(eq(users.id, userId));
-  if (worn !== null) {
-    await deleteImage(env, spriteObjectKey(env, worn));
-  }
 }

@@ -1379,10 +1379,38 @@ button.gb-pill-cap:disabled {
   font-weight: 700;
 }
 
+.arc-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.arc-shelf + .arc-shelf {
+  margin-top: 0.9rem;
+}
 .arc-faces {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
   gap: 0.7rem;
+}
+.arc-face-open {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+.arc-face-worn {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.arc-face-sheet {
+  display: flex;
+  width: min(22rem, 90vw);
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  background: #fbfbf8;
+  color: #26221c;
 }
 .arc-face {
   display: flex;

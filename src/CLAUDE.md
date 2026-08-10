@@ -86,9 +86,18 @@
 - **A viewer asks to delete; the shell deletes** (#93). `confirmChain` lives in the LCD's dialogue
   box, which the modal layer covers, so the question cannot be asked while the viewer is on screen:
   `confirm-delete` carries the id and where to put a cancelling reader back.
+- **`AvatarGallery` is the ONE sprite shelf** and `CommentThread` the ONE thread: the artist's
+  wardrobe asks the gallery for `mineOnly`, the archive's Avatars tab for everyone, and both wear
+  through the same route — a second grid is how one place would offer a player faces the other did
+  not. The gallery calls `onWorn` because `useMyAvatar` listens to no socket event: `avatar_changed`
+  reaches the wearer's own tab and refreshes nothing, so their corner and walking sprite move only
+  when something asks for them.
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
-  nowhere else, so the modern look is quarantined by naming.
+  nowhere else, so the modern look is quarantined by naming — with ONE crossing, the artist's
+  wardrobe, which is `AvatarGallery` inside a `.gb-window`. Sharing the one shelf is what keeps a
+  player from being offered different faces in the two places, and jscpd refuses the copy that would
+  avoid it; the `arc-` classes come along with it.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

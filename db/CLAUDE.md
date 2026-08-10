@@ -25,10 +25,21 @@ deploys a schema without the column while everything stays green.
   object cannot be written before its name. Migration `0013` stamps `snaps/<id>` on every row the
   backfill saw, which is exactly what `scripts/backfill-images.mjs` wrote to the bucket in the deploy
   step before it.
-- The three avatar columns go together: any of them being null means "still on the default", so nothing
-  may set them piecemeal. `avatar_key` is the rotating handle everybody ELSE loads through, and it is
-  also the object's name — so a superseded sprite is DELETED with its columns and the bucket holds
-  exactly one sprite per player wearing one.
+- **`avatar_sprites` is the history and `users` only POINTS at it.** The table is insert-only: a row
+  per drawing, never updated and never pruned, so `key` and `content_type` describe bytes that cannot
+  change under them. The two remaining `users` avatar columns go together — either being null means
+  "wearing the default" — and one statement writes both, so nothing may set them piecemeal.
+  `avatar_key` is still the handle everybody ELSE loads through and still the object's name, but it
+  no longer rotates per generation: an old sprite can be WORN again, so a key may be current, then
+  not, then current once more. `users_avatar_key_idx` still holds, because a key belongs to one
+  drawing and a drawing to one player.
+- **Nothing deletes a sprite, in D1 or in the bucket.** A superseded one used to go with its columns;
+  it stays, or the history is a gallery of broken images and nothing can be put back on. Growth is
+  accepted: the caps bound the RATE (ten a player, fifty a town, per day), never the total.
+- `comments` names its subject with `subject_type` + `subject_id` rather than a photo foreign key, so
+  one table, one route and one component serve snaps and sprites alike. The pair references no table,
+  so whatever deletes a subject deletes its comments — `purgePhoto` does, and a sprite is never
+  deleted, which is why nothing sweeps those.
 - `photos.day`'s default exists only so its migration could backfill; every insert stamps it from
   `game_state.day`. `photos` has no `x`/`y` and no `caption`.
 - `photo_scores.ai_score` stores 5 with `ai_status = 'failed'` on failure, because a MISSING row reads

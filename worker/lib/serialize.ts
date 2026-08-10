@@ -9,6 +9,7 @@ import {
   voteCandidateSchema,
   type AvatarState,
   type Comment,
+  type CommentSubject,
   type DayResult,
   type Photo,
   type Prize,
@@ -132,7 +133,8 @@ export function toAvatarState(row: AvatarAggregate): AvatarState {
 
 export interface CommentAggregate {
   id: number;
-  photoId: number;
+  subjectType: CommentSubject;
+  subjectId: number;
   authorId: number;
   authorName: string;
   body: string;
@@ -146,7 +148,8 @@ export function toPrize(row: PrizeRow): Prize {
 export function toComment(row: CommentAggregate): Comment {
   return commentSchema.parse({
     id: row.id,
-    photoId: row.photoId,
+    subjectType: row.subjectType,
+    subjectId: row.subjectId,
     author: { id: row.authorId, name: row.authorName },
     body: row.body,
     createdAt: row.createdAt.toISOString(),

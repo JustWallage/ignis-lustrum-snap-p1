@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { meSchema } from "../shared/api";
+import { COMMENT_SUBJECT_PATH, meSchema } from "../shared/api";
 import type { AppEnv } from "./env";
 import { isAdmin } from "./lib/auth";
 import { avatarKeyFor } from "./lib/avatar";
@@ -11,7 +11,7 @@ import { authMiddleware, optionalUser } from "./middleware/auth";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { avatarRoutes } from "./routes/avatar";
-import { commentsRoutes } from "./routes/comments";
+import { commentRoutes } from "./routes/comments";
 import { daysRoutes } from "./routes/days";
 import { adminEventRoutes, eventRoute, eventSpinRoutes } from "./routes/event";
 import { leaderboardRoutes } from "./routes/leaderboard";
@@ -69,7 +69,7 @@ app.get("/api/me", (c) => {
 app.route("/api/admin", adminRoutes);
 
 // Before the photos router, so /api/photos/:id/comments resolves to it.
-app.route("/api/photos/:id/comments", commentsRoutes);
+app.route(`${COMMENT_SUBJECT_PATH.photo}/:id/comments`, commentRoutes("photo"));
 app.route("/api/photos", photosRoutes);
 app.route("/api/prizes", prizesRoutes);
 
@@ -78,6 +78,10 @@ app.route("/api/days", daysRoutes);
 app.route("/api/leaderboard", leaderboardRoutes);
 
 app.route("/api/avatar", avatarRoutes);
+app.route(
+  `${COMMENT_SUBJECT_PATH.avatar}/:id/comments`,
+  commentRoutes("avatar"),
+);
 app.route("/api/avatars", townAvatarRoutes);
 
 app.route(SPRITE_PATH, spriteRoutes);

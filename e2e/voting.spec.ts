@@ -242,7 +242,7 @@ test("your own snap is on the ballot: visible, commentable, never rankable", asy
         page.getByRole("button", { name: `Rank ${rank}` }),
       ).toBeDisabled();
     }
-    await expect(page.getByTestId("photo-comments")).toBeVisible();
+    await expect(page.getByTestId("comment-thread")).toBeVisible();
     await expect(filledSlots(page)).toHaveCount(0);
     await page.keyboard.press("Escape");
   }
@@ -328,7 +328,7 @@ test("tapping the photograph pages the ballot and ranks nothing", async ({
   // TYPED, not filled: `fill` sets the value without a single keydown, and the keys this
   // viewer holds are exactly the ones a comment is made of — `KEY_DIRS` reads A and D as
   // walking, so a swallowed letter is what this asserts against.
-  const thread = page.getByTestId("photo-comments");
+  const thread = page.getByTestId("comment-thread");
   const field = thread.getByPlaceholder("Add a comment…");
   await field.click();
   await expect(title(3)).toBeVisible();

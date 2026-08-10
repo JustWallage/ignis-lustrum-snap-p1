@@ -44,7 +44,10 @@ function photoAggregate(db: Db, viewerId: number, id: number) {
     .from(photos)
     .innerJoin(users, eq(users.id, photos.userId))
     .leftJoin(likes, eq(likes.photoId, photos.id))
-    .leftJoin(comments, eq(comments.photoId, photos.id))
+    .leftJoin(
+      comments,
+      and(eq(comments.subjectType, "photo"), eq(comments.subjectId, photos.id)),
+    )
     .leftJoin(photoScores, eq(photoScores.photoId, photos.id))
     .where(eq(photos.id, id))
     .groupBy(photos.id);
@@ -88,7 +91,11 @@ function purgePhoto(db: Db, id: number) {
     deletePhotoScore(db, id),
     db.delete(votes).where(eq(votes.photoId, id)),
     db.delete(likes).where(eq(likes.photoId, id)),
-    db.delete(comments).where(eq(comments.photoId, id)),
+    db
+      .delete(comments)
+      .where(
+        and(eq(comments.subjectType, "photo"), eq(comments.subjectId, id)),
+      ),
     db.delete(photos).where(eq(photos.id, id)),
   ] as const;
 }

@@ -186,11 +186,20 @@ export const avatarStateSchema = z.object({
 });
 export type AvatarState = z.infer<typeof avatarStateSchema>;
 
-/** The town's drawn avatars, as a name beside the rotating `avatar_key` handle. Never
- * the bytes and never `/api/avatar/image`, which serves only your own. */
+/** The town's drawn avatars, as a name beside every sprite key that name has drawn.
+ * Never the bytes and never `/api/avatar/image`, which serves only your own. */
 export const townAvatarsSchema = z.object({
-  avatars: z.array(z.object({ user: userSchema, url: z.string() })),
+  players: z.array(
+    z.object({
+      user: userSchema,
+      sprites: z.array(
+        z.object({ id: z.int(), url: z.string(), worn: z.boolean() }),
+      ),
+    }),
+  ),
 });
+
+export const wearAvatarSchema = z.object({ id: z.int() });
 
 /** An amount the WORKER multiplied out, so the price per image never ships to a
  * browser. */
@@ -207,9 +216,22 @@ export const avatarCountsSchema = avatarCapsSchema.extend({
   players: z.array(z.object({ user: userSchema, used: z.int().min(0) })),
 });
 
+export const commentSubjectSchema = z.enum(["photo", "avatar"]);
+export type CommentSubject = z.infer<typeof commentSubjectSchema>;
+
+export const COMMENT_SUBJECT_PATH: Record<CommentSubject, string> = {
+  photo: "/api/photos",
+  avatar: "/api/avatars",
+};
+
+export function commentsPath(subject: CommentSubject, id: number): string {
+  return `${COMMENT_SUBJECT_PATH[subject]}/${String(id)}/comments`;
+}
+
 export const commentSchema = z.object({
   id: z.int(),
-  photoId: z.int(),
+  subjectType: commentSubjectSchema,
+  subjectId: z.int(),
   author: userSchema,
   body: z.string(),
   createdAt: z.iso.datetime(),

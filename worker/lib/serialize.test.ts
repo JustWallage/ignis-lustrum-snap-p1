@@ -114,7 +114,8 @@ describe("toComment", () => {
   it("maps a row onto the comment contract", () => {
     const comment = toComment({
       id: 11,
-      photoId: 7,
+      subjectType: "photo",
+      subjectId: 7,
       authorId: 3,
       authorName: "tester",
       body: "nice one",
@@ -124,7 +125,8 @@ describe("toComment", () => {
     expect(comment).toEqual(
       commentSchema.parse({
         id: 11,
-        photoId: 7,
+        subjectType: "photo",
+        subjectId: 7,
         author: { id: 3, name: "tester" },
         body: "nice one",
         createdAt: CREATED_AT.toISOString(),
@@ -136,7 +138,8 @@ describe("toComment", () => {
     expect(() =>
       toComment({
         id: 2.5,
-        photoId: 7,
+        subjectType: "photo",
+        subjectId: 7,
         authorId: 3,
         authorName: "tester",
         body: "nice one",

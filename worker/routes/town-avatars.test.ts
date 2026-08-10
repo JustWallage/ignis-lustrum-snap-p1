@@ -55,14 +55,26 @@ describe("GET /api/avatars", () => {
     await drawFor(theirs);
 
     const first = await readTown(mine);
-    expect(first.avatars.map((one) => one.user.name)).toEqual(["rival"]);
-    expect(first.avatars[0]?.url).toMatch(SPRITE_URL);
+    expect(first.players.map((one) => one.user.name)).toEqual(["rival"]);
+    expect(first.players[0]?.sprites[0]?.url).toMatch(SPRITE_URL);
 
     await drawFor(mine);
-    expect((await readTown(mine)).avatars.map((one) => one.user.name)).toEqual([
+    expect((await readTown(mine)).players.map((one) => one.user.name)).toEqual([
       "rival",
       "tester",
     ]);
+  });
+
+  it("keeps every generation, newest first, and marks the worn one", async () => {
+    const cookie = await signIn();
+    await drawFor(cookie);
+    await drawFor(cookie);
+
+    const sprites = (await readTown(cookie)).players[0]?.sprites ?? [];
+    expect(sprites).toHaveLength(2);
+    // Insert-only, so the higher id is the later drawing and the listing puts it first.
+    expect(sprites[0]?.id).toBeGreaterThan(sprites[1]?.id ?? 0);
+    expect(sprites.map((one) => one.worn)).toEqual([true, false]);
   });
 
   it("sends no bytes and not `/api/avatar/image`, which is one player's own", async () => {
@@ -83,10 +95,10 @@ describe("GET /api/avatars", () => {
     townAvatarsSchema.parse(JSON.parse(raw));
   });
 
-  it("drops a player who takes their avatar off", async () => {
+  it("keeps a player who takes their avatar off, wearing none of it", async () => {
     const cookie = await signIn();
     await drawFor(cookie);
-    expect((await readTown(cookie)).avatars).toHaveLength(1);
+    expect((await readTown(cookie)).players).toHaveLength(1);
 
     const removed = await app.request(
       "/api/avatar",
@@ -94,7 +106,9 @@ describe("GET /api/avatars", () => {
       env,
     );
     expect(removed.status).toBe(200);
-    expect((await readTown(cookie)).avatars).toEqual([]);
+    const sprites = (await readTown(cookie)).players[0]?.sprites ?? [];
+    expect(sprites).toHaveLength(1);
+    expect(sprites[0]?.worn).toBe(false);
   });
 
   it("is behind the cookie: walking is public, a name beside a sprite is not", async () => {
