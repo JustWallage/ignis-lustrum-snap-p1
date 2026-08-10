@@ -14,18 +14,13 @@ import {
 
 /** Nothing here performs the gesture: both projects are Desktop Chrome, which has no
  * touch input pipeline, so there is no double-tap zoom to trigger and `visualViewport`
- * would read 1 whatever the CSS says. The resolved value is what is left to assert, and
- * it is enough to catch the rule not reaching an element — `touch-action` does not
- * inherit, which is the whole risk in anchoring one high up. */
+ * would read 1 whatever the CSS says. The resolved value is what is left to assert. */
 async function touchAction(target: Locator): Promise<string> {
   return target.first().evaluate((element) => {
     return getComputedStyle(element).touchAction;
   });
 }
 
-/** Their `none` is load-bearing, not an oversight to widen away: a thumb dragging the
- * D-pad or holding the shoulder bar must not pan the page, and panning fires the
- * `pointercancel` that kills a transmission. */
 const HARDWARE = [
   ".gb-dpad-key",
   ".gb-ab-btn button",
@@ -46,8 +41,6 @@ test("the shell suppresses double-tap zoom without touching the hardware or pinc
     expect(await touchAction(page.locator(cluster))).toBe("none");
   }
 
-  // The one surface an anchor high up can silently miss, since a `<dialog>` paints in the
-  // top layer and only its DOM position brings the stage's rule with it.
   await walkToVotingNpc(page);
   await page.keyboard.press("Enter");
   await expect(
@@ -56,8 +49,6 @@ test("the shell suppresses double-tap zoom without touching the hardware or pinc
   expect(await touchAction(page.locator(".modal-layer"))).toBe("manipulation");
   expect(await touchAction(page.locator(".gb-window"))).toBe("manipulation");
 
-  // Pinch itself is unreachable on a mouse-only browser, so this pins the meta instead:
-  // `user-scalable=no` or a `maximum-scale` here would take it away.
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
     "content",
     "width=device-width, initial-scale=1.0",

@@ -145,11 +145,12 @@
   user-select: none;
   font-family: var(--font-mono, ui-monospace, monospace);
 }
-/* The descendant half is not redundant: `touch-action` does not inherit. Keep the
-   `:where()` — at plain specificity this beats the deliberate `none` on the D-pad, the
-   A/B buttons, the pill caps and the shoulder bar, and a thumb on those then pans the
-   page. `manipulation` rather than `none` because `none` stops the feeds and rails
-   scrolling. */
+/* `:where()` keeps this at zero specificity, so the deliberate `none` on the D-pad, the
+   A/B buttons, the pill caps and the shoulder bar wins wherever it is declared — not, as
+   today, merely because it sits later in this file. The descendant half lands the value on
+   each surface itself (`touch-action` is not inherited), so nothing rests on how a
+   `position: fixed` dialog in the top layer takes an ancestor's. `manipulation`, never
+   `none`: `none` stops the feeds and rails scrolling. */
 .gb-stage,
 :where(.gb-stage *) {
   touch-action: manipulation;
