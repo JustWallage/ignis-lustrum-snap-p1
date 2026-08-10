@@ -121,7 +121,7 @@ type Dialog =
   | { kind: "trophy" }
   | { kind: "chat" }
   | { kind: "chat-say" }
-  | { kind: "confirm"; action: EventAction }
+  | { kind: "confirm"; action: HostAction }
   | { kind: "confirm-replace" }
   /** Where a cancelled question puts the reader back: the snap they were looking at, or
    * the archive they opened it from. The viewer itself cannot stay on screen while the
@@ -182,8 +182,13 @@ const VOICE_REFUSALS: Record<NonNullable<Voice["refusal"]>, string> = {
     "NO MICROPHONE · YOUR BROWSER TURNED IT DOWN, AND THE FIX IS IN ITS SETTINGS",
 };
 
+/** The spin is asked for like Start and Abort because it is as irreversible as they are:
+ * the landing awards a prize and turns the day over. It is no `EventAction` all the same
+ * — that union builds `/api/admin/event/…`, and the winner who spins is no admin. */
+type HostAction = EventAction | "spin";
+
 const EVENT_CONFIRM: Record<
-  EventAction,
+  HostAction,
   { page: string; label: string; working: string }
 > = {
   start: {
@@ -200,6 +205,11 @@ const EVENT_CONFIRM: Record<
     page: "Move the podium on? Everyone's screen goes with you.",
     label: "Next place",
     working: "Turning everyone's page…",
+  },
+  spin: {
+    page: "Spin the wheel for tonight's winner? The prize lands, the day turns over and the event is done.",
+    label: "Spin it",
+    working: "Turning the wheel…",
   },
 };
 
@@ -339,7 +349,7 @@ export function Overworld() {
   const [splash, setSplash] = useState(true);
   const [muted, showMuted] = useState(isMuted);
 
-  const { event, run: runEventAction } = useEvent();
+  const { event, run: runEventAction, spin: spinWheel } = useEvent();
   const [done, setDone] = useState(false);
   const running = isEventRunning(event);
   const inEvent = running && !done;
@@ -572,19 +582,26 @@ export function Overworld() {
   }, []);
 
   const runEvent = useCallback(
-    (action: EventAction) => {
+    (action: HostAction) => {
       setDialog({
         kind: "note",
         pages: [EVENT_CONFIRM[action].working],
         busy: true,
       });
-      void runEventAction(action)
-        .then(closeDialog)
+      void (
+        action === "spin"
+          ? spinWheel()
+          : runEventAction(action).then(() => null)
+      )
+        .then((refusal) => {
+          if (refusal === null) closeDialog();
+          else setDialog({ kind: "note", pages: [refusal] });
+        })
         .catch(() => {
           setDialog({ kind: "note", pages: [EVENT_REFUSED] });
         });
     },
-    [closeDialog, runEventAction],
+    [closeDialog, runEventAction, spinWheel],
   );
 
   const menuHandlers = useMemo<Record<MenuItemId, () => void>>(
@@ -633,6 +650,9 @@ export function Overworld() {
       },
       eventStart: () => {
         setDialog({ kind: "confirm", action: "start" });
+      },
+      eventSpin: () => {
+        setDialog({ kind: "confirm", action: "spin" });
       },
       eventAbort: () => {
         setDialog({ kind: "confirm", action: "abort" });
@@ -774,6 +794,8 @@ export function Overworld() {
             // The REAL `running`, not the dismissed flag: a player who pressed Done
             // has not ended anybody's event, so an admin is still offered Abort.
             inEvent: running,
+            isHost: user !== null && event?.hostUserId === user.id,
+            wheelUnspun: event?.phase === "wheel" && event.prizeIndex === null,
           }).map((item) => ({
             label: item.label,
             onPick: menuHandlers[item.id],
@@ -844,6 +866,7 @@ export function Overworld() {
     chat,
     closeDialog,
     dialog,
+    event,
     failedEvaluations,
     gameState,
     isAdmin,

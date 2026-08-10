@@ -25,8 +25,9 @@ gate before a PR.
   claim is about a late joiner. It fakes the clock and leaves the page's own timers running, so a
   pin reaches the screen on that page's next tick and NOT in the statement after it — read what it
   changed through a polling assertion, never off a bare sample.
-- Nothing a spec does moves a phase except the host's Next and the winner's spin, so reaching one is a
-  WAIT on the DO's alarm. When a press does turn a page, wait for the page to LAND read off the
+- Nothing a spec does moves a phase except the host's Next and the spin — the winner's on the wheel
+  screen, or the host's from the SELECT menu — so reaching one is a WAIT on the DO's alarm. When a
+  press does turn a page, wait for the page to LAND read off the
   authority: waiting for a build-up line to disappear looks equivalent and is not, because it has not
   appeared yet in the beat after the click, so the second press hits the same stage and the DO 409s.
 - Playwright calls anything with a box "visible", **including an element clipped by

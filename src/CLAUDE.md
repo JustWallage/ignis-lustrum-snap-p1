@@ -92,7 +92,7 @@
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner
   while the SELECT menu is open and the theme badge steps aside for it: three tiles BELOW the theme
-  reach into the bottom slot, where an admin's seven-item menu already is.
+  reach into the bottom slot, where an admin's menu already reaches.
 - `SEGMENT_CQW`/`WHEEL_CQW` are duplicated into CSS on purpose because the ribbon is positioned in
   code: **move one and the other moves with it, or the wheel lands on the wrong segment.** Hence
   `.gb-wheel`'s `flex: none` — shrunk to fit, the marker left the centre of segment zero.
