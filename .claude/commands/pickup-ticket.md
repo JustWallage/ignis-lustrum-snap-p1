@@ -25,7 +25,15 @@ rather than on the authority. Then dispatch `comment-auditor` and apply all of i
 `APPLY` findings and ship, fix a `BLOCKING` one and go again, max 3 rounds.
 
 Only then mark the PR ready — **that starts the pipeline** — mark the ticket done, and
-`node scripts/ticket.mjs ship <n>`. **Stay until your own deploy is green.** If it goes red, the
-red-`main` rule in `AGENT-WORKFLOW.md` decides whether it is yours to fix or yours to walk away from.
+`node scripts/ticket.mjs ship <n>`.
+
+**A green pipeline is not the finish line — the merge is yours to make.** Nobody presses it for you,
+and a green PR left open blocks every ticket under it. `ship` needs `gh`; without it the merge is
+still yours, through the same MCP tools every other write goes through — that is Runner B's whole
+protocol, not an exemption from it. Do what `ship` does: refuse onto a red `main` (`main-status`),
+squash-merge **the head that went green** and no other, comment the squash sha on the issue, and
+watch the deploy. Re-run a job that died on infrastructure rather than on your diff; never flip back
+to draft. **Stay until your own deploy is green.** If it goes red, the red-`main` rule in
+`AGENT-WORKFLOW.md` decides whether it is yours to fix or yours to walk away from.
 
 Stuck or stopping early: `node scripts/ticket.mjs release <n>`.
