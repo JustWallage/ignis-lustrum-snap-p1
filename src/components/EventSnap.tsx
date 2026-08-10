@@ -29,7 +29,7 @@ export function EventSnap({
       {open && (
         <GbWindow
           title={title}
-          wide
+          shape="wide"
           onClose={() => {
             setOpen(false);
           }}
