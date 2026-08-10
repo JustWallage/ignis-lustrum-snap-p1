@@ -4,6 +4,8 @@ export interface MenuContext {
   signedIn: boolean;
   failedEvaluations: number;
   inEvent: boolean;
+  isHost: boolean;
+  wheelUnspun: boolean;
 }
 
 export type MenuItemId =
@@ -15,6 +17,7 @@ export type MenuItemId =
   | "prizes"
   | "jury-bench"
   | "eventStart"
+  | "eventSpin"
   | "eventAbort";
 
 export interface MenuItem {
@@ -54,6 +57,11 @@ export const MENU_ITEMS: readonly MenuItem[] = [
     id: "eventStart",
     label: () => "Start event",
     visible: (ctx) => ctx.isAdmin && !ctx.inEvent,
+  },
+  {
+    id: "eventSpin",
+    label: () => "Spin the wheel",
+    visible: (ctx) => ctx.isHost && ctx.wheelUnspun,
   },
   {
     id: "eventAbort",

@@ -203,8 +203,11 @@ export class RealtimeDO extends DurableObject<Bindings> {
       if (event.phase !== "wheel") {
         return refuse(409, "The wheel is not up");
       }
-      if (event.winnerUserId !== userId) {
-        return refuse(403, "Only the day's winner spins the wheel");
+      if (event.winnerUserId !== userId && event.hostUserId !== userId) {
+        return refuse(
+          403,
+          "Only the day's winner or tonight's host spins the wheel",
+        );
       }
       if (event.prizeIndex !== null) {
         return refuse(409, "The wheel has already been spun");

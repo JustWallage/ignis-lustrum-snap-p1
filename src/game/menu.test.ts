@@ -12,8 +12,16 @@ const FRIEND: MenuContext = {
   signedIn: false,
   failedEvaluations: 0,
   inEvent: false,
+  isHost: false,
+  wheelUnspun: false,
 };
 const ADMIN: MenuContext = { ...FRIEND, isAdmin: true };
+const HOST_AT_THE_WHEEL: MenuContext = {
+  ...ADMIN,
+  inEvent: true,
+  isHost: true,
+  wheelUnspun: true,
+};
 
 describe("visibleItems", () => {
   it("ships install, the sound toggle and auth to an anonymous walker", () => {
@@ -97,6 +105,34 @@ describe("visibleItems", () => {
       id: "eventStart",
       label: "Start event",
     });
+  });
+
+  it("offers the spin to the host of a live unspun wheel, in registry order", () => {
+    expect(visibleItems(MENU_ITEMS, HOST_AT_THE_WHEEL)).toEqual([
+      { id: "install", label: "Install app" },
+      { id: "sound", label: "Sound: on" },
+      { id: "auth", label: "Sign in" },
+      { id: "retry-ai", label: "Retry AI: 0" },
+      { id: "avatar-counts", label: "Avatar counts" },
+      { id: "prizes", label: "Prize manager" },
+      { id: "jury-bench", label: "Jury bench" },
+      { id: "eventSpin", label: "Spin the wheel" },
+      { id: "eventAbort", label: "Abort event" },
+    ]);
+  });
+
+  it("keeps the spin off a second admin's menu, and off a spun wheel", () => {
+    const ids = (ctx: MenuContext) =>
+      visibleItems(MENU_ITEMS, ctx).map((item) => item.id);
+
+    expect(ids({ ...HOST_AT_THE_WHEEL, isHost: false })).not.toContain(
+      "eventSpin",
+    );
+    expect(ids({ ...HOST_AT_THE_WHEEL, wheelUnspun: false })).not.toContain(
+      "eventSpin",
+    );
+    expect(ids(ADMIN)).not.toContain("eventSpin");
+    expect(ids({ ...ADMIN, inEvent: true })).not.toContain("eventSpin");
   });
 
   it("no longer carries the avatar editor, session or no session", () => {

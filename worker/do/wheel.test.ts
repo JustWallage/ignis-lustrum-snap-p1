@@ -67,12 +67,35 @@ describe("the prize wheel", () => {
     expect((await readEvent()).segments).toEqual(wheel.segments);
   });
 
-  it("lets only the day's winner spin, whatever anyone else's client thinks", async () => {
-    const { loserCookie } = await aWheel();
+  it("keeps a friend who is neither the winner nor the host off it, whatever their client thinks", async () => {
+    const { loserCookie } = await aWheel("judge");
     const refused = await postSpin(loserCookie);
     expect(refused.status).toBe(403);
-    expect(apiErrorSchema.parse(await refused.json()).error).toMatch(/winner/i);
+    expect(apiErrorSchema.parse(await refused.json()).error).toMatch(
+      /winner or tonight's host/i,
+    );
     expect((await readEvent()).spunAt).toBeNull();
+  });
+
+  it("lets tonight's host turn it for a winner who has wandered off", async () => {
+    const { hostCookie, wheel } = await aWheel("judge");
+    expect(wheel.hostUserId).not.toBe(wheel.winnerUserId);
+
+    expect((await postSpin(hostCookie)).status).toBe(200);
+    const spun = await readEvent();
+    expect(spun.spunAt).not.toBeNull();
+    expect(spun.prizeIndex).not.toBeNull();
+  });
+
+  it("stands by the first spin whichever of the two pressed it", async () => {
+    const { hostCookie, winnerCookie } = await aWheel("judge");
+    expect((await postSpin(hostCookie)).status).toBe(200);
+    const first = await readEvent();
+
+    const again = await postSpin(winnerCookie);
+    expect(again.status).toBe(409);
+    expect(apiErrorSchema.parse(await again.json()).error).toMatch(/already/i);
+    expect(await readEvent()).toEqual(first);
   });
 
   it("refuses a spin to a caller with no session at all", async () => {

@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { wheelProgress, type EventState } from "@shared/events";
 import { EventSnap } from "@/components/EventSnap";
 import { useAuth } from "@/context/AuthContext";
+import { useEvent } from "@/context/EventContext";
 import { useDayResults } from "@/hooks/useDayResults";
 import { useNow } from "@/hooks/useNow";
-import { readApiError } from "@/lib/api";
 import { playCue } from "@/lib/sound";
 
 const FRAME_MS = 16;
@@ -89,6 +89,7 @@ export function WheelScreen({
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const { spin: turnWheel } = useEvent();
   const now = useNow(FRAME_MS);
   const [spinning, setSpinning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,11 +122,9 @@ export function WheelScreen({
   const spin = async () => {
     setSpinning(true);
     setError(null);
-    // Deliberately NOT applying the response: the fan-out is the single path a phase
-    // change reaches a screen by. The response is for the REFUSAL.
-    const res = await fetch("/api/event/spin", { method: "POST" });
-    if (!res.ok) {
-      setError(await readApiError(res, "The wheel would not turn"));
+    const refusal = await turnWheel();
+    if (refusal !== null) {
+      setError(refusal);
       setSpinning(false);
     }
   };

@@ -14,8 +14,13 @@ import {
 
 const WHEEL_TIMEOUT_MS = 180_000;
 
-async function aWheel(page: Page): Promise<void> {
-  await apiUpload(page, "tester");
+/** `tester` is the admin, so they host every one of these. Handing the day's only snap in
+ * as somebody ELSE is therefore how a wheel whose winner is not its host is reached. */
+async function aWheel(
+  page: Page,
+  uploader: "tester" | "rival" = "tester",
+): Promise<void> {
+  await apiUpload(page, uploader);
   await apiSignIn(page, "tester");
   await page.goto("/");
   await pressStart(page);
@@ -103,6 +108,29 @@ test("it scrolls downward and lands on the prize the server chose", async ({
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS + 200);
   await expect(page.getByTestId("wheel-prize")).toHaveText(
     (spun.segments[spun.prizeIndex ?? 0] ?? "").toUpperCase(),
+  );
+});
+
+test("the host turns it from the menu when the winner never does", async ({
+  page,
+}) => {
+  test.setTimeout(WHEEL_TIMEOUT_MS);
+  await aWheel(page, "rival");
+
+  await expect(page.getByTestId("event-overlay")).toContainText(
+    "THE WINNER IS SPINNING",
+  );
+  await expect(page.getByTestId("wheel-spin")).toBeHidden();
+
+  await operate(page, "Spin the wheel", "Spin it");
+  await expect
+    .poll(async () => (await readEvent(page)).prizeIndex)
+    .not.toBeNull();
+
+  const spun = await readEvent(page);
+  await expect(page.getByTestId("wheel-prize")).toHaveText(
+    (spun.segments[spun.prizeIndex ?? 0] ?? "").toUpperCase(),
+    { timeout: WHEEL_SPIN_MS * 4 },
   );
 });
 

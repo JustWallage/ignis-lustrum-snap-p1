@@ -154,15 +154,22 @@ export async function postSpin(cookie: string): Promise<Response> {
   );
 }
 
-export async function aWheel() {
+/** The pool pins `ADMIN_NAMES` to `tester`, so a wheel hosted by anybody else needs the
+ * binding overridden on the START itself. `judge` hands nothing in, which is what makes a
+ * wheel they host the one whose host cannot also be its winner. */
+export async function aWheel(host: "tester" | "judge" = "tester") {
   const mine = await signIn("tester");
   const theirs = await signIn("rival");
+  const hostCookie = host === "tester" ? mine : await signIn(host);
   const myPhoto = await uploadPhotoId(mine);
   const theirPhoto = await uploadPhotoId(theirs);
   expect((await putVotes(mine, [theirPhoto])).status).toBe(200);
   expect((await putVotes(theirs, [myPhoto])).status).toBe(200);
 
-  expect((await eventAction(mine, "start")).status).toBe(200);
+  expect(
+    (await eventAction(hostCookie, "start", { ...env, ADMIN_NAMES: host }))
+      .status,
+  ).toBe(200);
   const wheel = await playUntil("wheel");
   const winner = wheel.winnerUserId;
   if (winner === null) throw new Error("the wheel came up with no winner");
@@ -170,6 +177,7 @@ export async function aWheel() {
     (name === "tester" ? myPhoto : theirPhoto) === wheel.winnerPhotoId;
   return {
     wheel,
+    hostCookie,
     winnerCookie: winnerIs("tester") ? mine : theirs,
     loserCookie: winnerIs("tester") ? theirs : mine,
   };

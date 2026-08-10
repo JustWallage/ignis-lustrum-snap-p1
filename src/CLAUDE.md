@@ -12,7 +12,8 @@
   throughout — it sits outside the LCD the overlay covers, and touches no phase, route or clock.
   Safe, because uploading and voting are `submission`-only and both routes 409 anyway.
   `EventOverlay` renders BEFORE the dialogue box so the SELECT menu still opens on top —
-  **Abort event** lives there.
+  **Abort event** lives there, and so does **Spin the wheel**, offered to the frozen host of an
+  unspun wheel as the way past a winner who never presses.
 - `interactableAt` + `OPENS` (a total `Record`) are why a seventh interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or
@@ -92,7 +93,7 @@
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner
   while the SELECT menu is open and the theme badge steps aside for it: three tiles BELOW the theme
-  reach into the bottom slot, where an admin's seven-item menu already is.
+  reach into the bottom slot, where an admin's menu already reaches.
 - `SEGMENT_CQW`/`WHEEL_CQW` are duplicated into CSS on purpose because the ribbon is positioned in
   code: **move one and the other moves with it, or the wheel lands on the wrong segment.** Hence
   `.gb-wheel`'s `flex: none` — shrunk to fit, the marker left the centre of segment zero.

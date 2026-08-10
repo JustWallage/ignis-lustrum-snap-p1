@@ -2,13 +2,16 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { eventStateSchema, type EventState } from "@shared/events";
 import type { WsEvent } from "@shared/ws-events";
 import { useLiveValue } from "@/hooks/useLiveValue";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, readApiError } from "@/lib/api";
 
 export type EventAction = "start" | "abort" | "next";
+
+const SPIN_REFUSED = "The wheel would not turn";
 
 interface EventContextValue {
   event: EventState | undefined;
   run: (action: EventAction) => Promise<void>;
+  spin: () => Promise<string | null>;
 }
 
 const EventContext = createContext<EventContextValue | null>(null);
@@ -40,6 +43,12 @@ export function EventProvider({ children }: { children: ReactNode }) {
         await apiFetch(`/api/admin/event/${action}`, eventStateSchema, {
           method: "POST",
         });
+      },
+      // Its own call rather than a fourth `EventAction`: the winner who presses SPIN is
+      // no admin, so the route is not under `/api/admin/event/`.
+      spin: async () => {
+        const res = await fetch("/api/event/spin", { method: "POST" });
+        return res.ok ? null : await readApiError(res, SPIN_REFUSED);
       },
     }),
     [event],
