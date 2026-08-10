@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import { Modal } from "@/components/Modal";
 
-/** One total record rather than a `full` boolean beside `wide`: two of those can both be
- * passed, and a window that is wide AND full has no geometry to be. */
 const SHAPES = {
   narrow: "max-w-sm",
   wide: "flex h-full max-w-3xl flex-col",
