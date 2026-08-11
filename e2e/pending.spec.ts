@@ -9,6 +9,11 @@ import {
   walkToShelf,
 } from "./fixtures";
 
+// `initPwa` registers a worker that `clients.claim()`s this page, and Playwright does
+// not route service-worker-initiated requests — so the `hold` intercepts below would
+// race the worker for the held request. Block it: nothing here tests PWA.
+test.use({ serviceWorkers: "block" });
+
 interface Held {
   release: () => void;
   count: () => number;

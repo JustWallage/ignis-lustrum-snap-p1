@@ -18,8 +18,10 @@ export function initPwa(): void {
   });
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // Registration failed; the app still works without install.
+      navigator.serviceWorker.register("/sw.js").catch((error: unknown) => {
+        // Surfaced, not swallowed: an empty `.catch` here is why a worker that never
+        // registered — and so an app that never installed — went unnoticed for so long.
+        reportError(error);
       });
     });
   }
