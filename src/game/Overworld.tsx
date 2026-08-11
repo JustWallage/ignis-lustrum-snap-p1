@@ -1103,7 +1103,6 @@ export function Overworld() {
         <div className="gb-bezel">
           <p className="gb-bezel-caption">DOT MATRIX WITH STEREO SOUND</p>
           <div className="gb-bezel-inner">
-            <PttBar voice={voice} />
             <div className="gb-battery">
               <span className="gb-voice-power">
                 <span className="gb-led" data-lit={user !== null} />
@@ -1115,7 +1114,6 @@ export function Overworld() {
                   )}
                 </span>
               </span>
-              <VoiceLights channel={voice.channel} />
             </div>
             <div className="gb-lcd-frame">
               <canvas
@@ -1278,7 +1276,10 @@ export function Overworld() {
               <span>START</span>
             </div>
           </div>
-          <div className="gb-speaker" aria-hidden="true" />
+          <div className="gb-voice-stack">
+            <VoiceLights channel={voice.channel} />
+            <PttBar voice={voice} />
+          </div>
         </div>
       </div>
 

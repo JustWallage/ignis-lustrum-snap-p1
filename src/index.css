@@ -146,7 +146,7 @@
   font-family: var(--font-mono, ui-monospace, monospace);
 }
 /* `:where()` keeps this at zero specificity, so the deliberate `none` on the D-pad, the
-   A/B buttons, the pill caps and the shoulder bar wins wherever it is declared — not, as
+   A/B buttons, the pill caps and the grille wins wherever it is declared — not, as
    today, merely because it sits later in this file. The descendant half lands the value on
    each surface itself (`touch-action` is not inherited), so nothing rests on how a
    `position: fixed` dialog in the top layer takes an ancestor's. `manipulation`, never
@@ -160,14 +160,8 @@
   --gb-bezel-x: 6cqw;
   --gb-face-pad: 3cqw;
   --gb-inner-gap: 2cqw;
-  --gb-band-h: 22cqw;
-  --gb-ptt-w: 8cqw;
-  /* How far past the shell's own edge the bar breaks the silhouette. The width formula
-     below concedes the room for it: at 96vw the phone gutter was ~2vw a side and a bar
-     hanging into it was document-level horizontal scroll. */
-  --gb-ptt-out: 5cqw;
   aspect-ratio: 90 / 148;
-  height: min(98dvh, calc(88vw * 148 / 90));
+  height: min(98dvh, calc(96vw * 148 / 90));
   container-type: size;
   display: flex;
   flex-direction: column;
@@ -177,11 +171,7 @@
     inset 0 0 0 0.4cqw #a9a59c,
     inset 0 -1.2cqw 2cqw rgb(0 0 0 / 0.15),
     0 14px 50px rgb(0 0 0 / 0.65);
-  /* `clip` rather than `hidden` so the clip can be WIDENED by exactly the bar's
-     protrusion: the four radii, the 14cqw foot included, still trim everything else.
-     Lifting the clip entirely was the alternative and gives those radii up. */
   overflow: clip;
-  overflow-clip-margin: var(--gb-ptt-out);
 }
 
 .gb-topline {
@@ -224,103 +214,26 @@
   margin-top: 2.5cqw;
 }
 
-/* Escapes leftwards on its own margins so the rest of the row lands where it always
-   did: the negative margin is cancelled by the positive one, or the LCD would grow into
-   the bezel's right padding by exactly what the bar took. */
-.gb-ptt {
-  --gb-ptt-escape: calc(
-    var(--gb-bezel-x) + var(--gb-face-pad) + var(--gb-ptt-out)
-  );
-  flex: none;
-  width: var(--gb-ptt-w);
-  height: var(--gb-band-h);
-  margin-left: calc(-1 * var(--gb-ptt-escape));
-  margin-right: calc(
-    var(--gb-ptt-escape) - var(--gb-ptt-w) - var(--gb-inner-gap)
-  );
-  border: none;
-  border-radius: 2cqw 0 0 2cqw;
-  background: linear-gradient(#9a96a4, #77737f);
-  box-shadow:
-    inset 0 0.5cqw 0.5cqw rgb(255 255 255 / 0.25),
-    inset 0 -0.6cqw 0.8cqw rgb(0 0 0 / 0.4),
-    -0.4cqw 0.6cqw 1cqw rgb(0 0 0 / 0.4);
-  /* Same reason the D-pad has it: without it a touch-drag hands the pointer to the
-     browser's own gesture handling, which fires the `pointercancel` that kills the
-     transmission — on the device this is for. */
-  touch-action: none;
-}
-.gb-ptt[data-held="true"] {
-  background: linear-gradient(#b03a68, #8b2650);
-  box-shadow: inset 0 0.6cqw 1cqw rgb(0 0 0 / 0.5);
-}
-
-/* Three rows with equal 1fr shoulders, so the middle one sits at the column's centre —
-   which `align-items: center` on the row above makes the LCD's centre, and therefore the
-   bar's band. A centred stack with rows appended would drop them below it. */
 .gb-battery {
   width: 12cqw;
   align-self: stretch;
-  display: grid;
-  grid-template-rows: 1fr auto 1fr;
-  /* STRETCH, not centre: the rows shrink-to-fit under `center`, so the HOLD row's left
-     edge moved with however "HOLD TO SPEAK" happened to wrap and took the arrow — which
-     is positioned against that edge — off the bar. */
-  justify-items: stretch;
-  gap: 1.2cqw;
+  display: flex;
+  flex-direction: column;
   color: #d6d3df;
   font-size: 1.9cqw;
   letter-spacing: 0.08em;
 }
-.gb-voice-power,
-.gb-voice {
+.gb-voice-power {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.2cqw;
-}
-.gb-voice-power {
-  align-self: end;
-}
-.gb-voice.is-theirs {
-  align-self: start;
-}
-.gb-voice.is-mine {
-  position: relative;
 }
 .gb-battery-text {
   max-width: 12cqw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.gb-voice-label {
-  max-width: 12cqw;
-  text-align: center;
-  line-height: 1.15;
-}
-/* Reaches from the HOLD TO SPEAK row across the face gutter to the bar's inner edge, in
-   the same band, so the two cannot drift apart on a phone. */
-.gb-voice-arrow {
-  position: absolute;
-  top: 50%;
-  right: 100%;
-  translate: 0 -50%;
-  width: calc(
-    var(--gb-bezel-x) + var(--gb-face-pad) + var(--gb-ptt-out) - var(--gb-ptt-w)
-  );
-  height: 0.6cqw;
-  background: #d6d3df;
-}
-.gb-voice-arrow::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  translate: 0 -50%;
-  border-top: 1.1cqw solid transparent;
-  border-bottom: 1.1cqw solid transparent;
-  border-right: 1.5cqw solid #d6d3df;
 }
 .gb-led {
   --gb-led-on: #e23b3b;
@@ -916,7 +829,7 @@
   display: flex;
   gap: 6cqw;
   transform: rotate(-25deg) translateY(-2cqw);
-  margin-left: 12cqw;
+  margin-left: 4cqw;
 }
 .gb-pill {
   display: flex;
@@ -951,9 +864,35 @@ button.gb-pill-cap:disabled {
   letter-spacing: 0.08em;
 }
 
-.gb-speaker {
-  width: 24cqw;
+/* A FIXED width and one clipped line per label, because a speaker's name arrives at
+   runtime: sized by its text this stack resizes the button under the thumb holding it.
+   What is left grows upwards, `.gb-bottom` being `align-items: flex-end`. */
+.gb-voice-stack {
+  flex: none;
+  width: 30cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+  color: #2e2a5e;
+  font-size: 2.2cqw;
+  letter-spacing: 0.08em;
+}
+.gb-voice {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
+}
+.gb-voice-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gb-ptt {
   height: 20cqw;
+  border: none;
   border-radius: 2cqw 2cqw 9cqw 2cqw;
   background: repeating-linear-gradient(
     115deg,
@@ -962,6 +901,22 @@ button.gb-pill-cap:disabled {
     #6e6a72 2.4cqw,
     #6e6a72 4cqw
   );
+  /* Same reason the D-pad has it: without it a touch-drag hands the pointer to the
+     browser's own gesture handling, which fires the `pointercancel` that kills the
+     transmission — on the device this is for. */
+  touch-action: none;
+}
+/* The SLATS take the colour, not a fill over them: the grille is the only slatted part of
+   a Game Boy's face, and a flat red rectangle throws that away to say the same thing. */
+.gb-ptt[data-held="true"] {
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0,
+    transparent 2.4cqw,
+    #b03a68 2.4cqw,
+    #b03a68 4cqw
+  );
+  box-shadow: inset 0 0.6cqw 1cqw rgb(0 0 0 / 0.35);
 }
 
 .modal-layer {

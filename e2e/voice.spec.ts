@@ -19,9 +19,9 @@ import {
 
 const PHONE = { width: 390, height: 844 };
 
-async function boxOfShell(page: Page) {
-  const box = await page.locator(".gb-shell").boundingBox();
-  if (box === null) throw new Error("the shell is not on screen");
+async function boxOfSelector(page: Page, selector: string) {
+  const box = await page.locator(selector).boundingBox();
+  if (box === null) throw new Error(`${selector} is not on screen`);
   return box;
 }
 
@@ -41,34 +41,16 @@ async function releaseBar(page: Page): Promise<void> {
   await page.mouse.move(2, 2);
 }
 
-test("the bar breaks the shell's silhouette and shares its band with the arrow", async ({
+test("the grille IS the button: bottom right of the face, both lights above it, and it holds with the menu open", async ({
   page,
+  browser,
 }) => {
-  await apiSignIn(page);
+  await apiSignIn(page, "rival");
   await page.goto("/");
   await pressStart(page);
 
-  // Playwright calls an element the shell has clipped visible, so the claim is about
-  // the boxes and never about `isVisible`.
-  const shell = await boxOfShell(page);
-  const bar = await boxOf(page, "ptt-bar");
-  expect(bar.x).toBeLessThan(shell.x);
-  expect(bar.x + bar.width).toBeGreaterThan(shell.x);
-
   for (const size of [PHONE, { width: 1280, height: 900 }]) {
     await page.setViewportSize(size);
-    const narrow = await boxOfShell(page);
-    const shoulder = await boxOf(page, "ptt-bar");
-    const arrow = await boxOf(page, "voice-arrow");
-    expect(shoulder.x).toBeLessThan(narrow.x);
-    expect(Math.abs(centre(shoulder) - centre(arrow))).toBeLessThan(2);
-    // MEETS the bar: bounded on both sides, because "does not overlap it" is just as
-    // true of an arrow that stops thirty pixels short and points at the bezel.
-    expect(arrow.x).toBeGreaterThanOrEqual(shoulder.x + shoulder.width - 1);
-    expect(arrow.x).toBeLessThanOrEqual(shoulder.x + shoulder.width + 1);
-    expect(arrow.x + arrow.width).toBeLessThanOrEqual(
-      (await boxOf(page, "voice-mine")).x + 1,
-    );
     expect(
       await page.evaluate(
         () =>
@@ -76,15 +58,64 @@ test("the bar breaks the shell's silhouette and shares its band with the arrow",
           document.documentElement.clientWidth,
       ),
     ).toBe(true);
-    expect(shoulder.height).toBeGreaterThanOrEqual(TOUCH_TARGET);
+
+    // Playwright calls an element the shell has clipped visible, so every claim here is
+    // about the boxes and never about `isVisible`.
+    const shell = await boxOfSelector(page, ".gb-shell");
+    const grille = await boxOf(page, "ptt-bar");
+    expect(grille.x).toBeGreaterThan(shell.x + shell.width / 2);
+    expect(grille.x + grille.width).toBeLessThanOrEqual(shell.x + shell.width);
+    expect(grille.y + grille.height).toBeLessThanOrEqual(
+      shell.y + shell.height,
+    );
+    expect(grille.width).toBeGreaterThanOrEqual(TOUCH_TARGET);
+    expect(grille.height).toBeGreaterThanOrEqual(TOUCH_TARGET);
+
+    const ab = await boxOfSelector(page, ".gb-ab");
+    for (const row of ["voice-mine", "voice-theirs"] as const) {
+      const light = await boxOf(page, row);
+      expect(light.y + light.height).toBeLessThanOrEqual(grille.y);
+      expect(light.x).toBeGreaterThanOrEqual(grille.x - 1);
+      expect(light.x + light.width).toBeLessThanOrEqual(
+        grille.x + grille.width + 1,
+      );
+      expect(light.y).toBeGreaterThanOrEqual(ab.y + ab.height);
+    }
+
+    for (const pill of ["select-button", "start-button"] as const) {
+      const cap = await boxOf(page, pill);
+      expect(cap.x + cap.width).toBeLessThan(grille.x);
+      expect(cap.x).toBeGreaterThanOrEqual(shell.x);
+      expect(cap.y + cap.height).toBeLessThanOrEqual(shell.y + shell.height);
+    }
   }
+
+  const idle = await boxOf(page, "ptt-bar");
+  const speaker = await joinAs(browser, "tester");
+  await holdBar(speaker);
+  // TESTER is the widest this row can ever get: `nameLabel` cuts a name to six characters,
+  // so no name reaches the width of the wording it replaces.
+  await expect(page.getByTestId("voice-theirs")).toContainText("TESTER");
+  expect(await boxOf(page, "ptt-bar")).toEqual(idle);
+  await releaseBar(speaker);
+  await speaker.context().close();
+
+  // The per-player exception the move must not cost: the button lives outside the LCD,
+  // so an open menu takes the pad and A and leaves the transmission alone.
+  await page.getByTestId("select-button").click();
+  await expect(page.getByTestId("dialogue-choices")).toBeVisible();
+  await holdBar(page);
+  await expect(page.getByTestId("ptt-bar")).toHaveAttribute(
+    "data-held",
+    "true",
+  );
+  await expect(lamp(page, "voice-mine")).toHaveAttribute("data-lit", "true");
+  await releaseBar(page);
+  await expect(page.getByTestId("dialogue-choices")).toBeVisible();
+  expect(await boxOf(page, "ptt-bar")).toEqual(idle);
 });
 
 const TOUCH_TARGET = 44;
-
-function centre(box: { y: number; height: number }): number {
-  return box.y + box.height / 2;
-}
 
 test("holding the bar puts one friend's voice in another's shell, and release ends it", async ({
   page,
