@@ -25,6 +25,31 @@ async function boxOfSelector(page: Page, selector: string) {
   return box;
 }
 
+/** How far the grille's rounded corner stays inside the shell's foot, in px — the two arcs'
+ * centres apart, plus the inner radius, against the outer one. Negative means they cross. */
+async function cornerClearance(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const arc = (element: Element) => {
+      const box = element.getBoundingClientRect();
+      const radius = parseFloat(
+        getComputedStyle(element).borderBottomRightRadius,
+      );
+      return { radius, x: box.right - radius, y: box.bottom - radius };
+    };
+    const shell = document.querySelector(".gb-shell");
+    const grille = document.querySelector('[data-testid="ptt-bar"]');
+    if (shell === null || grille === null) {
+      throw new Error("the shell and the grille are not both on screen");
+    }
+    const outer = arc(shell);
+    const inner = arc(grille);
+    return (
+      outer.radius -
+      (Math.hypot(outer.x - inner.x, outer.y - inner.y) + inner.radius)
+    );
+  });
+}
+
 function lamp(page: Page, which: "voice-mine" | "voice-theirs"): Locator {
   return page.getByTestId(which).locator(".gb-led");
 }
@@ -68,6 +93,11 @@ test("the grille IS the button: bottom right of the face, both lights above it, 
     );
     expect(grille.width).toBeGreaterThanOrEqual(TOUCH_TARGET);
     expect(grille.height).toBeGreaterThanOrEqual(TOUCH_TARGET);
+    // Both viewports, because this crossed at desktop ONLY: `.gb-shell`'s own `cqw` resolves
+    // against the viewport (an element is a query container for its children, not itself)
+    // while the grille's is one percent of the shell, so the foot and the corner agreed at
+    // 390px and the foot ate the corner once `98dvh` capped the height.
+    expect(await cornerClearance(page)).toBeGreaterThan(1);
 
     const ab = await boxOfSelector(page, ".gb-ab");
     for (const row of ["voice-mine", "voice-theirs"] as const) {

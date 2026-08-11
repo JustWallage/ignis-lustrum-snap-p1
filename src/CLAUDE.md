@@ -63,8 +63,10 @@
   into slack the auto margin gives back instead of pushing it down. The stack is a FIXED width
   because a speaker's name arrives at runtime and, sized by its text, it would resize the button
   under the thumb holding it; each label is one clipped line so a wrap cannot grow those rows up
-  into the A/B buttons. Nothing escapes the shell's silhouette, so `overflow: clip` trims for the
-  four radii alone.
+  into the A/B buttons. Its bottom-right corner is rounded CONCENTRICALLY with the shell's foot —
+  `--gb-foot` less the gap `.gb-bottom` keeps, which is why that gap is an equal 7cqw on both sides
+  — so the two curves run parallel rather than one into the other. Nothing escapes the shell's
+  silhouette, so `overflow: clip` trims for the four radii alone.
 - `SayBox` is a `Dialog` precisely so the shell stops handing out the D-pad and A while somebody
   types (`KEY_DIRS` reads W/A/S/D). Speech is fanned out and FORGOTTEN — no history, nothing to
   replay to a late join.
@@ -107,7 +109,12 @@
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner
   while the SELECT menu is open and the theme badge steps aside for it: three tiles BELOW the theme
-  reach into the bottom slot, where an admin's menu already reaches.
+  reach into the bottom slot, where an admin's menu already reaches. **In `.gb-shell`'s OWN rule
+  `cqw` is not that unit at all**: an element is a query container for its descendants, not for
+  itself, so with no ancestor container those values resolve against the VIEWPORT. The silhouette
+  measures itself in `--gb-pc` — one percent of its own width — because `14cqw` there was 14vw, and
+  on any short, wide viewport, where `98dvh` and not `96vw` decides the height, that foot grew to a
+  third of the shell and swallowed the grille's corner.
 - **Double-tap zoom is killed once, globally, on `.gb-stage` plus a descendant selector** — the
   value is not inherited, so the descendant half is what puts it on each surface itself, dialogs
   included: they are the stage's DOM children however the top layer paints them, and nothing new has
