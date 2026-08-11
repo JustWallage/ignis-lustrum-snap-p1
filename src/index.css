@@ -864,9 +864,6 @@ button.gb-pill-cap:disabled {
   letter-spacing: 0.08em;
 }
 
-/* A FIXED width and one clipped line per label, because a speaker's name arrives at
-   runtime: sized by its text this stack resizes the button under the thumb holding it.
-   What is left grows upwards, `.gb-bottom` being `align-items: flex-end`. */
 .gb-voice-stack {
   flex: none;
   width: 30cqw;
@@ -906,8 +903,6 @@ button.gb-pill-cap:disabled {
      transmission — on the device this is for. */
   touch-action: none;
 }
-/* The SLATS take the colour, not a fill over them: the grille is the only slatted part of
-   a Game Boy's face, and a flat red rectangle throws that away to say the same thing. */
 .gb-ptt[data-held="true"] {
   background: repeating-linear-gradient(
     115deg,

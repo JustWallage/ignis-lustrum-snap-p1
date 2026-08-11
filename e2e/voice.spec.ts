@@ -59,8 +59,6 @@ test("the grille IS the button: bottom right of the face, both lights above it, 
       ),
     ).toBe(true);
 
-    // Playwright calls an element the shell has clipped visible, so every claim here is
-    // about the boxes and never about `isVisible`.
     const shell = await boxOfSelector(page, ".gb-shell");
     const grille = await boxOf(page, "ptt-bar");
     expect(grille.x).toBeGreaterThan(shell.x + shell.width / 2);
@@ -93,15 +91,13 @@ test("the grille IS the button: bottom right of the face, both lights above it, 
   const idle = await boxOf(page, "ptt-bar");
   const speaker = await joinAs(browser, "tester");
   await holdBar(speaker);
-  // TESTER is the widest this row can ever get: `nameLabel` cuts a name to six characters,
-  // so no name reaches the width of the wording it replaces.
+  // `nameLabel` cuts a name to six characters, so a name is always NARROWER than the wording
+  // it replaces: sized by its content this stack would SHRINK here, taking the button with it.
   await expect(page.getByTestId("voice-theirs")).toContainText("TESTER");
   expect(await boxOf(page, "ptt-bar")).toEqual(idle);
   await releaseBar(speaker);
   await speaker.context().close();
 
-  // The per-player exception the move must not cost: the button lives outside the LCD,
-  // so an open menu takes the pad and A and leaves the transmission alone.
   await page.getByTestId("select-button").click();
   await expect(page.getByTestId("dialogue-choices")).toBeVisible();
   await holdBar(page);

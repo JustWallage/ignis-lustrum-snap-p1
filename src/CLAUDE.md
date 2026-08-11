@@ -59,9 +59,10 @@
 - **The push-to-talk button IS the speaker grille**, and what holds it in the bottom right is
   `.gb-bottom`: its `align-items: flex-end` anchors the button to the foot of the face, so the
   HOLD TO SPEAK and OTHERS SPEAKING rows above it grow UPWARDS, into slack that row's `auto` top
-  margin gives back. The stack is a FIXED width and each label is one clipped line, because a
-  speaker's name arrives at runtime and neither it nor a wrap may resize a button under a thumb.
-  Nothing escapes the shell's silhouette, so `overflow: clip` now trims for the four radii alone.
+  margin gives back. The stack is a FIXED width because a speaker's name arrives at runtime and,
+  sized by its text, it would resize the button under the thumb holding it; each label is one
+  clipped line so a wrap cannot grow those rows up into the A/B buttons. Nothing escapes the
+  shell's silhouette, so `overflow: clip` trims for the four radii alone.
 - `SayBox` is a `Dialog` precisely so the shell stops handing out the D-pad and A while somebody
   types (`KEY_DIRS` reads W/A/S/D). Speech is fanned out and FORGOTTEN — no history, nothing to
   replay to a late join.
