@@ -14,6 +14,11 @@ import {
   walkToArtist,
 } from "./fixtures";
 
+// `initPwa` registers a worker that `clients.claim()`s this page, and Playwright does
+// not route service-worker-initiated requests — so the `page.route` intercepts below
+// would race the worker for the `/api/avatar` POST. Block it: nothing here tests PWA.
+test.use({ serviceWorkers: "block" });
+
 const SOURCE = { name: "me.png", mimeType: "image/png", buffer: TINY_PNG };
 
 test("the SELECT menu no longer offers the avatar editor", async ({ page }) => {

@@ -18,8 +18,11 @@ export function initPwa(): void {
   });
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // Registration failed; the app still works without install.
+      navigator.serviceWorker.register("/sw.js").catch((error: unknown) => {
+        // Surfaced, not swallowed: a rejection here — a wrong content-type, a bad
+        // scope — is invisible behind an empty `.catch`, and a PWA that silently
+        // stops installing is the class of failure this repo had never asserted against.
+        reportError(error);
       });
     });
   }

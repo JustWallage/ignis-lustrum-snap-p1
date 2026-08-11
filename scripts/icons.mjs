@@ -117,25 +117,33 @@ function chunk(type, payload) {
   return Buffer.concat([head, payload, crc]);
 }
 
+const RGBA = PALETTE.map((entry) => {
+  const [r, g, b] = Buffer.from(entry.rgb.slice(1), "hex");
+  return [r, g, b, entry.alpha];
+});
+
 function png(rows) {
   const size = rows.length;
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size, 0);
   header.writeUInt32BE(size, 4);
   header[8] = 8; // bit depth
-  header[9] = 3; // colour type: indexed
-  const plte = Buffer.concat(
-    PALETTE.map((entry) => Buffer.from(entry.rgb.slice(1), "hex")),
-  );
-  const trns = Buffer.from([PALETTE[0].alpha]);
-  const raw = Buffer.concat(
-    rows.map((row) => Buffer.concat([Buffer.from([0]), Buffer.from(row)])),
-  );
+  // Colour type 6 (RGBA), not 3 (palette+tRNS): the indexed encoding was the last
+  // artefact-level difference from the reference PWA that demonstrably installs.
+  header[9] = 6;
+  const raw = Buffer.alloc(size * (1 + size * 4));
+  let at = 0;
+  for (const row of rows) {
+    raw[at] = 0;
+    at += 1;
+    for (const index of row) {
+      raw.set(RGBA[index], at);
+      at += 4;
+    }
+  }
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", header),
-    chunk("PLTE", plte),
-    chunk("tRNS", trns),
     chunk("IDAT", deflateSync(raw, { level: 9 })),
     chunk("IEND", Buffer.alloc(0)),
   ]);
