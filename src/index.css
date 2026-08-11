@@ -156,20 +156,32 @@
   touch-action: manipulation;
 }
 
+/* `cqw` HERE is not the `cqw` everything inside sees. `container-type` makes this element a
+   query container for its DESCENDANTS; its own properties have no ancestor container to
+   resolve against and fall back to the viewport, so `14cqw` on this rule meant 14vw. The two
+   agree only while `96vw` is the binding half of the height below — on a short, wide viewport
+   the shell is far narrower than 96vw and a 14vw foot became a third of its width, swallowing
+   the grille's corner. So the silhouette measures itself in `--gb-pc`, which is one percent of
+   the shell's real width and therefore exactly what a child's `1cqw` is. */
 .gb-shell {
+  --gb-shell-w: min(96vw, calc(98dvh * 90 / 148));
+  --gb-pc: calc(var(--gb-shell-w) / 100);
+  --gb-corner: calc(3 * var(--gb-pc));
+  --gb-foot: calc(14 * var(--gb-pc));
   --gb-bezel-x: 6cqw;
   --gb-face-pad: 3cqw;
   --gb-inner-gap: 2cqw;
   aspect-ratio: 90 / 148;
-  height: min(98dvh, calc(96vw * 148 / 90));
+  height: calc(var(--gb-shell-w) * 148 / 90);
   container-type: size;
   display: flex;
   flex-direction: column;
   background: #c9c5bc;
-  border-radius: 3cqw 3cqw 14cqw 3cqw;
+  border-radius: var(--gb-corner) var(--gb-corner) var(--gb-foot)
+    var(--gb-corner);
   box-shadow:
-    inset 0 0 0 0.4cqw #a9a59c,
-    inset 0 -1.2cqw 2cqw rgb(0 0 0 / 0.15),
+    inset 0 0 0 calc(0.4 * var(--gb-pc)) #a9a59c,
+    inset 0 calc(-1.2 * var(--gb-pc)) calc(2 * var(--gb-pc)) rgb(0 0 0 / 0.15),
     0 14px 50px rgb(0 0 0 / 0.65);
   overflow: clip;
 }
@@ -817,11 +829,14 @@
   font-weight: 700;
 }
 
+/* An EQUAL 7cqw on both, because the grille's corner is rounded concentrically with the
+   shell's foot against exactly this gap: 5 at the bottom and 7 at the side made the curves
+   converge instead of run parallel. */
 .gb-bottom {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin: auto 7cqw 5cqw;
+  margin: auto 7cqw 7cqw;
   padding-top: 4cqw;
 }
 
@@ -887,31 +902,39 @@ button.gb-pill-cap:disabled {
   white-space: nowrap;
 }
 
+/* The slats are SHADE over a body, not stripes of their own colour, so a press swaps one
+   gradient and the grille survives it — and so the button has a body at all: as bare stripes
+   on the face its corner was invisible and the cut slat ends read as a broken edge. */
 .gb-ptt {
-  height: 20cqw;
-  border: none;
-  border-radius: 2cqw 2cqw 9cqw 2cqw;
-  background: repeating-linear-gradient(
+  --gb-slats: repeating-linear-gradient(
     115deg,
     transparent 0,
     transparent 2.4cqw,
-    #6e6a72 2.4cqw,
-    #6e6a72 4cqw
+    rgb(0 0 0 / 0.3) 2.4cqw,
+    rgb(0 0 0 / 0.3) 4cqw
   );
+  height: 20cqw;
+  border: none;
+  /* CONCENTRIC with the shell's foot — same centre, radius short by exactly the gap the
+     straight edges already keep — so the two curves run parallel instead of one into the
+     other. That holds at every viewport only because both terms are now one percent of the
+     same width; see `--gb-pc`. */
+  border-radius: 2cqw 2cqw calc(var(--gb-foot) - 7cqw) 2cqw;
+  background: var(--gb-slats), linear-gradient(#9a96a4, #6e6a72);
+  /* Raised, in the vocabulary the pill caps and the D-pad already use: lit along the top
+     edge, shaded along the bottom, standing on its own drop shadow. Held inverts all three. */
+  box-shadow:
+    inset 0 0.5cqw 0.5cqw rgb(255 255 255 / 0.28),
+    inset 0 -0.7cqw 0.9cqw rgb(0 0 0 / 0.45),
+    0 0.7cqw 1cqw rgb(0 0 0 / 0.45);
   /* Same reason the D-pad has it: without it a touch-drag hands the pointer to the
      browser's own gesture handling, which fires the `pointercancel` that kills the
      transmission — on the device this is for. */
   touch-action: none;
 }
 .gb-ptt[data-held="true"] {
-  background: repeating-linear-gradient(
-    115deg,
-    transparent 0,
-    transparent 2.4cqw,
-    #b03a68 2.4cqw,
-    #b03a68 4cqw
-  );
-  box-shadow: inset 0 0.6cqw 1cqw rgb(0 0 0 / 0.35);
+  background: var(--gb-slats), linear-gradient(#b03a68, #8b2650);
+  box-shadow: inset 0 0.8cqw 1.4cqw rgb(0 0 0 / 0.55);
 }
 
 .modal-layer {
