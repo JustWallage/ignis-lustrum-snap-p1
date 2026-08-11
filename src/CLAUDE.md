@@ -2,14 +2,15 @@
 
 - **Dismissing the splash is the app's guaranteed user gesture, so that is where the AudioContext is
   created.** It is skipped outside `submission`, so nobody presses START to enter a running event —
-  and such a screen hears none of the event's cues UNTIL somebody holds the push-to-talk bar, which
-  is a guaranteed gesture of its own and calls `unlockAudio` (a no-op once a context exists). A
+  and such a screen hears none of the event's cues UNTIL somebody holds the push-to-talk grille,
+  which is a guaranteed gesture of its own and calls `unlockAudio` (a no-op once a context exists). A
   screen that never holds it has no context and so hears no voice either — the honest limit, which
-  the bar's own accessible name states rather than leaving silent.
+  the button's own accessible name states rather than leaving silent.
 - START is a round trip to the splash and nothing else: not the session, not the tile, not the clock.
 - A live event covers the map and takes the buttons, with TWO per-player exceptions: **Done** on the
-  wheel's last page unfreezes walking for that screen, and the **push-to-talk bar** is live
-  throughout — it sits outside the LCD the overlay covers, and touches no phase, route or clock.
+  wheel's last page unfreezes walking for that screen, and the **push-to-talk grille** is live
+  throughout — it sits on the face below the LCD the overlay covers, and touches no phase, route or
+  clock.
   Safe, because uploading and voting are `submission`-only and both routes 409 anyway.
   `EventOverlay` renders BEFORE the dialogue box so the SELECT menu still opens on top —
   **Abort event** lives there, and so does **Spin the wheel**, offered to the frozen host of an
@@ -55,11 +56,15 @@
   and would swallow the first cue. **Never fix that with a timeout at a call site.** Voice waits on
   the same `whenLive` and borrows the same context — iOS caps them and two would fight over the
   audio session.
-- **The shoulder bar's band is structural, not a coordinate.** `.gb-bezel-inner` is
-  `align-items: center`, so the bar and the HOLD TO SPEAK row are both centred on the LCD; the
-  battery column is a `1fr auto 1fr` grid precisely so the middle row lands there, and `--gb-band-h`
-  is only how thick that band is. The bar escapes the shell on cancelling margins, and the shell
-  clips with `overflow: clip` + `overflow-clip-margin` so its four radii still trim everything else.
+- **The push-to-talk button IS the speaker grille**, and what holds it at the foot of the face is
+  `.gb-bottom`'s `auto` TOP MARGIN, not its `align-items: flex-end` — the stack is the tallest thing
+  in that row, so it has no free cross space and `flex-end` only ever aligns the pills. The button
+  being the stack's LAST child is the other half: HOLD TO SPEAK and OTHERS SPEAKING grow UPWARDS
+  into slack the auto margin gives back instead of pushing it down. The stack is a FIXED width
+  because a speaker's name arrives at runtime and, sized by its text, it would resize the button
+  under the thumb holding it; each label is one clipped line so a wrap cannot grow those rows up
+  into the A/B buttons. Nothing escapes the shell's silhouette, so `overflow: clip` trims for the
+  four radii alone.
 - `SayBox` is a `Dialog` precisely so the shell stops handing out the D-pad and A while somebody
   types (`KEY_DIRS` reads W/A/S/D). Speech is fanned out and FORGOTTEN — no history, nothing to
   replay to a late join.
@@ -110,7 +115,7 @@
   (which stops the feeds, rails and comment lists scrolling), and **`user-scalable=no` is out**: the
   archive exists to be read and a photograph you cannot pinch is a worse one. The DESCENDANT half is
   wrapped in `:where()` — `.gb-stage` itself is bare, since nothing competes on it — so a control's
-  own `touch-action: none` (D-pad, A/B, pill caps, shoulder bar) wins wherever it is declared rather
+  own `touch-action: none` (D-pad, A/B, pill caps, the grille) wins wherever it is declared rather
   than only by sitting later, and the effective value being the intersection down the chain is what
   keeps a thumb on those from panning the page.
 - `SEGMENT_CQW`/`WHEEL_CQW` are duplicated into CSS on purpose because the ribbon is positioned in
