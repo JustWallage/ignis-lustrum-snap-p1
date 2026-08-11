@@ -90,6 +90,10 @@ test("the grille IS the button: bottom right of the face, both lights above it, 
 
   const idle = await boxOf(page, "ptt-bar");
   const speaker = await joinAs(browser, "tester");
+  // A press on a socket that has not opened yet is DROPPED and never retried, and `joinAs`
+  // only waits on `/api/me`. Seeing the speaker in this screen's own company is the proof
+  // both ends are on the DO.
+  await expect(lcd(page)).toHaveAttribute("aria-label", /tester/i);
   await holdBar(speaker);
   // `nameLabel` cuts a name to six characters, so a name is always NARROWER than the wording
   // it replaces: sized by its content this stack would SHRINK here, taking the button with it.
