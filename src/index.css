@@ -558,8 +558,6 @@
   font-weight: 700;
   letter-spacing: 0.1em;
 }
-/* No colour of its own: it is the jury's line breaking down, so it inherits the jury's
-   blue rather than sitting in the green a peer figure prints in. */
 .gb-reveal-rating-note {
   font-size: 2cqw;
 }

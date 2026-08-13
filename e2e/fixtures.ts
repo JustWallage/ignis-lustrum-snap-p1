@@ -602,10 +602,11 @@ export const AVATAR_TROUSERS = [152, 56, 152];
 export const DEFAULT_TROUSERS = [60, 88, 168];
 
 /**
- * Peer green and jury blue, one value per background — also hardcoded, which is what
- * makes a spec reading these the check that the event's classes, the archive's and the
- * two Tailwind-styled lines still resolve to ONE decision rather than five that look
- * alike. `UNTINTED_*` are what a figure that is neither half already prints in.
+ * Peer green and jury blue, one value per background — hardcoded for the same reason,
+ * which is what makes a spec reading them the check that the event's classes, the
+ * archive's and the two Tailwind-styled lines still resolve to ONE decision rather than
+ * five that look alike. The `untinted` pair is what a figure that is NEITHER half — the
+ * total, the bonus, the penalty, the rank — already prints in.
  */
 export const INK = {
   peerOnDark: "rgb(120, 224, 136)",

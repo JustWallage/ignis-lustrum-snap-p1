@@ -68,8 +68,6 @@ test("the podium prints the jury's rating, and says which number is the curve", 
   await expect(score.getByText(/^PEER/)).toHaveCSS("color", INK.peerOnDark);
   await expect(score.getByText(CURVED)).toHaveCSS("color", INK.juryOnDark);
   await expect(rating).toHaveCSS("color", INK.juryOnDark);
-  // The broken-machine note is the jury's own line falling over, so it prints in the
-  // jury's colour and never in the green a peer figure takes.
   await expect(rating.locator("span")).toHaveCSS("color", INK.juryOnDark);
   // The total is both halves at once, so it is neither colour.
   await expect(score.getByText(/^=/)).toHaveCSS("color", INK.untintedOnDark);
@@ -123,8 +121,6 @@ test("the reveal ends on a scoreboard of everybody, and the host takes it to the
     "color",
     INK.juryOnDark,
   );
-  // The same blue the podium printed a moment ago: one background, one pair of values,
-  // whatever idiom the surface is written in.
   await expect(page.getByTestId("scoreboard-rating").first()).toHaveCSS(
     "color",
     podiumJury,
@@ -218,9 +214,8 @@ test("the rating survives the reveal: it is in the archive and on the snap", asy
   await expect(page.getByTestId("viewer-rating")).toContainText(
     FALLBACK_RATING,
   );
-  // The card is a white card and the viewer a `.gb-window` panel: two backgrounds close
-  // enough to share one pair, and a spec that says so is what stops a sixth surface
-  // inventing a third blue.
+  // The card is white and the viewer a `.gb-window` panel — two backgrounds sharing one
+  // pair, which is the claim a sixth surface inventing a third blue would break.
   await expect(page.getByTestId("viewer-rating")).toHaveCSS(
     "color",
     INK.juryOnLight,
