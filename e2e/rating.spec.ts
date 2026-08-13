@@ -69,7 +69,6 @@ test("the podium prints the jury's rating, and says which number is the curve", 
   await expect(score.getByText(CURVED)).toHaveCSS("color", INK.juryOnDark);
   await expect(rating).toHaveCSS("color", INK.juryOnDark);
   await expect(rating.locator("span")).toHaveCSS("color", INK.juryOnDark);
-  // The total is both halves at once, so it is neither colour.
   await expect(score.getByText(/^=/)).toHaveCSS("color", INK.untintedOnDark);
 });
 
@@ -87,8 +86,8 @@ test("the reveal ends on a scoreboard of everybody, and the host takes it to the
   let podiumJury = "";
   for (const place of ["3RD", "2ND", "1ST"]) {
     await reachPodium(page, place);
-    // Sampled off the podium rather than typed, so what the scoreboard is held to below
-    // is the colour the card beside it actually printed.
+    // Read inside the loop: the scoreboard stage replaces the podium card, so this
+    // colour is unreadable by the time the rows below are asserted against it.
     podiumJury = await page
       .getByTestId("podium-rating")
       .evaluate((node) => getComputedStyle(node).color);
@@ -214,8 +213,6 @@ test("the rating survives the reveal: it is in the archive and on the snap", asy
   await expect(page.getByTestId("viewer-rating")).toContainText(
     FALLBACK_RATING,
   );
-  // The card is white and the viewer a `.gb-window` panel — two backgrounds sharing one
-  // pair, which is the claim a sixth surface inventing a third blue would break.
   await expect(page.getByTestId("viewer-rating")).toHaveCSS(
     "color",
     INK.juryOnLight,
