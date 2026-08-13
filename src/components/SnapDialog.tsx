@@ -47,7 +47,7 @@ export function SnapDialog({
               snap nobody judged. */}
           {current.aiScore !== null && (
             <p
-              className="text-xs font-bold uppercase"
+              className="ink-jury text-xs font-bold uppercase"
               data-testid="snap-rating"
             >
               Jury {ratingText(current.aiScore)}

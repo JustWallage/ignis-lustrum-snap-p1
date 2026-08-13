@@ -35,10 +35,10 @@ function points(value: number): string {
 function ScoreBreakdown({ result }: { result: DayResult }) {
   return (
     <p className="gb-reveal-breakdown" data-testid="podium-score">
-      <span>
+      <span className="ink-peer">
         PEER {result.peerPoints} PTS → {points(result.peerNorm)}
       </span>
-      <span>{curvedText(result.aiNorm)}</span>
+      <span className="ink-jury">{curvedText(result.aiNorm)}</span>
       {result.bonus && <span>BONUS +{BONUS_POINTS}</span>}
       {result.noVotePenalty && (
         <span data-testid="podium-penalty">
@@ -52,7 +52,7 @@ function ScoreBreakdown({ result }: { result: DayResult }) {
 
 function JuryRating({ result }: { result: DayResult }) {
   return (
-    <p className="gb-reveal-rating" data-testid="podium-rating">
+    <p className="gb-reveal-rating ink-jury" data-testid="podium-rating">
       JURY {ratingText(result.aiScore)}
       {isFallbackRating(result.aiStatus) && (
         <span className="gb-reveal-rating-note"> (MACHINE BROKE)</span>

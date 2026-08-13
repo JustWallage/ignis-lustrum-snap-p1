@@ -81,6 +81,15 @@
   from there, and independently written "AI n/10" strings are how it drifted (#97). `useChampion`
   reads the same results query the archive and reveal read, so the plinth cannot disagree with the
   scoreboard.
+- **A peer figure is green and a jury figure blue, everywhere either prints** — `.ink-peer` /
+  `.ink-jury` over `--ink-peer` / `--ink-jury`, whose value is per BACKGROUND (the event's dark
+  screen, then every light surface) because no single green clears both `#202830` and `#fff`. The
+  classes belong to neither idiom on purpose: a `gb-` class in the archive, or an `arc-` one in the
+  event, breaks the quarantine above. **The total, the bonus, the no-ballot penalty and the rank are
+  neither half** and stay untinted; a failure note is jury-side text and takes the blue. Colour only
+  repeats what the words already say, so a figure keeps naming its half whatever it is tinted.
+  `JuryBench` is the exception — no day, no peer half on screen, so a blue there would code for a
+  distinction that screen does not make.
 - **`SnapViewer` is the ONE big-photograph shell**, the ballot's and the archive's; each surface only
   fills its slots. Paging is ‹ › buttons, ←/→ keys and two tap zones over the picture, all through
   one `step`, so a change to it cannot land on one surface only. The zones' accessible names must NOT

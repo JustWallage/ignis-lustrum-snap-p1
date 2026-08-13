@@ -136,6 +136,29 @@
   }
 }
 
+:root {
+  --ink-peer-on-light: #186838;
+  --ink-jury-on-light: #2050a8;
+  --ink-peer: var(--ink-peer-on-light);
+  --ink-jury: var(--ink-jury-on-light);
+}
+.gb-event {
+  --ink-peer: #78e088;
+  --ink-jury: #78c8f8;
+}
+/* `.gb-window` re-states the light pair because `EventSnap` opens one INSIDE `.gb-event`:
+   a custom property inherits down the DOM however the top layer paints the dialog. */
+.gb-window {
+  --ink-peer: var(--ink-peer-on-light);
+  --ink-jury: var(--ink-jury-on-light);
+}
+.ink-peer {
+  color: var(--ink-peer);
+}
+.ink-jury {
+  color: var(--ink-jury);
+}
+
 .gb-stage {
   height: 100dvh;
   display: flex;
@@ -531,11 +554,9 @@
   font-size: 2.8cqw;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #f8f8f8;
 }
 .gb-reveal-rating-note {
   font-size: 2cqw;
-  color: #98b8a0;
 }
 
 .gb-scoreboard {
@@ -578,7 +599,6 @@
   font-size: 1.8cqw;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #98b8a0;
 }
 
 .gb-event-snap {
@@ -1271,7 +1291,6 @@ button.gb-pill-cap:disabled {
 }
 .arc-rating {
   font-weight: 700;
-  color: #14181d;
 }
 .arc-prize {
   font-size: 0.75rem;

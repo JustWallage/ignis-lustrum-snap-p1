@@ -3,6 +3,7 @@ import {
   apiSignIn,
   apiUpload,
   expect,
+  INK,
   pressStart,
   readDialogue,
   setDay,
@@ -76,6 +77,10 @@ test("a finished day puts its winner on the plinth", async ({ page }) => {
   // The plinth is `SnapDialog`'s surviving caller on a REVEALED day, so it is the one
   // place a spec can read the verdict off that window rather than the big viewer.
   await expect(dialog.getByTestId("snap-rating")).toContainText(/\d+\/10/);
+  await expect(dialog.getByTestId("snap-rating")).toHaveCSS(
+    "color",
+    INK.juryOnLight,
+  );
 });
 
 test("the plinth follows the clock", async ({ page }) => {
