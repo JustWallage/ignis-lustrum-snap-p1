@@ -6,34 +6,17 @@ import { useEvent } from "@/context/EventContext";
 import { useDayResults } from "@/hooks/useDayResults";
 import { useNow } from "@/hooks/useNow";
 import { playCue } from "@/lib/sound";
+import { drumOf, isFacing } from "@/lib/wheel";
 
 const FRAME_MS = 16;
 
 const TURNS = 4;
 
-/**
- * DUPLICATED into `.gb-wheel-seg` / `.gb-wheel`: the ribbon is positioned in code, so
- * move one and the other moves with it or the wheel lands on the wrong segment. It is
- * also why `.gb-wheel` carries `flex: none` — a wheel SHRUNK by the flex column put the
- * marker off the centre of segment zero.
- */
-const SEGMENT_CQW = 5.5;
-const WHEEL_CQW = 33;
-
-/** Whole PASSES, so the segment under the marker is still list index 0. Two and three
- * because the smallest legal wheel is `MIN_ENABLED_PRIZES` segments. */
-const LEAD = 2;
-const TRAIL = 3;
-
-function ribbonOffset(event: EventState, now: number): number {
+function drumOffset(event: EventState, now: number): number {
   const index = event.prizeIndex;
   if (index === null || event.segments.length === 0) return 0;
   const target = TURNS * event.segments.length + index;
   return target * wheelProgress(event, now);
-}
-
-function restingCqw(count: number): number {
-  return (WHEEL_CQW - SEGMENT_CQW) / 2 - LEAD * count * SEGMENT_CQW;
 }
 
 function LastPage({
@@ -94,7 +77,8 @@ export function WheelScreen({
   const [spinning, setSpinning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const offset = ribbonOffset(event, now);
+  const offset = drumOffset(event, now);
+  const drum = drumOf(event.segments.length);
   const landed = event.prizeIndex !== null && wheelProgress(event, now) >= 1;
   const prize =
     event.prizeIndex === null ? undefined : event.segments[event.prizeIndex];
@@ -141,28 +125,47 @@ export function WheelScreen({
             somebody else is how a room ends up looking for a control it has. */}
         {mine ? "SPIN FOR YOUR PRIZE" : "THE WINNER IS SPINNING"}
       </p>
-      <div className="gb-wheel" data-testid="wheel">
-        <div className="gb-wheel-marker" />
+      <div
+        className="gb-wheel"
+        data-testid="wheel"
+        style={{
+          height: `${drum.windowCqw.toFixed(3)}cqw`,
+          perspective: `${drum.perspectiveCqw.toFixed(3)}cqw`,
+        }}
+      >
         <div
-          className="gb-wheel-ribbon"
+          className="gb-wheel-marker"
           style={{
-            transform: `translateY(${String(
-              restingCqw(event.segments.length) - offset * SEGMENT_CQW,
-            )}cqw)`,
+            height: `${drum.slotCqw.toFixed(3)}cqw`,
+            marginTop: `${(-drum.slotCqw / 2).toFixed(3)}cqw`,
+          }}
+        />
+        <div
+          className="gb-wheel-drum"
+          style={{
+            left: `${drum.insetPct.toFixed(3)}%`,
+            right: `${drum.insetPct.toFixed(3)}%`,
+            transform: `rotateX(${(-offset * drum.stepDeg).toFixed(3)}deg)`,
           }}
         >
-          {/* Enough copies that the ribbon never runs out from under the marker
-              in either direction: LEAD passes above where it starts, TURNS whole
-              passes to travel, and TRAIL below where it lands. */}
-          {Array.from({ length: LEAD + TURNS + TRAIL }, (_, pass) =>
-            event.segments.map((label, index) => (
-              <span
-                className="gb-wheel-seg"
-                key={`${String(pass)}-${String(index)}`}
-              >
-                {label.toUpperCase()}
-              </span>
-            )),
+          {Array.from({ length: drum.copies }, (_, copy) =>
+            event.segments.map((label, index) => {
+              const face = copy * event.segments.length + index;
+              return (
+                <span
+                  className="gb-wheel-seg"
+                  key={`${String(copy)}-${String(index)}`}
+                  style={{
+                    height: `${drum.faceCqw.toFixed(3)}cqw`,
+                    marginTop: `${(-drum.faceCqw / 2).toFixed(3)}cqw`,
+                    transform: `rotateX(${(face * drum.stepDeg).toFixed(3)}deg) translateZ(${drum.radiusCqw.toFixed(3)}cqw)`,
+                    display: isFacing(drum, face, offset) ? "flex" : "none",
+                  }}
+                >
+                  {label.toUpperCase()}
+                </span>
+              );
+            }),
           )}
         </div>
       </div>

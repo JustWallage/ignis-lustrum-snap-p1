@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { prizeListSchema } from "../shared/api";
 import { WHEEL_SPIN_MS } from "../shared/events";
 import {
@@ -28,7 +28,34 @@ async function aWheel(
   await walkPodiumToWheel(page);
 }
 
-test("several prizes are readable at rest, above and below the marker", async ({
+/** Where the nearest face carrying `label` sits relative to the marker line: positive
+ * is ABOVE it. Geometric on purpose — which label is under the marker runs 0, 1, 2 …
+ * whichever way the barrel turns, so it cannot tell the two directions apart. */
+async function aboveLine(
+  faces: Locator,
+  at: readonly number[],
+  line: number,
+): Promise<number | null> {
+  let best: number | null = null;
+  for (const index of at) {
+    const box = await faces.nth(index).boundingBox();
+    if (box === null) continue;
+    const gap = line - (box.y + box.height / 2);
+    if (best === null || Math.abs(gap) < Math.abs(best)) best = gap;
+  }
+  return best;
+}
+
+async function facesReading(faces: Locator, label: string): Promise<number[]> {
+  const at: number[] = [];
+  for (let index = 0; index < (await faces.count()); index += 1) {
+    const text = ((await faces.nth(index).textContent()) ?? "").trim();
+    if (text === label) at.push(index);
+  }
+  return at;
+}
+
+test("the barrel foreshortens away from the marker, which frames the first prize", async ({
   page,
 }) => {
   test.setTimeout(WHEEL_TIMEOUT_MS);
@@ -39,19 +66,20 @@ test("several prizes are readable at rest, above and below the marker", async ({
   const labels = prizes.filter((prize) => prize.enabled).map((p) => p.label);
   expect(labels.length).toBeGreaterThan(1);
 
-  // Playwright calls anything with a box "visible", including a segment clipped
-  // out of sight by the wheel's `overflow: hidden` — so the claim is checked
-  // against the wheel's OWN box rather than against the viewport.
+  // Playwright calls anything with a box "visible", including a face clipped out of
+  // sight by the wheel's `overflow: hidden` — so the claim is checked against the
+  // wheel's OWN box rather than against the viewport. The far side of the barrel is
+  // not painted at all, and so has no box to exclude.
   const wheel = await page.getByTestId("wheel").boundingBox();
   if (wheel === null) throw new Error("the wheel has no box");
   const marker = await page.locator(".gb-wheel-marker").boundingBox();
   if (marker === null) throw new Error("the marker has no box");
   const line = marker.y + marker.height / 2;
 
-  const segments = page.locator(".gb-wheel-seg");
+  const faces = page.locator(".gb-wheel-seg");
   const inside: { text: string; y: number; height: number }[] = [];
-  for (let at = 0; at < (await segments.count()); at += 1) {
-    const one = segments.nth(at);
+  for (let at = 0; at < (await faces.count()); at += 1) {
+    const one = faces.nth(at);
     const box = await one.boundingBox();
     if (box === null) continue;
     if (box.y < wheel.y - 1) continue;
@@ -63,28 +91,45 @@ test("several prizes are readable at rest, above and below the marker", async ({
     });
   }
   expect(inside.length).toBeGreaterThan(3);
-  expect(inside.filter((seg) => seg.y + 1 < line).length).toBeGreaterThan(0);
-  expect(inside.filter((seg) => seg.y > line).length).toBeGreaterThan(0);
-  const under = inside.find(
-    (seg) => seg.y <= line && line < seg.y + seg.height,
-  );
-  expect(under?.text).toBe((labels[0] ?? "").toUpperCase());
 
-  expect(marker.width).toBeGreaterThan(wheel.width * 0.9);
+  const centred = inside.reduce((nearest, face) =>
+    Math.abs(face.y + face.height / 2 - line) <
+    Math.abs(nearest.y + nearest.height / 2 - line)
+      ? face
+      : nearest,
+  );
+  expect(centred.text).toBe((labels[0] ?? "").toUpperCase());
+  expect(
+    inside.filter((face) => face.y + face.height <= line).length,
+  ).toBeGreaterThan(0);
+  expect(inside.filter((face) => face.y >= line).length).toBeGreaterThan(0);
+
+  // Several prizes READABLE, not merely present: a face rolling over the top of the
+  // barrel is a couple of pixels of stripe.
+  const readable = inside.filter((face) => face.height > centred.height * 0.4);
+  expect(readable.length).toBeGreaterThan(2);
+  expect(new Set(readable.map((face) => face.text)).size).toBeGreaterThan(1);
+
+  // A face's height IS its foreshortening, so the barrel curving away is the thing a
+  // flat strip of equal rows cannot do.
+  const shortest = Math.min(...inside.map((face) => face.height));
+  expect(shortest).toBeLessThan(centred.height * 0.6);
+
+  // FRAMES the centre slot: the same box, so it can be neither a line through the
+  // words nor a band across two prizes.
+  expect(Math.abs(marker.height - centred.height)).toBeLessThan(1.5);
+  expect(Math.abs(marker.y - centred.y)).toBeLessThan(1.5);
   expect(marker.height).toBeLessThan(wheel.height / 4);
+  expect(marker.width).toBeGreaterThan(wheel.width * 0.9);
   expect(line).toBeGreaterThan(wheel.y + wheel.height * 0.4);
   expect(line).toBeLessThan(wheel.y + wheel.height * 0.6);
 });
 
-test("it scrolls downward and lands on the prize the server chose", async ({
+test("the winning face comes DOWN into the marker, and it lands on the prize the server chose", async ({
   page,
 }) => {
   test.setTimeout(WHEEL_TIMEOUT_MS);
   await aWheel(page);
-
-  const ribbon = page.locator(".gb-wheel-ribbon");
-  const before = await ribbon.boundingBox();
-  if (before === null) throw new Error("the ribbon has no box");
 
   await page.getByTestId("wheel-spin").click();
   await expect
@@ -93,22 +138,38 @@ test("it scrolls downward and lands on the prize the server chose", async ({
   const spun = await readEvent(page);
   const spunAt = spun.spunAt;
   if (spunAt === null) throw new Error("the wheel was not spun");
+  const prize = (spun.segments[spun.prizeIndex ?? 0] ?? "").toUpperCase();
 
-  await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS / 2);
-  // The bare sample this replaces is what flaked: a frame that has applied the spin but
-  // not yet re-read the pinned clock sits at offset 0 WITHOUT the SPIN button, and
-  // losing that button re-centres the column and moves the ribbon DOWN — so it fails the
-  // other way rather than tying.
+  // Every sample below is taken after the SPIN button has gone, because losing it
+  // re-centres the flex column and moves the whole wheel DOWN — an artefact the old
+  // ribbon-travel poll could survive only while UP was the direction of travel.
+  await expect(page.getByTestId("wheel-spin")).toBeHidden();
+  const marker = await page.locator(".gb-wheel-marker").boundingBox();
+  if (marker === null) throw new Error("the marker has no box");
+  const line = marker.y + marker.height / 2;
+
+  const faces = page.locator(".gb-wheel-seg");
+  const winning = await facesReading(faces, prize);
+  expect(winning.length).toBeGreaterThan(0);
+
+  // The spin eases out, so it is still a face short of its prize this late: the face
+  // it lands on is ABOVE the line, descending into it, and cannot be level with it.
+  await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.6);
   await expect
-    .poll(async () => (await ribbon.boundingBox())?.y ?? before.y)
-    .toBeLessThan(before.y);
-  const during = await ribbon.boundingBox();
-  expect(during?.x ?? -1).toBe(before.x);
+    .poll(async () => await aboveLine(faces, winning, line))
+    .toBeGreaterThan(0);
+  const far = await aboveLine(faces, winning, line);
+  if (far === null) throw new Error("no face carries the prize");
+
+  await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.85);
+  await expect
+    .poll(async () => await aboveLine(faces, winning, line))
+    .toBeLessThan(far / 2);
+  const near = await aboveLine(faces, winning, line);
+  expect(near).toBeGreaterThan(0);
 
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS + 200);
-  await expect(page.getByTestId("wheel-prize")).toHaveText(
-    (spun.segments[spun.prizeIndex ?? 0] ?? "").toUpperCase(),
-  );
+  await expect(page.getByTestId("wheel-prize")).toHaveText(prize);
 });
 
 test("the host turns it from the menu when the winner never does", async ({

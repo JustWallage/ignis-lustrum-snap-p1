@@ -125,9 +125,15 @@
   own `touch-action: none` (D-pad, A/B, pill caps, the grille) wins wherever it is declared rather
   than only by sitting later, and the effective value being the intersection down the chain is what
   keeps a thumb on those from panning the page.
-- `SEGMENT_CQW`/`WHEEL_CQW` are duplicated into CSS on purpose because the ribbon is positioned in
-  code: **move one and the other moves with it, or the wheel lands on the wrong segment.** Hence
-  `.gb-wheel`'s `flex: none` — shrunk to fit, the marker left the centre of segment zero.
+- **The prize drum's geometry is `lib/wheel.ts` and nothing else**: a face is placed by an ANGLE,
+  which CSS cannot compute, so `WheelScreen` writes the window, the perspective, every face and the
+  marker's frame in as it renders and the stylesheet holds no copy to go stale. **The marker frames
+  the near face MAGNIFIED by the perspective**, never a face's own height — that is the copy that
+  went false first. `.gb-wheel`'s `overflow: hidden` is why the `preserve-3d` wrapper sits INSIDE
+  it (any overflow but `visible` forces `transform-style: flat` on the descendants), and why the
+  barrel is built narrower than its window: Chromium cuts a face against that clip in the face's
+  own plane, which projects to a diagonal wedge across it. `flex: none` for the same window —
+  shorter than the barrel, it crops the edges the roll is read from.
 - `beforeinstallprompt` is captured at startup because it fires long before anyone opens the menu;
   browsers that never fire it (always iOS) fall back to instructions, so **Install app** is never
   dead.

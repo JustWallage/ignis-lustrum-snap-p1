@@ -601,51 +601,74 @@
   max-height: 15cqw;
 }
 
-/* Nothing here animates: the transform comes from the event state and the clock, and a
-   CSS transition would be a second opinion about where the wheel is. `height` and the
-   `flex-basis` below are `WHEEL_CQW`/`SEGMENT_CQW` in `WheelScreen.tsx`, so all four
-   copies move together or the wheel lands on the wrong segment. */
+/* Nothing here animates: the barrel's angle comes from the event state and the clock,
+   and a CSS transition would be a second opinion about where it has rolled to. Every
+   length the geometry needs — the window, the perspective, a face, the marker's frame —
+   is written in by `WheelScreen.tsx`, because a face is placed by an ANGLE that CSS
+   cannot compute; a copy here is a copy that goes stale on the next radius. */
 .gb-wheel {
   position: relative;
-  /* NEVER shrunk: the overlay is a flex column, and a wheel one pixel shorter than
-     the code thinks puts the marker off the centre of segment zero. */
+  /* NEVER shrunk: the overlay is a flex column, and a window shorter than the barrel
+     crops the rolling edges that are the whole of reading it as a drum. */
   flex: none;
   width: 100%;
-  height: 33cqw;
   overflow: hidden;
   border-top: 0.4cqw solid #306850;
   border-bottom: 0.4cqw solid #306850;
 }
-.gb-wheel-ribbon {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+/* The barrel's 3D context has to sit INSIDE the window rather than on it: any
+   `overflow` but `visible` forces `transform-style: flat` on the descendants, which
+   would collapse every face onto the marker line. */
+.gb-wheel-drum {
+  position: absolute;
+  top: 50%;
+  transform-style: preserve-3d;
 }
 .gb-wheel-seg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  flex: 0 0 5.5cqw;
   align-items: center;
   justify-content: center;
   padding: 0 1.2cqw;
-  border-bottom: 0.3cqw solid #306850;
-  font-size: 2.4cqw;
+  background: #2a5744;
+  border-top: 0.3cqw solid #4d7f66;
+  border-bottom: 0.3cqw solid #1b2830;
+  font-size: 2.2cqw;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.04em;
   text-align: center;
 }
 .gb-wheel-seg:nth-child(even) {
-  background: #2c3a44;
+  background: #386e56;
 }
-/* FRAMES the centre slot rather than drawing a line across it, because on a vertical
-   wheel that line runs through the words. Height is `SEGMENT_CQW` again. */
+/* The first stop is OPAQUE rather than the start of the fade: a face crosses the
+   horizon under it, and an edge-on face is a sliver rather than nothing, so without
+   this it would blink in and out at the top and bottom of the roll. */
+.gb-wheel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    #202830 0%,
+    #202830 6%,
+    #20283000 30%,
+    #20283000 70%,
+    #202830 94%,
+    #202830 100%
+  );
+  pointer-events: none;
+}
+/* FRAMES the centre slot rather than drawing a line across it, because on a wheel of
+   words that line runs through them. */
 .gb-wheel-marker {
   position: absolute;
   top: 50%;
   left: 0;
   right: 0;
-  height: 5.5cqw;
-  margin-top: -2.75cqw;
   border-top: 0.5cqw solid #f8f8f8;
   border-bottom: 0.5cqw solid #f8f8f8;
   pointer-events: none;
