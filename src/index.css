@@ -605,7 +605,9 @@
    and a CSS transition would be a second opinion about where it has rolled to. Every
    length the geometry needs — the window, the perspective, a face, the marker's frame —
    is written in by `WheelScreen.tsx`, because a face is placed by an ANGLE that CSS
-   cannot compute; a copy here is a copy that goes stale on the next radius. */
+   cannot compute; a copy here is a copy that goes stale on the next radius. The one
+   thing below still tied to that radius is the gradient's stops, which cover where it
+   puts the horizon. */
 .gb-wheel {
   position: relative;
   /* NEVER shrunk: the overlay is a flex column, and a window shorter than the barrel

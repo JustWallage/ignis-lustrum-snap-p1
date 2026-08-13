@@ -47,7 +47,8 @@ async function aboveLine(
 
 async function facesReading(faces: Locator, label: string): Promise<number[]> {
   const at: number[] = [];
-  for (let index = 0; index < (await faces.count()); index += 1) {
+  const count = await faces.count();
+  for (let index = 0; index < count; index += 1) {
     const text = ((await faces.nth(index).textContent()) ?? "").trim();
     if (text === label) at.push(index);
   }
@@ -131,8 +132,14 @@ test("the winning face comes DOWN into the marker, and it lands on the prize the
 
   // Every sample below is taken after the SPIN button has gone, because losing it
   // re-centres the flex column and moves the whole wheel DOWN — a shift no travel
-  // assertion can tell from the roll.
+  // assertion can tell from the roll. The pin comes BEFORE the scan for the same
+  // reason it comes before the boxes: on a real clock the wheel is `WHEEL_SPIN_MS`
+  // from being replaced by its last page, and reading every face is slower than it
+  // looks.
   await expect(page.getByTestId("wheel-spin")).toBeHidden();
+  // The spin eases out, so it is still a face short of its prize this late.
+  await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.6);
+
   const marker = await page.locator(".gb-wheel-marker").boundingBox();
   if (marker === null) throw new Error("the marker has no box");
   const line = marker.y + marker.height / 2;
@@ -141,8 +148,6 @@ test("the winning face comes DOWN into the marker, and it lands on the prize the
   const winning = await facesReading(faces, prize);
   expect(winning.length).toBeGreaterThan(0);
 
-  // The spin eases out, so it is still a face short of its prize this late.
-  await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.6);
   await expect
     .poll(async () => await aboveLine(faces, winning, line))
     .toBeGreaterThan(0);

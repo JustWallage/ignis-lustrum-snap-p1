@@ -127,7 +127,8 @@
   keeps a thumb on those from panning the page.
 - **The prize drum's geometry is `lib/wheel.ts` and nothing else**: a face is placed by an ANGLE,
   which CSS cannot compute, so `WheelScreen` writes the window, the perspective, every face and the
-  marker's frame in as it renders and the stylesheet holds no copy to go stale. **The marker frames
+  marker's frame in as it renders and the stylesheet holds no copy to go stale — bar the shading
+  gradient's stops, which are pinned to where the radius puts the horizon. **The marker frames
   the near face MAGNIFIED by the perspective**, never a face's own height — that is the copy that
   went false first. `.gb-wheel`'s `overflow: hidden` is why the `preserve-3d` wrapper sits INSIDE
   it (any overflow but `visible` forces the used `transform-style` of that same element to flat, so
