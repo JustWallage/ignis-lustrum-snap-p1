@@ -130,7 +130,8 @@
   marker's frame in as it renders and the stylesheet holds no copy to go stale. **The marker frames
   the near face MAGNIFIED by the perspective**, never a face's own height — that is the copy that
   went false first. `.gb-wheel`'s `overflow: hidden` is why the `preserve-3d` wrapper sits INSIDE
-  it (any overflow but `visible` forces `transform-style: flat` on the descendants), and why the
+  it (any overflow but `visible` forces the used `transform-style` of that same element to flat, so
+  `preserve-3d` on `.gb-wheel` is ignored), and why the
   barrel is built narrower than its window: Chromium cuts a face against that clip in the face's
   own plane, which projects to a diagonal wedge across it. `flex: none` for the same window —
   shorter than the barrel, it crops the edges the roll is read from.

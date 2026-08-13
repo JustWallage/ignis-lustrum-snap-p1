@@ -57,11 +57,8 @@ describe("isFacing", () => {
         const gaps = shown.filter(
           (face, at) => at > 0 && face !== (shown[at - 1] ?? -1) + 1,
         );
-        // ONE gap, where the run wraps past the last face; two would be a face lit up
-        // on its own, somewhere behind the barrel.
         expect(gaps.length).toBeLessThan(2);
         expect(shown).toContain(Math.round(offset) % faces);
-        // The NEAR HALF of the barrel, give or take the face crossing the horizon.
         expect(shown.length).toBeGreaterThan(faces / 2 - 2);
         expect(shown.length).toBeLessThan(faces / 2 + 2);
       }

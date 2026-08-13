@@ -86,7 +86,7 @@ export function WheelScreen({
 
   // Keyed off what is on screen rather than a schedule, so a screen that joined
   // mid-spin makes exactly the noises the rest of the spin still has in it. The tick
-  // counts `offset`, so how many copies of the strip are rendered has no say.
+  // counts `offset`, so how many copies of the list the barrel carries has no say.
   const passed = useRef(0);
   useEffect(() => {
     const segment = Math.floor(offset);

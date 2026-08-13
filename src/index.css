@@ -616,9 +616,10 @@
   border-top: 0.4cqw solid #306850;
   border-bottom: 0.4cqw solid #306850;
 }
-/* The barrel's 3D context has to sit INSIDE the window rather than on it: any
-   `overflow` but `visible` forces `transform-style: flat` on the descendants, which
-   would collapse every face onto the marker line. */
+/* The barrel's 3D context has to sit INSIDE the window rather than on it: `overflow`
+   other than `visible` forces the used `transform-style` of THAT element to flat, so a
+   `preserve-3d` on `.gb-wheel` is ignored and its faces would collapse onto the marker
+   line. */
 .gb-wheel-drum {
   position: absolute;
   top: 50%;

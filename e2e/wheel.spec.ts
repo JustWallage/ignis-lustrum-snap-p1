@@ -28,9 +28,8 @@ async function aWheel(
   await walkPodiumToWheel(page);
 }
 
-/** Where the nearest face carrying `label` sits relative to the marker line: positive
- * is ABOVE it. Geometric on purpose — which label is under the marker runs 0, 1, 2 …
- * whichever way the barrel turns, so it cannot tell the two directions apart. */
+/** Geometric on purpose: which label is under the marker runs 0, 1, 2 … whichever way
+ * the barrel turns, so it cannot tell the two directions apart. Positive is ABOVE. */
 async function aboveLine(
   faces: Locator,
   at: readonly number[],
@@ -66,10 +65,6 @@ test("the barrel foreshortens away from the marker, which frames the first prize
   const labels = prizes.filter((prize) => prize.enabled).map((p) => p.label);
   expect(labels.length).toBeGreaterThan(1);
 
-  // Playwright calls anything with a box "visible", including a face clipped out of
-  // sight by the wheel's `overflow: hidden` — so the claim is checked against the
-  // wheel's OWN box rather than against the viewport. The far side of the barrel is
-  // not painted at all, and so has no box to exclude.
   const wheel = await page.getByTestId("wheel").boundingBox();
   if (wheel === null) throw new Error("the wheel has no box");
   const marker = await page.locator(".gb-wheel-marker").boundingBox();
@@ -104,19 +99,13 @@ test("the barrel foreshortens away from the marker, which frames the first prize
   ).toBeGreaterThan(0);
   expect(inside.filter((face) => face.y >= line).length).toBeGreaterThan(0);
 
-  // Several prizes READABLE, not merely present: a face rolling over the top of the
-  // barrel is a couple of pixels of stripe.
   const readable = inside.filter((face) => face.height > centred.height * 0.4);
   expect(readable.length).toBeGreaterThan(2);
   expect(new Set(readable.map((face) => face.text)).size).toBeGreaterThan(1);
 
-  // A face's height IS its foreshortening, so the barrel curving away is the thing a
-  // flat strip of equal rows cannot do.
   const shortest = Math.min(...inside.map((face) => face.height));
   expect(shortest).toBeLessThan(centred.height * 0.6);
 
-  // FRAMES the centre slot: the same box, so it can be neither a line through the
-  // words nor a band across two prizes.
   expect(Math.abs(marker.height - centred.height)).toBeLessThan(1.5);
   expect(Math.abs(marker.y - centred.y)).toBeLessThan(1.5);
   expect(marker.height).toBeLessThan(wheel.height / 4);
@@ -141,8 +130,8 @@ test("the winning face comes DOWN into the marker, and it lands on the prize the
   const prize = (spun.segments[spun.prizeIndex ?? 0] ?? "").toUpperCase();
 
   // Every sample below is taken after the SPIN button has gone, because losing it
-  // re-centres the flex column and moves the whole wheel DOWN — an artefact the old
-  // ribbon-travel poll could survive only while UP was the direction of travel.
+  // re-centres the flex column and moves the whole wheel DOWN — a shift no travel
+  // assertion can tell from the roll.
   await expect(page.getByTestId("wheel-spin")).toBeHidden();
   const marker = await page.locator(".gb-wheel-marker").boundingBox();
   if (marker === null) throw new Error("the marker has no box");
@@ -152,8 +141,7 @@ test("the winning face comes DOWN into the marker, and it lands on the prize the
   const winning = await facesReading(faces, prize);
   expect(winning.length).toBeGreaterThan(0);
 
-  // The spin eases out, so it is still a face short of its prize this late: the face
-  // it lands on is ABOVE the line, descending into it, and cannot be level with it.
+  // The spin eases out, so it is still a face short of its prize this late.
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.6);
   await expect
     .poll(async () => await aboveLine(faces, winning, line))

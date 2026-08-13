@@ -1,15 +1,5 @@
-/**
- * The prize drum's geometry, as pure functions. The barrel is CLOSED — the prizes run
- * all the way around it — so a spin past a full turn wraps for free and no copy of the
- * list has to be rendered above or below where it started.
- */
-
-/** The window the barrel turns in. Every other length is derived from it and written
- * into the DOM by `WheelScreen`, so the stylesheet holds no copy that can go stale. */
 const WINDOW_CQW = 33;
 
-/** Narrower than the window, so the barrel's whole silhouette is inside it — the top
- * and bottom edges rolling away are what say "drum" rather than "list". */
 const RADIUS_CQW = WINDOW_CQW * 0.45;
 
 const PERSPECTIVE_CQW = WINDOW_CQW * 2;
@@ -36,15 +26,14 @@ interface Drum {
   windowCqw: number;
   perspectiveCqw: number;
   radiusCqw: number;
-  /** A face's own height: faces are flat plates tangent to the barrel, so this is the
-   * chord the step angle cuts. Any other value and the barrel gapes or overlaps. */
+  /** A face's own height. The plates are TANGENT to the barrel rather than inscribed in
+   * it, so this is the circumscribed side `2R·tan(step/2)` and never the chord
+   * `2R·sin(step/2)`: any other value and the barrel gapes or overlaps. */
   faceCqw: number;
   /** What the face ON the marker measures on screen — `faceCqw` magnified, because it
    * is the part of the barrel nearest the eye. The marker frames THIS, never
    * `faceCqw`. */
   slotCqw: number;
-  /** Each side of the barrel, in per cent of the window. The same magnification
-   * applies across, so the barrel is BUILT narrow to end up `FRONT_SPAN` wide. */
   insetPct: number;
 }
 
@@ -66,9 +55,6 @@ export function drumOf(count: number): Drum {
   };
 }
 
-/** How far a face has rolled off the marker, in degrees: positive is still above it.
- * The barrel turns the NEGATIVE way, so a rising `offset` walks each face down the
- * near side and through the marker. */
 function faceDeg(drum: Drum, face: number, offset: number): number {
   const turn = ((face - offset) * drum.stepDeg) % 360;
   if (turn > 180) return turn - 360;
