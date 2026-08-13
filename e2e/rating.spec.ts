@@ -5,6 +5,7 @@ import {
   apiUpload,
   expect,
   hostNext,
+  INK,
   operate,
   pressStart,
   reachPhase,
@@ -61,7 +62,17 @@ test("the podium prints the jury's rating, and says which number is the curve", 
   await expect(rating).not.toContainText(String(HALF_WEIGHT));
   await expect(rating).toContainText(/machine broke/i);
 
-  await expect(page.getByTestId("podium-score")).toContainText(CURVED);
+  const score = page.getByTestId("podium-score");
+  await expect(score).toContainText(CURVED);
+
+  await expect(score.getByText(/^PEER/)).toHaveCSS("color", INK.peerOnDark);
+  await expect(score.getByText(CURVED)).toHaveCSS("color", INK.juryOnDark);
+  await expect(rating).toHaveCSS("color", INK.juryOnDark);
+  // The broken-machine note is the jury's own line falling over, so it prints in the
+  // jury's colour and never in the green a peer figure takes.
+  await expect(rating.locator("span")).toHaveCSS("color", INK.juryOnDark);
+  // The total is both halves at once, so it is neither colour.
+  await expect(score.getByText(/^=/)).toHaveCSS("color", INK.untintedOnDark);
 });
 
 test("the reveal ends on a scoreboard of everybody, and the host takes it to the wheel", async ({
@@ -75,11 +86,18 @@ test("the reveal ends on a scoreboard of everybody, and the host takes it to the
   await pressStart(page);
   await operate(page, "Start event", "Start it");
 
+  let podiumJury = "";
   for (const place of ["3RD", "2ND", "1ST"]) {
     await reachPodium(page, place);
+    // Sampled off the podium rather than typed, so what the scoreboard is held to below
+    // is the colour the card beside it actually printed.
+    podiumJury = await page
+      .getByTestId("podium-rating")
+      .evaluate((node) => getComputedStyle(node).color);
     await hostNext(page);
   }
   await reachScoreboard(page);
+  expect(podiumJury).toBe(INK.juryOnDark);
 
   const rows = page.getByTestId("scoreboard-row");
   await expect(rows).toHaveCount(who.length);
@@ -96,6 +114,29 @@ test("the reveal ends on a scoreboard of everybody, and the host takes it to the
     FALLBACK_RATING,
   );
   await expect(page.getByTestId("scoreboard-note")).toBeVisible();
+
+  await expect(rows.first().getByText(/^PEER/)).toHaveCSS(
+    "color",
+    INK.peerOnDark,
+  );
+  await expect(rows.first().getByText(CURVED)).toHaveCSS(
+    "color",
+    INK.juryOnDark,
+  );
+  // The same blue the podium printed a moment ago: one background, one pair of values,
+  // whatever idiom the surface is written in.
+  await expect(page.getByTestId("scoreboard-rating").first()).toHaveCSS(
+    "color",
+    podiumJury,
+  );
+  await expect(page.getByTestId("scoreboard-note")).toHaveCSS(
+    "color",
+    podiumJury,
+  );
+  await expect(rows.first().getByText(/^\d+$/)).toHaveCSS(
+    "color",
+    INK.untintedOnDark,
+  );
 
   await expect(page.getByTestId("podium-next")).toBeVisible();
   await hostNext(page);
@@ -156,12 +197,33 @@ test("the rating survives the reveal: it is in the archive and on the snap", asy
   await expect(card.getByTestId("archive-rating")).toContainText(
     FALLBACK_RATING,
   );
+  await expect(card.getByTestId("archive-rating")).toHaveCSS(
+    "color",
+    INK.juryOnLight,
+  );
   await card.getByText(/points/).click();
-  await expect(card.getByTestId("archive-figures")).toContainText(/curved/i);
+  const figures = card.getByTestId("archive-figures");
+  await expect(figures).toContainText(/curved/i);
+  await expect(figures.getByText(/^Peer/)).toHaveCSS("color", INK.peerOnLight);
+  await expect(figures.getByText(/^CURVED/)).toHaveCSS(
+    "color",
+    INK.juryOnLight,
+  );
+  await expect(figures.getByText(/^Rank/)).toHaveCSS(
+    "color",
+    INK.untintedOnLight,
+  );
 
   await card.getByTestId("archive-photo").click();
   await expect(page.getByTestId("viewer-rating")).toContainText(
     FALLBACK_RATING,
+  );
+  // The card is a white card and the viewer a `.gb-window` panel: two backgrounds close
+  // enough to share one pair, and a spec that says so is what stops a sixth surface
+  // inventing a third blue.
+  await expect(page.getByTestId("viewer-rating")).toHaveCSS(
+    "color",
+    INK.juryOnLight,
   );
 });
 

@@ -601,6 +601,21 @@ export const AVATAR_TROUSERS = [152, 56, 152];
 /** Hardcoded because the palette lives under `src/`, which e2e cannot see. */
 export const DEFAULT_TROUSERS = [60, 88, 168];
 
+/**
+ * Peer green and jury blue, one value per background — also hardcoded, which is what
+ * makes a spec reading these the check that the event's classes, the archive's and the
+ * two Tailwind-styled lines still resolve to ONE decision rather than five that look
+ * alike. `UNTINTED_*` are what a figure that is neither half already prints in.
+ */
+export const INK = {
+  peerOnDark: "rgb(120, 224, 136)",
+  juryOnDark: "rgb(120, 200, 248)",
+  peerOnLight: "rgb(24, 104, 56)",
+  juryOnLight: "rgb(32, 80, 168)",
+  untintedOnDark: "rgb(248, 248, 248)",
+  untintedOnLight: "rgb(75, 84, 94)",
+} as const;
+
 export function spritePixel(
   tile: Point,
   sx: number,

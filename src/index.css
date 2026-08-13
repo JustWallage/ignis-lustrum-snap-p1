@@ -136,6 +136,32 @@
   }
 }
 
+/* Peer green and jury blue, one decision for every surface that prints either half, with
+   a value per BACKGROUND because no single green clears both the event's #202830 and the
+   archive's #fff. `.gb-window` re-states the light pair: `EventSnap` opens one INSIDE
+   `.gb-event`, and a custom property inherits down the DOM however the top layer paints
+   the dialog. */
+:root {
+  --ink-peer-on-light: #186838;
+  --ink-jury-on-light: #2050a8;
+  --ink-peer: var(--ink-peer-on-light);
+  --ink-jury: var(--ink-jury-on-light);
+}
+.gb-event {
+  --ink-peer: #78e088;
+  --ink-jury: #78c8f8;
+}
+.gb-window {
+  --ink-peer: var(--ink-peer-on-light);
+  --ink-jury: var(--ink-jury-on-light);
+}
+.ink-peer {
+  color: var(--ink-peer);
+}
+.ink-jury {
+  color: var(--ink-jury);
+}
+
 .gb-stage {
   height: 100dvh;
   display: flex;
@@ -531,11 +557,11 @@
   font-size: 2.8cqw;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #f8f8f8;
 }
+/* No colour of its own: it is the jury's line breaking down, so it inherits the jury's
+   blue rather than sitting in the green a peer figure prints in. */
 .gb-reveal-rating-note {
   font-size: 2cqw;
-  color: #98b8a0;
 }
 
 .gb-scoreboard {
@@ -578,7 +604,6 @@
   font-size: 1.8cqw;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #98b8a0;
 }
 
 .gb-event-snap {
@@ -1271,7 +1296,6 @@ button.gb-pill-cap:disabled {
 }
 .arc-rating {
   font-weight: 700;
-  color: #14181d;
 }
 .arc-prize {
   font-size: 0.75rem;

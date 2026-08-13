@@ -26,14 +26,14 @@ export function RevealScoreboard({ results }: { results: DayResult[] }) {
               <span className="gb-reveal-total">{points(result.total)}</span>
             </span>
             <span className="gb-scoreboard-figures">
-              <span>PEER {result.peerPoints}</span>
+              <span className="ink-peer">PEER {result.peerPoints}</span>
               {/* The rating and the curve, both named. Either one alone is what
                   made "AI 50" unreadable. */}
-              <span data-testid="scoreboard-rating">
+              <span className="ink-jury" data-testid="scoreboard-rating">
                 AI {ratingText(result.aiScore)}
                 {isFallbackRating(result.aiStatus) ? "*" : ""}
               </span>
-              <span>{curvedText(result.aiNorm)}</span>
+              <span className="ink-jury">{curvedText(result.aiNorm)}</span>
               {result.bonus && <span>BONUS +{BONUS_POINTS}</span>}
               {result.noVotePenalty && (
                 <span>NO BALLOT ×{NO_VOTE_MULTIPLIER}</span>
@@ -45,7 +45,10 @@ export function RevealScoreboard({ results }: { results: DayResult[] }) {
       {/* Only where one actually happened, so the asterisk is never a footnote
           about nothing. */}
       {results.some((result) => isFallbackRating(result.aiStatus)) && (
-        <p className="gb-scoreboard-note" data-testid="scoreboard-note">
+        <p
+          className="gb-scoreboard-note ink-jury"
+          data-testid="scoreboard-note"
+        >
           * THE JURY&apos;S MACHINE BROKE — 5 BY DEFAULT
         </p>
       )}

@@ -236,7 +236,9 @@ function ArchiveViewer({
           <p className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-widest">
             <span data-testid="viewer-who">{result.uploader.name}</span>
             <span>Day {day}</span>
-            <span data-testid="viewer-rating">{juryLine(result)}</span>
+            <span className="ink-jury" data-testid="viewer-rating">
+              {juryLine(result)}
+            </span>
             {prize !== null && result.rank === WINNING_RANK && (
               <span data-testid="viewer-prize">Won: {prize}</span>
             )}
@@ -346,7 +348,7 @@ function Card({
               behind the `<details>` with the arithmetic — this card's own note
               asked for it here, and #97 is precisely that a rating nobody could
               find was a rating nobody had. */}
-          <span className="arc-rating" data-testid="archive-rating">
+          <span className="arc-rating ink-jury" data-testid="archive-rating">
             {juryLine(result)}
           </span>
         </p>
@@ -361,12 +363,12 @@ function Card({
           <summary>{points(result.total)} points</summary>
           <p className="arc-figures" data-testid="archive-figures">
             <span>Rank #{result.rank}</span>
-            <span>Peer {points(result.peerNorm)}</span>
+            <span className="ink-peer">Peer {points(result.peerNorm)}</span>
             {/* The curved AI half, named as the curve. It used to be printed here
                 as "AI 43" — 0..HALF_WEIGHT under a label that reads like a score
                 out of ten, which is the readout #97 is about. The rating is on the
                 meta line above; this is what the day's curve made of it. */}
-            <span>{curvedText(result.aiNorm)}</span>
+            <span className="ink-jury">{curvedText(result.aiNorm)}</span>
             {result.bonus && <span>Bonus for {jury.bonusItem}</span>}
             {result.noVotePenalty && <span>No vote ×0.5</span>}
           </p>
