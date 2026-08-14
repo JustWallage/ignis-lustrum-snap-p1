@@ -39,11 +39,10 @@ deploys a schema without the column while everything stays green.
 - **`retired_photos` copies a photo's identity as that photo DIES**, which is why `photo_id` cannot
   be a foreign key: D1 enforces them and the `photos` row goes in the same batch that writes this
   one, so `.references(() => photos.id)` would make every retirement fail. `r2_key` is nullable and
-  unique — nullable because a legacy row with no key must still be retirable (a day it cannot empty
-  is worse than a retirement with no backup to show), unique because one object is retired once, and
-  it is what the console's bucket view joins on. The picture it names is NOT deleted: that is the
-  whole point of the table — which also makes this the one table `/api/test/reset` must empty
-  BEFORE `sweepImages`, or its rows outlive the objects they name.
+  unique — nullable because a legacy row with no key must still be retirable (a day the operator
+  cannot empty is worse than a retirement with no backup to show), unique because one object is
+  retired once, and it is what the console's bucket view joins on. The picture it names is NOT
+  deleted: that is the whole point of the table.
 - `comments` names its subject with `subject_type` + `subject_id` rather than a photo foreign key, so
   one table, one route and one component serve snaps and sprites alike. The pair references no table,
   so whatever deletes a subject deletes its comments — `purgePhoto` does, and a sprite is never

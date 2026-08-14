@@ -181,7 +181,7 @@ describe("POST /api/admin/photos/:id/retire", () => {
   });
 
   // `/api/test/reset` sweeps the bucket BY PREFIX, so a `retired_photos` row left behind
-  // names an object the sweep has already deleted — and the next spec sees it.
+  // names an object the sweep has already deleted — and the next test sees it.
   it("is emptied by the reset, along with the objects it names", async () => {
     const admin = await signIn();
     const mine = await uploadPhotoId(admin);
