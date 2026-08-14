@@ -9,6 +9,7 @@ import {
   photos,
   prizeAwards,
   prizes,
+  retiredPhotos,
   users,
   votes,
 } from "../../db/schema";
@@ -20,7 +21,7 @@ import {
 } from "../lib/avatar-caps";
 import { getDb } from "../lib/db";
 import { setEventPhase } from "../lib/event";
-import { setGameDay } from "../lib/game-state";
+import { setGameDayStatement } from "../lib/game-state";
 import { sweepImages } from "../lib/images";
 import { parseJsonBody } from "../lib/http";
 
@@ -45,6 +46,10 @@ testResetRoute.post("/", async (c) => {
     // Before the photos: an evaluation hangs off a photo row by a foreign key.
     db.delete(photoScores),
     db.delete(photos),
+    // Names an r2 key too, and no foreign key drags it out with the photo — so without
+    // this the sweep below deletes the objects out from under rows the next test still
+    // sees.
+    db.delete(retiredPhotos),
     // Unique on `day`, so a leftover row makes the next test's landing roll its own
     // batch back and the day silently refuses to turn over.
     db.delete(prizeAwards),
@@ -68,7 +73,7 @@ testResetRoute.post("/", async (c) => {
   // The rows above are the only thing that knows a key, so the objects go with them or
   // the bucket fills with rubbish nothing can name again.
   await sweepImages(c.env);
-  await setGameDay(db, day);
+  await setGameDayStatement(db, day);
   // The DO holds the live event AND caches the last state it was told about, so a
   // reset winds both back — with its pending alarm, or the event the last test left
   // running would run on underneath the next one.

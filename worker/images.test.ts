@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { evaluationRetrySchema } from "../shared/api";
 import { app } from "./index";
+import { listImages } from "./lib/images";
 import {
   geminiReply,
   geminiRequestSchema,
@@ -58,6 +59,23 @@ async function wearASprite(cookie: string): Promise<string> {
   ).first();
   return z.object({ avatar_key: z.string() }).parse(row).avatar_key;
 }
+
+describe("listImages", () => {
+  // The page size is a parameter precisely so the cursor loop can be proved with five
+  // objects instead of a thousand in the bucket every e2e run shares.
+  it("pages past a full page and hands back everything under the prefix", async () => {
+    const keys = ["snaps/a", "snaps/b", "snaps/c", "sprites/d", "sprites/e"];
+    for (const key of keys) {
+      await env.IMAGES.put(key, PHOTO_BYTES);
+    }
+
+    const listed = await listImages(env, 2);
+    expect(listed.map((one) => one.key).sort()).toEqual(keys);
+    expect(listed.every((one) => one.size === PHOTO_BYTES.length)).toBe(true);
+    // Not the first page only, and not the first page twice either.
+    expect(new Set(listed.map((one) => one.key)).size).toBe(keys.length);
+  });
+});
 
 describe("image bytes in the bucket", () => {
   afterEach(() => {

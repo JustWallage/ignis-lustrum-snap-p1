@@ -1,5 +1,12 @@
 import { JURIES } from "../shared/juries";
-import { apiSignIn, expect, pressStart, test, TINY_PNG } from "./fixtures";
+import {
+  apiSignIn,
+  expect,
+  expectConsoleRefused,
+  openConsole,
+  test,
+  TINY_PNG,
+} from "./fixtures";
 
 // Not day 1's jury: the bench answers about whoever was picked, never about whoever
 // happens to be judging today.
@@ -9,18 +16,7 @@ const SOURCE = { name: "bench.png", mimeType: "image/png", buffer: TINY_PNG };
 
 test("the bench is the operator's alone", async ({ page }) => {
   await apiSignIn(page, "rival");
-  await page.goto("/");
-  await pressStart(page);
-  await expect(page.getByTestId("player-name")).toHaveText("rival");
-
-  await page.getByTestId("select-button").click();
-  const choices = page.getByTestId("dialogue-choices");
-  await expect(
-    choices.getByRole("button", { name: "Install app" }),
-  ).toBeVisible();
-  await expect(
-    choices.getByRole("button", { name: "Jury bench" }),
-  ).toBeHidden();
+  await expectConsoleRefused(page);
 
   const refused = await page.request.post("/api/admin/bench", {
     multipart: { jury: "0", photo: SOURCE },
@@ -32,25 +28,16 @@ test("an admin picks a jury, hands it a photo and reads the bench back", async (
   page,
 }) => {
   await apiSignIn(page);
-  await page.goto("/");
-  await pressStart(page);
+  const panel = await openConsole(page, "Jury bench");
 
-  await page.getByTestId("select-button").click();
-  await page
-    .getByTestId("dialogue-choices")
-    .getByRole("button", { name: "Jury bench" })
-    .click();
-  const bench = page.getByTestId("jury-bench");
-  await expect(bench).toBeVisible();
-
-  const chosen = bench.getByRole("button", {
+  const chosen = panel.getByRole("button", {
     name: `${PICKED.name} — ${PICKED.theme}`,
   });
-  await expect(bench.locator("li")).toHaveCount(JURIES.length);
+  await expect(panel.locator("li")).toHaveCount(JURIES.length);
   await chosen.click();
   await expect(chosen).toHaveAttribute("aria-pressed", "true");
 
-  const press = bench.getByTestId("bench-try");
+  const press = panel.getByTestId("ops-bench-try");
   await expect(press).toHaveText(new RegExp(`Try ${PICKED.name}`));
 
   // The picker has to open inside the press itself — a `click()` deferred into a
@@ -68,9 +55,6 @@ test("an admin picks a jury, hands it a photo and reads the bench back", async (
   // No Playwright environment has a GEMINI_API_KEY, so this is the only answer a
   // spec can walk to: the readable offline, not a verdict.
   expect((await answered).status()).toBe(503);
-  await expect(bench.getByTestId("bench-note")).toContainText(/offline/i);
-  await expect(bench.getByTestId("bench-verdict")).toBeHidden();
-
-  await page.getByRole("button", { name: "Close" }).click();
-  await expect(bench).toBeHidden();
+  await expect(panel.getByTestId("ops-bench-note")).toContainText(/offline/i);
+  await expect(panel.getByTestId("ops-bench-verdict")).toBeHidden();
 });

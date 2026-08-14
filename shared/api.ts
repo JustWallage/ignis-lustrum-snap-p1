@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AI_SCORE_MAX } from "./scoring";
+import { gameStateSchema } from "./state";
 
 export const loginSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -113,6 +114,46 @@ export type Standing = z.infer<typeof standingSchema>;
 
 export const leaderboardSchema = z.object({
   standings: z.array(standingSchema),
+});
+
+export const setDaySchema = z.object({ day: z.int().positive() });
+
+export const clockSchema = gameStateSchema.extend({
+  awardsDropped: z.int().nonnegative(),
+});
+
+export const retirementSchema = z.object({
+  day: z.int().positive(),
+  retired: z.int().nonnegative(),
+});
+
+export const dayPhotosSchema = z.object({
+  day: z.int().positive(),
+  photos: z.array(photoSchema),
+});
+
+const bucketObjectSchema = z.object({
+  key: z.string(),
+  size: z.int().nonnegative(),
+});
+export type BucketObject = z.infer<typeof bucketObjectSchema>;
+
+const retiredObjectSchema = bucketObjectSchema.extend({
+  photoId: z.int(),
+  day: z.int().positive(),
+  uploader: userSchema,
+  url: z.string(),
+});
+
+const bucketGroupSchema = z.object({
+  count: z.int().nonnegative(),
+  bytes: z.int().nonnegative(),
+});
+
+export const bucketSchema = z.object({
+  live: bucketGroupSchema,
+  retired: bucketGroupSchema.extend({ objects: z.array(retiredObjectSchema) }),
+  orphaned: bucketGroupSchema.extend({ objects: z.array(bucketObjectSchema) }),
 });
 
 export const failedEvaluationsSchema = z.object({

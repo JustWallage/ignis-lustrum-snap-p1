@@ -12,9 +12,13 @@
 - `photos.day` is stamped from `game_state.day`, never the client. **One per user per day, only in
   `submission`**, enforced by `photos_user_day_idx`: the route reads no state, inserts, and turns
   the UNIQUE violation into a 409, so two racing POSTs cannot both land. Replace is purge + insert
-  in ONE `db.batch`, or a landed delete leaves a player with nothing in. `purgePhoto` is the one
-  place a photo's dependants die — and one of them is not a table: the R2 object goes after the
-  batch, never inside it. Nothing writes a photo caption (#72).
+  in ONE `db.batch`, or a landed delete leaves a player with nothing in. `purgePhoto`
+  (`lib/photo-rows.ts`, beside the ONE aggregate query both the photos router and the console's day
+  listing read a snap through) is the one place a photo's dependants die — and one of them is not a
+  table: the R2 object goes after the batch, never inside it. **Retiring is that same purge with a
+  `retired_photos` insert in FRONT of it and no object delete at all**, which is what leaves the
+  picture in the bucket; the row dying rather than gaining a flag is also what frees the player's
+  `photos_user_day_idx` slot to re-shoot the day. Nothing writes a photo caption (#72).
 - **Anonymity is server-side.** `uploader: null` unless it is yours or the day is revealed;
   `/api/votes/candidates` selects no uploader column at all. `toPhoto` masks name and verdict as
   TWO decisions — your own snap always carries your name, and no verdict until the day is out,
@@ -25,8 +29,13 @@
   why the wheel cannot spin for somebody the scoreboard disagrees with. An unrevealed day is a
   **403, not an empty list**. `prize_awards.prize_label` is read without joining `prizes`: the
   label is a copy taken at award time, so renaming a segment cannot rewrite last week's trophy.
-- **`RealtimeDO` is the only writer of `game_state.phase`**, and `publish` its one write path. The
-  day is READ, not chosen, which is why aborting cannot increment it.
+- **`RealtimeDO` is the only writer of `game_state.phase`**, and `publish` its one write path. IN
+  PLAY the day is READ, not chosen, which is why aborting cannot increment it — `setGameDayStatement`
+  writes the day and nothing else, so neither the operator's clock nor `/api/test/*` can put a phase
+  in behind the DO's back. The clock route is the day's second writer and refuses while an event is
+  live, so the phase it leaves alone is always `submission`; it deletes every `prize_awards` row at
+  or after the target day in the SAME batch, because `prize_awards_day_idx` is unique and a leftover
+  makes the replayed landing roll its own batch back.
 - **Every transition runs alone.** Read-decide-publish with an `await` between, so two arriving
   together both read pre-write state: two Next presses once bought two advances and skipped a rank.
   `alone` is the queue every RPC and the alarm pass through, and the 409s only bite inside it.
@@ -97,16 +106,24 @@
   apart on who may delete what. The avatar mount sits above its listing to match the photos pair, not
   because it must: `townAvatarRoutes` declares only `/`, so nothing there could swallow it. Nothing
   on a sprite thread is anonymous: the gallery already prints the name beside every face.
-- ONE `isAdmin` gate on the admin sub-router, not per handler. What it serves is COUNTS and CONFIG,
-  never scores or sprites: the caps PATCH is the one lever there, a count is not, and neither it nor
-  a retry broadcasts. The bill is an ESTIMATE computed in the worker — Google reports no billing
-  figures — so a price per image never crosses the wire. **`POST /api/admin/bench` is the one
-  exception to all of it**: the only Gemini call in the app with no snap behind it. It scores a
-  picked image against a jury picked BY INDEX out of `JURIES` and stores NOTHING — no `photos` row,
-  no `photo_scores` row, nothing counted, nothing broadcast — so a bench press cannot touch a day
-  and appears in no estimate. It reads the jury's own `GEMINI_API_KEY`, never the avatar machine's
-  `GEMINI_API_KEY_PAID`, answers a readable "offline" without one, and sits behind `rateLimiter`
-  because a billed multimodal call with a button in front of it is a button somebody holds down.
+- ONE `isAdmin` gate on the admin sub-router, not per handler — which is why the console's routers
+  are mounted ON `adminRoutes` rather than in `index.ts`, where `adminEventRoutes` sits outside that
+  gate and carries its own. What it serves is COUNTS, CONFIG and the operator's LEVERS — the clock,
+  retirement and the bucket — plus, for RETIRED KEYS ONLY, bytes: a retired snap has no `photos` row
+  left to serve it through, and it is the one object the console can render because
+  `retired_photos` is the only thing still naming its content type. A true orphan is listed as a key
+  and a size and never fetched, a live snap and a sprite keep their own routes, and no score or
+  sprite is served here. The caps PATCH is the one config lever, a count is not, and neither it nor
+  a retry broadcasts; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
+  only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
+  worker — Google reports no billing figures — so a price per image never crosses the wire.
+  **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
+  with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
+  and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing
+  broadcast — so a bench press cannot touch a day and appears in no estimate. It reads the jury's
+  own `GEMINI_API_KEY`, never the avatar machine's `GEMINI_API_KEY_PAID`, answers a readable
+  "offline" without one, and sits behind `rateLimiter` because a billed multimodal call with a
+  button in front of it is a button somebody holds down.
 - `/api/test/*` 404s outside local/e2e, failing closed on an unknown `ENVIRONMENT`. Each route
   exists because its state is otherwise unreachable; `reset` winds the stored event AND its pending
   alarm back, or the next test opens inside the last one's event.

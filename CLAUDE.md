@@ -40,8 +40,11 @@ Each is a failure that happened:
 - **The bucket and D1 cannot be atomic**, so the object is written BEFORE its row and deleted
   AFTER it: what leaks is an orphan nobody references, never a row whose image 404s. The Worker
   serves every byte itself — no public bucket, no signed URL.
-- **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, advanced
-  in exactly ONE place — the wheel's landing. `phase` is a mirror only `RealtimeDO` writes.
+- **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, and it has
+  exactly TWO writers: the wheel's landing, which is the only one IN PLAY, and the operator's console
+  (`POST /api/admin/day`), which refuses while an event is live. `phase` is a mirror only
+  `RealtimeDO` writes, and the two statements that MOVE the day — `advanceDayStatement` and
+  `setGameDayStatement` — write the day and nothing else.
 - **The live event is authoritative in `RealtimeDO`'s storage, not broadcast**, so a reload or late
   join lands back inside it. Clients never apply a transition from their own response.
 

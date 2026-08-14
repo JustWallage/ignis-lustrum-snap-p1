@@ -23,6 +23,9 @@ import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
 import { scorePhoto } from "../lib/photo-score";
 import { rateLimiter } from "../lib/rate-limit";
+import { adminClockRoutes } from "./admin-clock";
+import { adminImagesRoutes } from "./admin-images";
+import { adminDayRoutes, adminPhotoRoutes } from "./admin-retire";
 
 export const adminRoutes = new Hono<AppEnv>();
 
@@ -33,6 +36,11 @@ adminRoutes.use("*", async (c, next) => {
   }
   return next();
 });
+
+adminRoutes.route("/day", adminClockRoutes);
+adminRoutes.route("/days", adminDayRoutes);
+adminRoutes.route("/photos", adminPhotoRoutes);
+adminRoutes.route("/images", adminImagesRoutes);
 
 const askedDaySchema = z.coerce.number().int().positive();
 

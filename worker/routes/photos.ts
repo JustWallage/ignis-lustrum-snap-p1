@@ -2,12 +2,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
-  comments,
   likes,
-  photoScores,
   photos,
-  users,
-  votes,
   type NewPhotoRow,
   type PhotoRow,
 } from "../../db/schema";
@@ -20,7 +16,8 @@ import { getDb, type Db } from "../lib/db";
 import { isDayRevealed, readGameState } from "../lib/game-state";
 import { deleteImage, newSnapKey, putImage, readImage } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
-import { deletePhotoScore, scorePhoto } from "../lib/photo-score";
+import { photoAggregates, purgePhoto } from "../lib/photo-rows";
+import { scorePhoto } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
 
 export const photosRoutes = new Hono<AppEnv>();
@@ -28,29 +25,7 @@ export const photosRoutes = new Hono<AppEnv>();
 const daySchema = z.coerce.number().int().positive();
 
 function photoAggregate(db: Db, viewerId: number, id: number) {
-  return db
-    .select({
-      id: photos.id,
-      uploaderId: users.id,
-      uploaderName: users.name,
-      day: photos.day,
-      createdAt: photos.createdAt,
-      likeCount: sql<number>`count(distinct ${likes.id})`,
-      commentCount: sql<number>`count(distinct ${comments.id})`,
-      likedByMe: sql<number>`coalesce(max(case when ${likes.userId} = ${viewerId} then 1 else 0 end), 0)`,
-      // Left-joined: no row means the pass never landed — an absence, not a nought.
-      aiScore: photoScores.aiScore,
-    })
-    .from(photos)
-    .innerJoin(users, eq(users.id, photos.userId))
-    .leftJoin(likes, eq(likes.photoId, photos.id))
-    .leftJoin(
-      comments,
-      and(eq(comments.subjectType, "photo"), eq(comments.subjectId, photos.id)),
-    )
-    .leftJoin(photoScores, eq(photoScores.photoId, photos.id))
-    .where(eq(photos.id, id))
-    .groupBy(photos.id);
+  return photoAggregates(db, viewerId, eq(photos.id, id));
 }
 
 async function findPhoto(db: Db, id: number): Promise<PhotoRow | null> {
@@ -84,20 +59,6 @@ function isDuplicateSubmission(error: unknown): boolean {
     if (/UNIQUE constraint failed/i.test(cause.message)) return true;
   }
   return false;
-}
-
-function purgePhoto(db: Db, id: number) {
-  return [
-    deletePhotoScore(db, id),
-    db.delete(votes).where(eq(votes.photoId, id)),
-    db.delete(likes).where(eq(likes.photoId, id)),
-    db
-      .delete(comments)
-      .where(
-        and(eq(comments.subjectType, "photo"), eq(comments.subjectId, id)),
-      ),
-    db.delete(photos).where(eq(photos.id, id)),
-  ] as const;
 }
 
 async function writeSubmission(

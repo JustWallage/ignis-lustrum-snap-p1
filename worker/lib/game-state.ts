@@ -10,10 +10,15 @@ import type { Db } from "./db";
 
 const GAME_STATE_ID = 1;
 
-export async function setGameDay(db: Db, day: number): Promise<void> {
-  await db
+/**
+ * UNEXECUTED, so the operator's clock can batch it with the `prize_awards` cleanup that
+ * has to land with it. It writes the DAY only — it used to reset `phase` too, a second
+ * writer of the column `RealtimeDO` owns.
+ */
+export function setGameDayStatement(db: Db, day: number) {
+  return db
     .update(gameState)
-    .set({ day, phase: INITIAL_PHASE, updatedAt: new Date() })
+    .set({ day, updatedAt: new Date() })
     .where(eq(gameState.id, GAME_STATE_ID));
 }
 

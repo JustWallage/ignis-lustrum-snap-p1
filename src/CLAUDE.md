@@ -88,8 +88,8 @@
   event, breaks the quarantine above. **The total, the bonus, the no-ballot penalty and the rank are
   neither half** and stay untinted; a failure note is jury-side text and takes the blue. Colour only
   repeats what the words already say, so a figure keeps naming its half whatever it is tinted.
-  `JuryBench` is the exception — no day, no peer half on screen, so a blue there would code for a
-  distinction that screen does not make.
+  The console's bench panel is the exception — no day, no peer half on screen, so a blue there would
+  code for a distinction that screen does not make.
 - **`SnapViewer` is the ONE big-photograph shell**, the ballot's and the archive's; each surface only
   fills its slots. Paging is ‹ › buttons, ←/→ keys and two tap zones over the picture, all through
   one `step`, so a change to it cannot land on one surface only. The zones' accessible names must NOT
@@ -114,6 +114,18 @@
   wardrobe, which is `AvatarGallery` inside a `.gb-window`. Sharing the one shelf is what keeps a
   player from being offered different faces in the two places, and jscpd refuses the copy that would
   avoid it; the `arc-` classes come along with it.
+- **The operator's console is the second one** (#29), quarantined the same way under `ops-`, and it
+  crosses nowhere: it is a PAGE, not a window, so it is not inside `.gb-stage` at all — `App` branches
+  on `location.pathname` and mounts `AuthProvider` and nothing else. No `WebSocketProvider`, because
+  a socket rendering no `Overworld` announces no position and carries nothing: every panel is a
+  `useCachedFetch` refetching after its own mutations, and `useGameState`, `useLiveValue` and
+  `useRealtimeEvents` all throw here. Nothing on it opens `Modal.tsx` and no panel is a small centred
+  window — a destructive button becomes a Cancel-and-confirm pair WHERE IT STANDS (`ConfirmButton`),
+  cancel first for the same reason `confirmChain` puts it first. The three panels rewritten out of
+  the SELECT menu are rewritten, not moved: `GbWindow`, `GbButton` and `gb-input` stay behind with
+  their other callers. No COMPONENT crosses; the hooks and `lib/` helpers do — `useFilePicker`
+  because it is the one picker primitive, and `ratingText` because `lib/rating.ts` is the one place
+  the jury's rating is worded.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

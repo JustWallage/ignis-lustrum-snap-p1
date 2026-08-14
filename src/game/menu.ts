@@ -2,7 +2,6 @@ export interface MenuContext {
   isAdmin: boolean;
   muted: boolean;
   signedIn: boolean;
-  failedEvaluations: number;
   inEvent: boolean;
   isHost: boolean;
   wheelUnspun: boolean;
@@ -12,10 +11,7 @@ export type MenuItemId =
   | "install"
   | "sound"
   | "auth"
-  | "retry-ai"
-  | "avatar-counts"
-  | "prizes"
-  | "jury-bench"
+  | "admin-console"
   | "eventStart"
   | "eventSpin"
   | "eventAbort";
@@ -34,23 +30,8 @@ export const MENU_ITEMS: readonly MenuItem[] = [
   // than being two entries that take turns being hidden.
   { id: "auth", label: (ctx) => (ctx.signedIn ? "Sign out" : "Sign in") },
   {
-    id: "retry-ai",
-    label: (ctx) => `Retry AI: ${ctx.failedEvaluations}`,
-    visible: (ctx) => ctx.isAdmin,
-  },
-  {
-    id: "avatar-counts",
-    label: () => "Avatar counts",
-    visible: (ctx) => ctx.isAdmin,
-  },
-  {
-    id: "prizes",
-    label: () => "Prize manager",
-    visible: (ctx) => ctx.isAdmin,
-  },
-  {
-    id: "jury-bench",
-    label: () => "Jury bench",
+    id: "admin-console",
+    label: () => "Admin console",
     visible: (ctx) => ctx.isAdmin,
   },
   {
