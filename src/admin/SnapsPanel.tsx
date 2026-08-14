@@ -18,18 +18,18 @@ export function SnapsPanel({
   clock: GameState | undefined;
   onRetired: () => void;
 }) {
-  const [day, setDay] = useState<number | null>(null);
-  const [committed, setCommitted] = useState<number | null>(null);
+  const [picked, setPicked] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
 
-  if (clock !== undefined && committed !== clock.day) {
-    setCommitted(clock.day);
-    if (day === null) setDay(clock.day);
-  }
-
-  const shown = day ?? clock?.day ?? 1;
+  // Empty means "the day the world is on", which is why the field is a string and not
+  // the day itself: a cleared box has to stay cleared long enough to type another one.
+  const asked = Number(picked);
+  const shown =
+    picked.trim() !== "" && Number.isInteger(asked) && asked > 0
+      ? asked
+      : (clock?.day ?? 1);
   const list = useCachedFetch(
     `/api/admin/days/${String(shown)}/photos`,
     dayPhotosSchema,
@@ -69,10 +69,10 @@ export function SnapsPanel({
             min={1}
             step={1}
             data-testid="ops-snap-day"
-            value={String(shown)}
+            value={picked}
+            placeholder={String(clock?.day ?? 1)}
             onChange={(event) => {
-              const asked = Number(event.target.value);
-              if (Number.isInteger(asked) && asked > 0) setDay(asked);
+              setPicked(event.target.value);
             }}
           />
         </label>
