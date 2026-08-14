@@ -174,8 +174,8 @@ function PrizeRow({
   const [draft, setDraft] = useState(prize.label);
   const [committed, setCommitted] = useState(prize.label);
 
-  // Someone else's rename arrives as a new `prize.label`; adopted during render
-  // rather than in an effect, so the row never paints stale.
+  // The saved label comes back as a new `prize.label`; adopted during render rather
+  // than in an effect, so the row never paints stale.
   if (prize.label !== committed) {
     setCommitted(prize.label);
     setDraft(prize.label);

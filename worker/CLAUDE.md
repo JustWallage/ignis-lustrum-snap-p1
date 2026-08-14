@@ -115,14 +115,15 @@
   and a size and never fetched, a live snap and a sprite keep their own routes, and no score or
   sprite is served here. The caps PATCH is the one config lever, a count is not, and neither it nor
   a retry broadcasts; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
-  only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the worker — Google reports no billing
-  figures — so a price per image never crosses the wire. **`POST /api/admin/bench` is the one
-  exception to all of it**: the only Gemini call in the app with no snap behind it. It scores a
-  picked image against a jury picked BY INDEX out of `JURIES` and stores NOTHING — no `photos` row,
-  no `photo_scores` row, nothing counted, nothing broadcast — so a bench press cannot touch a day
-  and appears in no estimate. It reads the jury's own `GEMINI_API_KEY`, never the avatar machine's
-  `GEMINI_API_KEY_PAID`, answers a readable "offline" without one, and sits behind `rateLimiter`
-  because a billed multimodal call with a button in front of it is a button somebody holds down.
+  only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
+  worker — Google reports no billing figures — so a price per image never crosses the wire.
+  **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
+  with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
+  and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing
+  broadcast — so a bench press cannot touch a day and appears in no estimate. It reads the jury's
+  own `GEMINI_API_KEY`, never the avatar machine's `GEMINI_API_KEY_PAID`, answers a readable
+  "offline" without one, and sits behind `rateLimiter` because a billed multimodal call with a
+  button in front of it is a button somebody holds down.
 - `/api/test/*` 404s outside local/e2e, failing closed on an unknown `ENVIRONMENT`. Each route
   exists because its state is otherwise unreachable; `reset` winds the stored event AND its pending
   alarm back, or the next test opens inside the last one's event.

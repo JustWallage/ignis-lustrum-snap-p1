@@ -9,6 +9,7 @@ import {
   photos,
   prizeAwards,
   prizes,
+  retiredPhotos,
   users,
   votes,
 } from "../../db/schema";
@@ -45,6 +46,10 @@ testResetRoute.post("/", async (c) => {
     // Before the photos: an evaluation hangs off a photo row by a foreign key.
     db.delete(photoScores),
     db.delete(photos),
+    // Names an r2 key too, and no foreign key drags it out with the photo — so without
+    // this the sweep below deletes the objects out from under rows the next test still
+    // sees.
+    db.delete(retiredPhotos),
     // Unique on `day`, so a leftover row makes the next test's landing roll its own
     // batch back and the day silently refuses to turn over.
     db.delete(prizeAwards),

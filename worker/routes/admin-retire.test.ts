@@ -180,6 +180,21 @@ describe("POST /api/admin/photos/:id/retire", () => {
     expect(await readEvent()).toEqual(before);
   });
 
+  // `/api/test/reset` sweeps the bucket BY PREFIX, so a `retired_photos` row left behind
+  // names an object the sweep has already deleted — and the next spec sees it.
+  it("is emptied by the reset, along with the objects it names", async () => {
+    const admin = await signIn();
+    const mine = await uploadPhotoId(admin);
+    const key = await snapKeyOf(mine);
+    expect((await retireSnap(admin, mine)).status).toBe(200);
+    expect(await retiredRow(mine)).not.toBeNull();
+
+    await resetWorld();
+
+    expect(await retiredRow(mine)).toBeNull();
+    expect(await env.IMAGES.get(key)).toBeNull();
+  });
+
   it("404s a snap naming nothing, and is admin-only", async () => {
     const admin = await signIn();
     const friend = await signIn("rival");

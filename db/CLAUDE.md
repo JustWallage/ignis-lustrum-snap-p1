@@ -36,13 +36,14 @@ deploys a schema without the column while everything stays green.
 - **Nothing deletes a sprite, in D1 or in the bucket.** A superseded one used to go with its columns;
   it stays, or the history is a gallery of broken images and nothing can be put back on. Growth is
   accepted: the caps bound the RATE (ten a player, fifty a town, per day), never the total.
-- **`retired_photos` is the only table that names a photo WITHOUT a foreign key**, and deliberately:
-  D1 enforces them and the `photos` row dies in the same batch that writes this one, so
-  `.references(() => photos.id)` would make every retirement fail. `r2_key` is nullable and unique —
-  nullable because a legacy row with no key must still be retirable (a day the operator cannot empty
+- **`retired_photos` copies a photo's identity as that photo DIES**, which is why `photo_id` cannot
+  be a foreign key: D1 enforces them and the `photos` row goes in the same batch that writes this
+  one, so `.references(() => photos.id)` would make every retirement fail. `r2_key` is nullable and
+  unique — nullable because a legacy row with no key must still be retirable (a day it cannot empty
   is worse than a retirement with no backup to show), unique because one object is retired once, and
   it is what the console's bucket view joins on. The picture it names is NOT deleted: that is the
-  whole point of the table.
+  whole point of the table — which also makes this the one table `/api/test/reset` must empty
+  BEFORE `sweepImages`, or its rows outlive the objects they name.
 - `comments` names its subject with `subject_type` + `subject_id` rather than a photo foreign key, so
   one table, one route and one component serve snaps and sprites alike. The pair references no table,
   so whatever deletes a subject deletes its comments — `purgePhoto` does, and a sprite is never
