@@ -20,7 +20,7 @@ import {
 } from "../lib/avatar-caps";
 import { getDb } from "../lib/db";
 import { setEventPhase } from "../lib/event";
-import { setGameDay } from "../lib/game-state";
+import { setGameDayStatement } from "../lib/game-state";
 import { sweepImages } from "../lib/images";
 import { parseJsonBody } from "../lib/http";
 
@@ -68,7 +68,7 @@ testResetRoute.post("/", async (c) => {
   // The rows above are the only thing that knows a key, so the objects go with them or
   // the bucket fills with rubbish nothing can name again.
   await sweepImages(c.env);
-  await setGameDay(db, day);
+  await setGameDayStatement(db, day);
   // The DO holds the live event AND caches the last state it was told about, so a
   // reset winds both back — with its pending alarm, or the event the last test left
   // running would run on underneath the next one.

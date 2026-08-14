@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { AppEnv } from "../env";
 import { getDb } from "../lib/db";
 import { setEventPhase } from "../lib/event";
-import { readGameState, setGameDay } from "../lib/game-state";
+import { readGameState, setGameDayStatement } from "../lib/game-state";
 import { parseJsonBody } from "../lib/http";
 
 // A revealed day a spec can still WALK AROUND IN: the wheel's landing produces one but
@@ -17,7 +17,7 @@ testDayRoute.post("/", async (c) => {
   if (!parsed.success) return c.json({ error: "Not a day" }, 400);
 
   const db = getDb(c.env);
-  await setGameDay(db, parsed.data.day);
+  await setGameDayStatement(db, parsed.data.day);
   await setEventPhase(c.env, "submission");
   return c.json(await readGameState(db));
 });

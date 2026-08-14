@@ -1518,3 +1518,250 @@ button.gb-pill-cap:disabled {
     transform: scale(1);
   }
 }
+
+/* The operator's console (#29). Prefixed `ops-` and used nowhere else, exactly as
+   `arc-` is: the second non-Game-Boy surface, quarantined by naming. Unlike the
+   archive it is not inside `.gb-stage` at all — it is the whole page. */
+.ops-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background: #fbfbf8;
+  color: #14181d;
+  font-family: var(--font-sans);
+}
+
+.ops-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #e2e0da;
+}
+.ops-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ops-readout {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4b545e;
+  white-space: nowrap;
+}
+
+/* The two children that fill what the header left: the rail keeps its own width and
+   the column takes the rest, and BOTH have `min-height: 0` so the scroll happens
+   inside them rather than growing the page. */
+.ops-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.ops-rail {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem;
+  border-right: 1px solid #e2e0da;
+  overflow-y: auto;
+}
+.ops-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.ops-tab {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b545e;
+  padding: 0.45rem 0.8rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ops-tab[aria-pressed="true"] {
+  background: #14181d;
+  color: #fbfbf8;
+}
+
+.ops-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 60rem;
+}
+.ops-heading {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.ops-subheading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7b8590;
+}
+.ops-note {
+  font-size: 0.8rem;
+  color: #4b545e;
+}
+.ops-error {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a3231f;
+}
+.ops-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #4b545e;
+}
+
+.ops-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+.ops-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7b8590;
+}
+.ops-input {
+  border: 1px solid #ddd9d1;
+  border-radius: 8px;
+  background: #fff;
+  color: #14181d;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.ops-grow {
+  flex: 1;
+  min-width: 0;
+}
+.ops-hidden {
+  display: none;
+}
+
+.ops-btn {
+  border: 1px solid #ddd9d1;
+  border-radius: 8px;
+  background: #fff;
+  color: #14181d;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ops-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ops-btn-danger {
+  background: #a3231f;
+  border-color: #a3231f;
+  color: #fbfbf8;
+}
+.ops-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.ops-confirm-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ops-figures {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 0.8rem;
+  font-size: 0.85rem;
+}
+.ops-figures dt {
+  font-weight: 600;
+  color: #7b8590;
+}
+
+.ops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.ops-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.ops-line[data-enabled="false"] {
+  opacity: 0.5;
+}
+.ops-key {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  align-content: start;
+}
+.ops-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+  padding: 0.5rem;
+  border: 1px solid #e2e0da;
+  border-radius: 10px;
+  background: #fff;
+}
+.ops-shot {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #eceae4;
+}
+.ops-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4b545e;
+}

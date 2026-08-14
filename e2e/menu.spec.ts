@@ -27,7 +27,9 @@ test("SELECT opens the system menu, and the sound toggle sticks", async ({
   await select.click();
   await expect(install).toHaveAttribute("data-selected", "true");
   await expect(sound).toHaveText(/Sound: on/);
-  await expect(choices.getByRole("button", { name: /^Retry AI/ })).toBeHidden();
+  await expect(
+    choices.getByRole("button", { name: "Admin console" }),
+  ).toBeHidden();
   await expect(select).toBeDisabled();
 
   await page.getByRole("button", { name: "Walk down" }).click();

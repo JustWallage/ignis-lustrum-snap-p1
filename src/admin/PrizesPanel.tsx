@@ -1,21 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
 import { prizeListSchema, type Prize } from "@shared/api";
 import { MIN_ENABLED_PRIZES } from "@shared/prizes";
-import { GbButton, GbPlaceholder } from "@/components/GbPending";
-import { GbWindow } from "@/components/GbWindow";
-import { useRealtimeEvents } from "@/context/WebSocketContext";
+import { ConfirmButton } from "@/admin/ConfirmButton";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 
 type PrizePatch = Partial<Pick<Prize, "label" | "enabled" | "sortOrder">>;
 
-export function PrizeManager({ onClose }: { onClose: () => void }) {
+export function PrizesPanel() {
   const list = useCachedFetch("/api/prizes", prizeListSchema);
   const { mutate } = list;
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState<number | null>(null);
-
-  useRealtimeEvents(mutate);
 
   const patch = useCallback(async (id: number, body: PrizePatch) => {
     await fetch(`/api/prizes/${String(id)}`, {
@@ -57,30 +53,10 @@ export function PrizeManager({ onClose }: { onClose: () => void }) {
     }
   }, [label, mutate]);
 
-  const remove = useCallback(async (id: number) => {
-    await fetch(`/api/prizes/${String(id)}`, { method: "DELETE" });
-  }, []);
-
-  const rename = useCallback(
-    async (prize: Prize, next: string) => {
-      const trimmed = next.trim();
-      if (trimmed === "" || trimmed === prize.label) return;
-      await patch(prize.id, { label: trimmed });
-    },
-    [patch],
-  );
-
-  const toggle = useCallback(
-    async (prize: Prize) => {
-      await patch(prize.id, { enabled: !prize.enabled });
-    },
-    [patch],
-  );
-
   const prizes = useMemo(() => list.data?.prizes ?? [], [list.data]);
 
-  /** EVERY row is renumbered rather than the pair swapping values: `sort_order` may tie,
-   * and swapping two equal orders moves nothing. */
+  /** EVERY row is renumbered rather than the pair swapping values: `sort_order` may
+   * tie, and swapping two equal orders moves nothing. */
   const move = useCallback(
     async (index: number, delta: number) => {
       const reordered = [...prizes];
@@ -102,72 +78,81 @@ export function PrizeManager({ onClose }: { onClose: () => void }) {
   const enabledCount = prizes.filter((prize) => prize.enabled).length;
 
   return (
-    <GbWindow title="Prize wheel" onClose={onClose}>
-      <div className="space-y-3" data-testid="prize-manager">
-        {enabledCount < MIN_ENABLED_PRIZES && (
-          <p className="gb-error" role="alert" data-testid="prize-warning">
-            {`The wheel needs ${MIN_ENABLED_PRIZES} enabled prizes to spin — ${enabledCount} in.`}
-          </p>
-        )}
-        <ul className="max-h-56 space-y-1 overflow-y-auto">
-          {prizes.map((prize, index) => (
-            <PrizeEntry
-              key={prize.id}
-              prize={prize}
-              first={index === 0}
-              last={index === prizes.length - 1}
-              busy={working === prize.id}
-              onMove={(delta) => {
-                void onRow(prize.id, () => move(index, delta));
-              }}
-              onRename={(next) => {
-                void onRow(prize.id, () => rename(prize, next));
-              }}
-              onToggle={() => {
-                void onRow(prize.id, () => toggle(prize));
-              }}
-              onDelete={() => {
-                void onRow(prize.id, () => remove(prize.id));
-              }}
-            />
-          ))}
-        </ul>
-        {prizes.length === 0 && (
-          <GbPlaceholder error={list.error} loading={list.loading}>
-            No prizes yet.
-          </GbPlaceholder>
-        )}
-        <form
-          className="flex gap-2 border-t-2 border-[#071821] pt-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void add();
-          }}
-        >
-          <input
-            className="gb-input flex-1"
-            value={label}
-            onChange={(event) => {
-              setLabel(event.target.value);
+    <section className="ops-panel" data-testid="ops-prizes">
+      <h2 className="ops-heading">The prize wheel</h2>
+      {enabledCount < MIN_ENABLED_PRIZES && (
+        <p className="ops-error" role="alert" data-testid="ops-prize-warning">
+          {`The wheel needs ${String(MIN_ENABLED_PRIZES)} enabled prizes to spin — ${String(enabledCount)} in.`}
+        </p>
+      )}
+      <ul className="ops-list">
+        {prizes.map((prize, index) => (
+          <PrizeRow
+            key={prize.id}
+            prize={prize}
+            first={index === 0}
+            last={index === prizes.length - 1}
+            busy={working === prize.id}
+            onMove={(delta) => {
+              void onRow(prize.id, () => move(index, delta));
             }}
-            placeholder="New prize…"
-            maxLength={80}
+            onRename={(next) => {
+              void onRow(prize.id, async () => {
+                const trimmed = next.trim();
+                if (trimmed === "" || trimmed === prize.label) return;
+                await patch(prize.id, { label: trimmed });
+              });
+            }}
+            onToggle={() => {
+              void onRow(prize.id, () =>
+                patch(prize.id, { enabled: !prize.enabled }),
+              );
+            }}
+            onDelete={() => {
+              void onRow(prize.id, async () => {
+                await fetch(`/api/prizes/${String(prize.id)}`, {
+                  method: "DELETE",
+                });
+              });
+            }}
           />
-          <GbButton
-            type="submit"
-            className="gb-btn px-3"
-            busy={busy}
-            disabled={label.trim() === ""}
-          >
-            Add
-          </GbButton>
-        </form>
-      </div>
-    </GbWindow>
+        ))}
+      </ul>
+      {prizes.length === 0 && (
+        <p className="ops-empty">
+          {list.loading ? "Reading the wheel…" : "No prizes yet."}
+        </p>
+      )}
+      <form
+        className="ops-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void add();
+        }}
+      >
+        <input
+          className="ops-input"
+          value={label}
+          onChange={(event) => {
+            setLabel(event.target.value);
+          }}
+          placeholder="New prize…"
+          maxLength={80}
+        />
+        <button
+          type="submit"
+          className="ops-btn"
+          aria-busy={busy}
+          disabled={busy || label.trim() === ""}
+        >
+          Add
+        </button>
+      </form>
+    </section>
   );
 }
 
-function PrizeEntry({
+function PrizeRow({
   prize,
   first,
   last,
@@ -197,16 +182,14 @@ function PrizeEntry({
   }
 
   return (
-    <li className="flex items-center gap-1" data-enabled={prize.enabled}>
+    <li className="ops-line" data-enabled={prize.enabled}>
       <input
-        className="gb-input flex-1 text-xs"
+        className="ops-input ops-grow"
         aria-label={`Prize ${prize.label}`}
         value={draft}
         maxLength={80}
-        // A rename in flight is about to be answered by the whole list coming back.
         aria-busy={busy}
         readOnly={busy}
-        style={prize.enabled ? undefined : { opacity: 0.5 }}
         onChange={(event) => {
           setDraft(event.target.value);
         }}
@@ -217,45 +200,45 @@ function PrizeEntry({
           if (event.key === "Enter") event.currentTarget.blur();
         }}
       />
-      <GbButton
-        className="gb-btn px-1 py-0.5"
+      <button
+        type="button"
+        className="ops-btn"
         aria-label={`Move ${prize.label} up`}
-        busy={busy}
-        disabled={first}
+        disabled={first || busy}
         onClick={() => {
           onMove(-1);
         }}
       >
         ↑
-      </GbButton>
-      <GbButton
-        className="gb-btn px-1 py-0.5"
+      </button>
+      <button
+        type="button"
+        className="ops-btn"
         aria-label={`Move ${prize.label} down`}
-        busy={busy}
-        disabled={last}
+        disabled={last || busy}
         onClick={() => {
           onMove(1);
         }}
       >
         ↓
-      </GbButton>
-      <GbButton
-        className="gb-btn px-1 py-0.5"
+      </button>
+      <button
+        type="button"
+        className="ops-btn"
         aria-pressed={prize.enabled}
         aria-label={`${prize.enabled ? "Disable" : "Enable"} ${prize.label}`}
-        busy={busy}
+        disabled={busy}
         onClick={onToggle}
       >
         {prize.enabled ? "On" : "Off"}
-      </GbButton>
-      <GbButton
-        className="gb-btn px-1 py-0.5"
-        aria-label={`Delete ${prize.label}`}
+      </button>
+      <ConfirmButton
+        label="Delete"
+        question={`Delete ${prize.label}?`}
+        confirm="Delete it"
         busy={busy}
-        onClick={onDelete}
-      >
-        ×
-      </GbButton>
+        onConfirm={onDelete}
+      />
     </li>
   );
 }

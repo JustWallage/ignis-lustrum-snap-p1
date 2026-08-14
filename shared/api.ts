@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AI_SCORE_MAX } from "./scoring";
+import { gameStateSchema } from "./state";
 
 export const loginSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -113,6 +114,54 @@ export type Standing = z.infer<typeof standingSchema>;
 
 export const leaderboardSchema = z.object({
   standings: z.array(standingSchema),
+});
+
+export const setDaySchema = z.object({ day: z.int().positive() });
+
+/** `awardsDropped` is the only place that count is ever reported: no route lists
+ * `prize_awards` per day, so the confirm cannot name it before the fact. */
+export const clockSchema = gameStateSchema.extend({
+  awardsDropped: z.int().nonnegative(),
+});
+
+export const retirementSchema = z.object({
+  day: z.int().positive(),
+  retired: z.int().nonnegative(),
+});
+
+/** `photoSchema` and nothing narrower: the masking is `toPhoto`'s two rules, and the
+ * console adds no exception to them. */
+export const dayPhotosSchema = z.object({
+  day: z.int().positive(),
+  photos: z.array(photoSchema),
+});
+
+const bucketObjectSchema = z.object({
+  key: z.string(),
+  size: z.int().nonnegative(),
+});
+export type BucketObject = z.infer<typeof bucketObjectSchema>;
+
+/** A retired object is the one kind the console can render, because `retired_photos` is
+ * the only thing left naming its content type. */
+const retiredObjectSchema = bucketObjectSchema.extend({
+  photoId: z.int(),
+  day: z.int().positive(),
+  uploader: userSchema,
+  url: z.string(),
+});
+
+const bucketGroupSchema = z.object({
+  count: z.int().nonnegative(),
+  bytes: z.int().nonnegative(),
+});
+
+export const bucketSchema = z.object({
+  /** Counted only: a live snap is served through `/api/photos/:id/image` and a sprite
+   * through `/api/sprites/:key`, so listing their keys here would be a third way in. */
+  live: bucketGroupSchema,
+  retired: bucketGroupSchema.extend({ objects: z.array(retiredObjectSchema) }),
+  orphaned: bucketGroupSchema.extend({ objects: z.array(bucketObjectSchema) }),
 });
 
 export const failedEvaluationsSchema = z.object({

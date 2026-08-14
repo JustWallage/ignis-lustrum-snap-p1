@@ -10,7 +10,6 @@ const FRIEND: MenuContext = {
   isAdmin: false,
   muted: false,
   signedIn: false,
-  failedEvaluations: 0,
   inEvent: false,
   isHost: false,
   wheelUnspun: false,
@@ -32,53 +31,36 @@ describe("visibleItems", () => {
     ]);
   });
 
-  it("keeps the AI retry off a friend's menu and on an admin's", () => {
+  it("offers the console to admins only, and the whole operator's set in registry order", () => {
     expect(
       visibleItems(MENU_ITEMS, FRIEND).map((item) => item.id),
-    ).not.toContain("retry-ai");
-    const operator = visibleItems(MENU_ITEMS, {
-      ...FRIEND,
-      isAdmin: true,
-      failedEvaluations: 3,
-    });
-    expect(operator).toContainEqual({ id: "retry-ai", label: "Retry AI: 3" });
-  });
-
-  it("still offers the retry when nothing has broken", () => {
-    expect(
-      visibleItems(MENU_ITEMS, { ...FRIEND, isAdmin: true }),
-    ).toContainEqual({ id: "retry-ai", label: "Retry AI: 0" });
-  });
-
-  it("offers the prize manager to admins only, and the whole operator's set in registry order", () => {
-    expect(
-      visibleItems(MENU_ITEMS, FRIEND).map((item) => item.id),
-    ).not.toContain("prizes");
-    expect(visibleItems(MENU_ITEMS, ADMIN)).toEqual([
-      { id: "install", label: "Install app" },
-      { id: "sound", label: "Sound: on" },
-      { id: "auth", label: "Sign in" },
-      { id: "retry-ai", label: "Retry AI: 0" },
-      { id: "avatar-counts", label: "Avatar counts" },
-      { id: "prizes", label: "Prize manager" },
-      { id: "jury-bench", label: "Jury bench" },
-      { id: "eventStart", label: "Start event" },
-    ]);
-  });
-
-  it("keeps the avatar counts away from the friends", () => {
-    expect(
-      visibleItems(MENU_ITEMS, FRIEND).map((item) => item.id),
-    ).not.toContain("avatar-counts");
+    ).not.toContain("admin-console");
     expect(
       visibleItems(MENU_ITEMS, { ...FRIEND, signedIn: true }).map(
         (item) => item.id,
       ),
-    ).not.toContain("avatar-counts");
-    expect(visibleItems(MENU_ITEMS, ADMIN)).toContainEqual({
-      id: "avatar-counts",
-      label: "Avatar counts",
-    });
+    ).not.toContain("admin-console");
+    expect(visibleItems(MENU_ITEMS, ADMIN)).toEqual([
+      { id: "install", label: "Install app" },
+      { id: "sound", label: "Sound: on" },
+      { id: "auth", label: "Sign in" },
+      { id: "admin-console", label: "Admin console" },
+      { id: "eventStart", label: "Start event" },
+    ]);
+  });
+
+  // The four levers the console absorbed. Their ids are gone from `MenuItemId`, so
+  // this reads the LABELS: a registry entry cannot come back without being seen here.
+  it("carries none of the four levers the console took", () => {
+    for (const ctx of [FRIEND, ADMIN, HOST_AT_THE_WHEEL]) {
+      const labels = visibleItems(MENU_ITEMS, ctx).map((item) => item.label);
+      expect(labels).not.toContain("Avatar counts");
+      expect(labels).not.toContain("Prize manager");
+      expect(labels).not.toContain("Jury bench");
+      expect(labels.filter((label) => label.startsWith("Retry AI"))).toEqual(
+        [],
+      );
+    }
   });
 
   it("keeps the operator's event buttons away from the friends", () => {
@@ -112,10 +94,7 @@ describe("visibleItems", () => {
       { id: "install", label: "Install app" },
       { id: "sound", label: "Sound: on" },
       { id: "auth", label: "Sign in" },
-      { id: "retry-ai", label: "Retry AI: 0" },
-      { id: "avatar-counts", label: "Avatar counts" },
-      { id: "prizes", label: "Prize manager" },
-      { id: "jury-bench", label: "Jury bench" },
+      { id: "admin-console", label: "Admin console" },
       { id: "eventSpin", label: "Spin the wheel" },
       { id: "eventAbort", label: "Abort event" },
     ]);

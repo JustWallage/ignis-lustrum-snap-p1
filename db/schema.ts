@@ -72,6 +72,32 @@ export const photos = sqliteTable(
   ],
 );
 
+export const retiredPhotos = sqliteTable(
+  "retired_photos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // NOT `.references(() => photos.id)`: D1 enforces foreign keys and the `photos`
+    // row dies in the same batch that writes this one, so a real reference makes
+    // every retirement fail. The insert is ordered before that delete for the same
+    // reason.
+    photoId: integer("photo_id").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    day: integer("day").notNull(),
+    r2Key: text("r2_key"),
+    contentType: text("content_type").notNull(),
+    retiredAt: integer("retired_at", { mode: "timestamp" }).notNull(),
+    retiredBy: integer("retired_by")
+      .notNull()
+      .references(() => users.id),
+  },
+  (t) => [
+    index("retired_photos_day_idx").on(t.day),
+    uniqueIndex("retired_photos_key_idx").on(t.r2Key),
+  ],
+);
+
 export const photoScores = sqliteTable(
   "photo_scores",
   {

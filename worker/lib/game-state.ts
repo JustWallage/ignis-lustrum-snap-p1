@@ -10,10 +10,18 @@ import type { Db } from "./db";
 
 const GAME_STATE_ID = 1;
 
-export async function setGameDay(db: Db, day: number): Promise<void> {
-  await db
+/**
+ * UNEXECUTED, so the operator's clock can batch it with the award cleanup: a day set
+ * back over a landed wheel with its `prize_awards` row left behind makes the replayed
+ * landing roll its own batch back on `prize_awards_day_idx`, and the day then silently
+ * refuses to turn over. It writes the DAY only — it used to reset `phase` too, which is
+ * a second writer of the column `RealtimeDO` owns, and every caller already follows with
+ * `setEventPhase`.
+ */
+export function setGameDayStatement(db: Db, day: number) {
+  return db
     .update(gameState)
-    .set({ day, phase: INITIAL_PHASE, updatedAt: new Date() })
+    .set({ day, updatedAt: new Date() })
     .where(eq(gameState.id, GAME_STATE_ID));
 }
 

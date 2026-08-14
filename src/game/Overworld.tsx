@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AvatarState, DayResult, EvaluationRetry } from "@shared/api";
+import type { AvatarState, DayResult } from "@shared/api";
 import { isEventRunning } from "@shared/events";
 import { juryForDay, type Jury } from "@shared/juries";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
@@ -29,13 +29,10 @@ import {
   type DialogueChain,
 } from "@/components/GbDialogue";
 import { AvatarGallery } from "@/components/AvatarGallery";
-import { AvatarMachine } from "@/components/AvatarMachine";
 import { AvatarSplash } from "@/components/AvatarSplash";
 import { GbTextbox } from "@/components/GbTextbox";
 import { GbWindow } from "@/components/GbWindow";
-import { JuryBench } from "@/components/JuryBench";
 import { LoginDialog } from "@/components/LoginDialog";
-import { PrizeManager } from "@/components/PrizeManager";
 import { PttBar } from "@/components/PttBar";
 import { SayBox } from "@/components/SayBox";
 import { SnapDialog } from "@/components/SnapDialog";
@@ -80,7 +77,6 @@ import {
 import { animFrame, drawTile, TILE, tileAtlas } from "@/game/tiles";
 import { useAvatarDraw } from "@/hooks/useAvatarDraw";
 import { useChampion } from "@/hooks/useChampion";
-import { useFailedEvaluations } from "@/hooks/useFailedEvaluations";
 import { useGameState } from "@/hooks/useGameState";
 import { useMyAvatar } from "@/hooks/useMyAvatar";
 import { useMySubmission } from "@/hooks/useMySubmission";
@@ -88,6 +84,7 @@ import { useNpcChat } from "@/hooks/useNpcChat";
 import { usePresence } from "@/hooks/usePresence";
 import { useSnapUpload } from "@/hooks/useSnapUpload";
 import { useVoice, type Voice } from "@/hooks/useVoice";
+import { ADMIN_PATH } from "@/lib/admin";
 import { noVoteWarning } from "@/lib/ballot";
 import { IMAGE_ACCEPT } from "@/lib/image";
 import { SAY_MY_OWN } from "@/lib/npc-chat";
@@ -110,9 +107,6 @@ type Dialog =
   | { kind: "talk" }
   | { kind: "menu" }
   | { kind: "signout" }
-  | { kind: "prizes" }
-  | { kind: "avatar-counts" }
-  | { kind: "jury-bench" }
   | { kind: "note"; pages: readonly string[]; busy?: boolean }
   | { kind: "say" }
   | { kind: "votetalk" }
@@ -149,8 +143,6 @@ const DELETE_FAILED_PAGE = "The bin would not take it. Try again in a moment.";
 const SENDING_PAGE = "Hold still… I'm taking a look at that one.";
 
 const INSTALLING_PAGE = "Asking your browser to keep me…";
-
-const RETRYING_PAGE = "Sending the day's snaps back to the jury…";
 
 const DRAWING_PAGE = "AVATAR ARTIST: Hold very still — this takes a moment…";
 
@@ -221,13 +213,6 @@ function submittedPages(jury: Jury): string[] {
     `${jury.name.toUpperCase()}: Today's snap is already in.`,
     `One a day is all I judge — but hand me a better one and I'll forget the first.`,
   ];
-}
-
-function retriedPage(result: EvaluationRetry): string {
-  if (result.attempted === 0) {
-    return `Day ${result.day}'s verdicts are all in. Nothing to retry.`;
-  }
-  return `The jury looked again at ${result.attempted} snap(s): ${result.ok} came back, ${result.failed} broke it a second time.`;
 }
 
 function confirmChain(
@@ -371,8 +356,6 @@ export function Overworld() {
     gameState?.day,
   );
   const submitted = mine?.photo ?? null;
-  const { failed: failedEvaluations, retry: retryEvaluations } =
-    useFailedEvaluations(isAdmin, gameState?.day);
   const {
     sprites: avatar,
     quota,
@@ -627,26 +610,8 @@ export function Overworld() {
       auth: () => {
         setDialog(user === null ? { kind: "login" } : { kind: "signout" });
       },
-      "retry-ai": () => {
-        void (async () => {
-          setDialog({ kind: "note", pages: [RETRYING_PAGE], busy: true });
-          let pages: string[];
-          try {
-            pages = [retriedPage(await retryEvaluations())];
-          } catch {
-            pages = ["The retry broke too. Give it a moment and try again."];
-          }
-          setDialog({ kind: "note", pages });
-        })();
-      },
-      "avatar-counts": () => {
-        setDialog({ kind: "avatar-counts" });
-      },
-      prizes: () => {
-        setDialog({ kind: "prizes" });
-      },
-      "jury-bench": () => {
-        setDialog({ kind: "jury-bench" });
+      "admin-console": () => {
+        window.location.assign(ADMIN_PATH);
       },
       eventStart: () => {
         setDialog({ kind: "confirm", action: "start" });
@@ -658,7 +623,7 @@ export function Overworld() {
         setDialog({ kind: "confirm", action: "abort" });
       },
     }),
-    [retryEvaluations, toggleMuted, user],
+    [toggleMuted, user],
   );
 
   const chain = useMemo<DialogueChain | null>(() => {
@@ -796,7 +761,6 @@ export function Overworld() {
             isAdmin,
             muted,
             signedIn: user !== null,
-            failedEvaluations,
             // The REAL `running`, not the dismissed flag: a player who pressed Done
             // has not ended anybody's event, so an admin is still offered Abort.
             inEvent: running,
@@ -873,7 +837,6 @@ export function Overworld() {
     closeDialog,
     dialog,
     event,
-    failedEvaluations,
     gameState,
     isAdmin,
     jury,
@@ -1289,11 +1252,6 @@ export function Overworld() {
           onClose={closeDialog}
         />
       )}
-      {dialog?.kind === "prizes" && <PrizeManager onClose={closeDialog} />}
-      {dialog?.kind === "avatar-counts" && gameState !== undefined && (
-        <AvatarMachine day={gameState.day} onClose={closeDialog} />
-      )}
-      {dialog?.kind === "jury-bench" && <JuryBench onClose={closeDialog} />}
       {dialog?.kind === "view" && (
         <SnapDialog
           id={dialog.id}

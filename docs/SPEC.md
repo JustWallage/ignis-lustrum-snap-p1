@@ -36,8 +36,15 @@ play continues.
   open microphones from being the feature. **Nothing about a transmission is stored**: it is relayed
   and dropped, like `SayBox` speech, so there is no history, no replay to a late join and nothing to
   delete.
-- **The archive is deliberately not a Game Boy** (#99): legibility beat consistency once, for the one
-  screen whose job is reading.
+- **The archive is deliberately not a Game Boy** (#99): legibility beat consistency, for the one
+  screen whose job is reading. It has now happened twice — **the operator's console** (#29) is the
+  other, a full-screen modern surface at `/admin` for running the game rather than playing it: the
+  clock, snap retirement, a view of the bucket and the four levers that used to be in the SELECT
+  menu. Two surfaces, each quarantined by its own class prefix. The Game Boy is the game again.
+- **Retiring a snap keeps the photograph.** Taking one out of play deletes the row that names it and
+  leaves the bytes in the bucket, which is why there is no delete-forever button anywhere on the
+  console: the point of retiring is that the picture is the backup. It frees the player's slot for
+  that day, so they can hand in another one.
 - **Image bytes belong in a bucket, not in the database.** They were base64 in D1 only because the
   documentation said the CI token could not reach R2, and it could; the row keeps the name, the bucket
   keeps the picture. What does NOT change is who may look: the Worker serves every byte behind the
