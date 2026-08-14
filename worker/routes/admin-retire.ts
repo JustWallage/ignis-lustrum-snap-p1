@@ -21,7 +21,6 @@ const daySchema = z.coerce.number().int().positive();
 
 const idSchema = z.coerce.number().int().positive();
 
-/** The insert goes in FRONT of the purge that deletes the row it describes. */
 function retireStatements(db: Db, rows: readonly PhotoRow[], by: number) {
   const retiredAt = new Date();
   return rows.flatMap((row) => [

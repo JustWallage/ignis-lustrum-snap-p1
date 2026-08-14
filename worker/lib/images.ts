@@ -52,11 +52,9 @@ export async function deleteImage(
 }
 
 /** R2 lists at most 1000 keys a page and deletes at most 1000 a call, so the cursor loop
- * is the listing rather than a nicety — and it is ONE loop, because a second copy is
- * how the sweep and the console would come to disagree about what is in the bucket.
- * `limit` is the page size only: a caller passing a small one still gets everything,
- * which is how the loop is tested without seeding a thousand objects into the bucket
- * every e2e run shares. */
+ * is the listing rather than a nicety. `limit` is the page size only: a caller passing a
+ * small one still gets everything, which is how the loop is proved without seeding a
+ * thousand objects into the bucket every e2e run shares. */
 async function eachPage(
   env: ImageEnv,
   limit: number | undefined,

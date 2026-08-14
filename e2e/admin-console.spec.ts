@@ -40,7 +40,12 @@ test("the console fills the screen, opens no socket and mounts no modal", async 
   // A socket rendering no Overworld announces no position, so "no new player on the
   // roster" would pass against the bug it claims to catch. The REQUEST is the claim.
   expect(asked).toEqual([]);
-  expect(await page.evaluate(() => window.__ignisSockets?.length ?? 0)).toBe(0);
+  // FILTERED, not counted: in dev the recorder also catches Vite's own HMR socket, so a
+  // bare count is 1 here and 0 in CI against the deployed Worker.
+  const opened = await page.evaluate(() =>
+    (window.__ignisSockets ?? []).map((socket) => socket.url),
+  );
+  expect(opened.filter((url) => url.includes("/api/ws"))).toEqual([]);
 
   // `Modal.tsx` is a native <dialog>: none is on this surface, and no panel is a
   // little centred window.
@@ -77,7 +82,6 @@ test("a friend and a stranger are both refused, screen and route alike", async (
     expect((await page.request.get(path)).status(), path).toBe(403);
   }
 
-  // And the way in is gone from the menu as well as refused at the door.
   await page.goto("/");
   await pressStart(page);
   await page.getByTestId("select-button").click();

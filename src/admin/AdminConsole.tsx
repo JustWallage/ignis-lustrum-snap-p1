@@ -35,7 +35,6 @@ export function AdminConsole() {
     );
   }
 
-  // Never the enforcement: every route is behind the admin sub-router's own gate.
   if (!isAdmin) {
     return (
       <div className="ops-screen" data-testid="ops-refused">

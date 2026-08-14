@@ -11,12 +11,9 @@ import type { Db } from "./db";
 const GAME_STATE_ID = 1;
 
 /**
- * UNEXECUTED, so the operator's clock can batch it with the award cleanup: a day set
- * back over a landed wheel with its `prize_awards` row left behind makes the replayed
- * landing roll its own batch back on `prize_awards_day_idx`, and the day then silently
- * refuses to turn over. It writes the DAY only — it used to reset `phase` too, which is
- * a second writer of the column `RealtimeDO` owns, and every caller already follows with
- * `setEventPhase`.
+ * UNEXECUTED, so the operator's clock can batch it with the `prize_awards` cleanup that
+ * has to land with it. It writes the DAY only — it used to reset `phase` too, a second
+ * writer of the column `RealtimeDO` owns.
  */
 export function setGameDayStatement(db: Db, day: number) {
   return db

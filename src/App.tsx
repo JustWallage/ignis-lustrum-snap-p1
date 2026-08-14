@@ -5,9 +5,8 @@ import { WebSocketProvider } from "@/context/WebSocketContext";
 import { Overworld } from "@/game/Overworld";
 import { ADMIN_PATH } from "@/lib/admin";
 
-// A branch on the path rather than a router: one non-town path does not earn a
-// dependency, and knip reads an unused one as a failure anyway. `not_found_handling:
-// "single-page-application"` already serves index.html there.
+// `not_found_handling: "single-page-application"` is what serves index.html at this
+// path on a hard load.
 export function App() {
   if (window.location.pathname === ADMIN_PATH) {
     return (

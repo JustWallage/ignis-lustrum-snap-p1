@@ -43,7 +43,8 @@ Each is a failure that happened:
 - **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, and it has
   exactly TWO writers: the wheel's landing, which is the only one IN PLAY, and the operator's console
   (`POST /api/admin/day`), which refuses while an event is live. `phase` is a mirror only
-  `RealtimeDO` writes — neither of those two touches it.
+  `RealtimeDO` writes, and the two statements that MOVE the day — `advanceDayStatement` and
+  `setGameDayStatement` — write the day and nothing else.
 - **The live event is authoritative in `RealtimeDO`'s storage, not broadcast**, so a reload or late
   join lands back inside it. Clients never apply a transition from their own response.
 

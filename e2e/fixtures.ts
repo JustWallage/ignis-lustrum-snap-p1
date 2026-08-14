@@ -159,8 +159,6 @@ export async function handSnapToJury(
   await page.getByTestId("snap-file").setInputFiles(file);
 }
 
-/** Hardcoded like the palette colours are: the e2e project cannot see `src/`, where the
- * one copy of this path lives. */
 export const ADMIN_PATH = "/admin";
 
 export async function openConsole(page: Page, section?: string) {
@@ -173,8 +171,6 @@ export async function openConsole(page: Page, section?: string) {
   return panel;
 }
 
-/** The anonymous visitor's refusal and the signed-in friend's are the same screen, and
- * what matters about both is what is NOT on the page: no panel, no rail, no lever. */
 export async function expectConsoleRefused(page: Page): Promise<void> {
   await page.goto(ADMIN_PATH);
   await expect(page.getByTestId("ops-refused")).toBeVisible();

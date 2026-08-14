@@ -1519,9 +1519,6 @@ button.gb-pill-cap:disabled {
   }
 }
 
-/* The operator's console (#29). Prefixed `ops-` and used nowhere else, exactly as
-   `arc-` is: the second non-Game-Boy surface, quarantined by naming. Unlike the
-   archive it is not inside `.gb-stage` at all — it is the whole page. */
 .ops-screen {
   display: flex;
   flex-direction: column;
@@ -1554,9 +1551,8 @@ button.gb-pill-cap:disabled {
   white-space: nowrap;
 }
 
-/* The two children that fill what the header left: the rail keeps its own width and
-   the column takes the rest, and BOTH have `min-height: 0` so the scroll happens
-   inside them rather than growing the page. */
+/* `min-height: 0` here and on `.ops-column`: a flex item's automatic minimum is its
+   content, so without it a long panel grows the page instead of scrolling inside it. */
 .ops-body {
   display: flex;
   flex: 1;

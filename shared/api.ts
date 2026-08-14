@@ -118,8 +118,6 @@ export const leaderboardSchema = z.object({
 
 export const setDaySchema = z.object({ day: z.int().positive() });
 
-/** `awardsDropped` is the only place that count is ever reported: no route lists
- * `prize_awards` per day, so the confirm cannot name it before the fact. */
 export const clockSchema = gameStateSchema.extend({
   awardsDropped: z.int().nonnegative(),
 });
@@ -129,8 +127,6 @@ export const retirementSchema = z.object({
   retired: z.int().nonnegative(),
 });
 
-/** `photoSchema` and nothing narrower: the masking is `toPhoto`'s two rules, and the
- * console adds no exception to them. */
 export const dayPhotosSchema = z.object({
   day: z.int().positive(),
   photos: z.array(photoSchema),
@@ -142,8 +138,6 @@ const bucketObjectSchema = z.object({
 });
 export type BucketObject = z.infer<typeof bucketObjectSchema>;
 
-/** A retired object is the one kind the console can render, because `retired_photos` is
- * the only thing left naming its content type. */
 const retiredObjectSchema = bucketObjectSchema.extend({
   photoId: z.int(),
   day: z.int().positive(),
@@ -157,8 +151,6 @@ const bucketGroupSchema = z.object({
 });
 
 export const bucketSchema = z.object({
-  /** Counted only: a live snap is served through `/api/photos/:id/image` and a sprite
-   * through `/api/sprites/:key`, so listing their keys here would be a third way in. */
   live: bucketGroupSchema,
   retired: bucketGroupSchema.extend({ objects: z.array(retiredObjectSchema) }),
   orphaned: bucketGroupSchema.extend({ objects: z.array(bucketObjectSchema) }),

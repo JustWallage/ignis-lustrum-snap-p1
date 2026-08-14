@@ -39,8 +39,6 @@ export function ConfirmButton({
   return (
     <span className="ops-confirm" role="group" aria-label={question}>
       <span className="ops-confirm-text">{question}</span>
-      {/* Cancel FIRST, as it is in the town's dialogue chains: the destructive
-          answer is never the one a stray second tap lands on. */}
       <button
         type="button"
         className="ops-btn"

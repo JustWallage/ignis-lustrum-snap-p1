@@ -61,9 +61,8 @@ async function wearASprite(cookie: string): Promise<string> {
 }
 
 describe("listImages", () => {
-  // R2 lists at most 1000 keys a page, so the cursor loop is the listing rather than
-  // a nicety — and seeding a thousand objects into the bucket every e2e run SHARES is
-  // not a test, which is why the page size is a parameter and this asks for two.
+  // The page size is a parameter precisely so the cursor loop can be proved with five
+  // objects instead of a thousand in the bucket every e2e run shares.
   it("pages past a full page and hands back everything under the prefix", async () => {
     const keys = ["snaps/a", "snaps/b", "snaps/c", "sprites/d", "sprites/e"];
     for (const key of keys) {

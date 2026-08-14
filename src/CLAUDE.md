@@ -123,7 +123,9 @@
   window — a destructive button becomes a Cancel-and-confirm pair WHERE IT STANDS (`ConfirmButton`),
   cancel first for the same reason `confirmChain` puts it first. The three panels rewritten out of
   the SELECT menu are rewritten, not moved: `GbWindow`, `GbButton` and `gb-input` stay behind with
-  their other callers, and only `useFilePicker` crosses, because it is the one picker primitive.
+  their other callers. No COMPONENT crosses; the hooks and `lib/` helpers do — `useFilePicker`
+  because it is the one picker primitive, and `ratingText` because `lib/rating.ts` is the one place
+  the jury's rating is worded.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

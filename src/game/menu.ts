@@ -29,8 +29,6 @@ export const MENU_ITEMS: readonly MenuItem[] = [
   // affordance from either side of a session, so this reads its own state back rather
   // than being two entries that take turns being hidden.
   { id: "auth", label: (ctx) => (ctx.signedIn ? "Sign out" : "Sign in") },
-  // The ONE way to the console, and the only admin item left that is not the event's:
-  // the other three are pressed by somebody standing in the room while it runs.
   {
     id: "admin-console",
     label: () => "Admin console",
