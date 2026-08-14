@@ -29,17 +29,19 @@ test("the console fills the screen, opens no socket and mounts no modal", async 
   // Installed before the navigation, because what is under test is a connection that
   // must never be made.
   await recordSockets(page);
-  const asked: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/api/ws")) asked.push(request.url());
+  // The `websocket` event, not `request`: Playwright surfaces a handshake there and
+  // nowhere else, so a request listener would pass whatever the page did.
+  const handshakes: string[] = [];
+  page.on("websocket", (socket) => {
+    handshakes.push(socket.url());
   });
 
   const panel = await openConsole(page);
   await expect(panel.getByTestId("ops-clock")).toContainText("Day 1");
 
   // A socket rendering no Overworld announces no position, so "no new player on the
-  // roster" would pass against the bug it claims to catch. The REQUEST is the claim.
-  expect(asked).toEqual([]);
+  // roster" would pass against the bug it claims to catch. The CONNECTION is the claim.
+  expect(handshakes.filter((url) => url.includes("/api/ws"))).toEqual([]);
   // FILTERED, not counted: in dev the recorder also catches Vite's own HMR socket, so a
   // bare count is 1 here and 0 in CI against the deployed Worker.
   const opened = await page.evaluate(() =>
