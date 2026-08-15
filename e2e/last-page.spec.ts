@@ -59,6 +59,9 @@ test("the last page names the winner, shows their snap, and lets you leave", asy
     );
     await expect(screen.getByTestId("wheel-winner-name")).toHaveText("TESTER");
     await expect(screen.getByTestId("wheel-winner-photo")).toBeVisible();
+    const figures = screen.getByTestId("crowd-character");
+    await expect(figures).toHaveCount(1);
+    await expect(figures).toHaveAttribute("data-player", "tester");
   }
 
   await page.getByTestId("wheel-winner-photo").click();

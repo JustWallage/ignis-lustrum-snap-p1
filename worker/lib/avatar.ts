@@ -228,11 +228,14 @@ export async function wearSprite(
 export interface TownSprite {
   userId: number;
   userName: string;
-  id: number;
-  key: string;
+  id: number | null;
+  key: string | null;
   worn: boolean;
 }
 
+/** FROM the users, not from the sprites: the crowds under the countdown and the title
+ * screen are the whole town, so a player who has never been drawn has to come back on a
+ * row of their own rather than be joined away. */
 export async function townSprites(db: Db): Promise<TownSprite[]> {
   return db
     .select({
@@ -242,8 +245,8 @@ export async function townSprites(db: Db): Promise<TownSprite[]> {
       key: avatarSprites.key,
       worn: sql<number>`(${users.avatarKey} is not null and ${users.avatarKey} = ${avatarSprites.key})`,
     })
-    .from(avatarSprites)
-    .innerJoin(users, eq(users.id, avatarSprites.userId))
+    .from(users)
+    .leftJoin(avatarSprites, eq(users.id, avatarSprites.userId))
     .orderBy(asc(users.name), desc(avatarSprites.id))
     .then((rows) => rows.map((row) => ({ ...row, worn: row.worn !== 0 })));
 }

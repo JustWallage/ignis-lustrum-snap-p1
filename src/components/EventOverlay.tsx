@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { countdownSeconds, type EventState } from "@shared/events";
+import { Crowd } from "@/components/Crowd";
+import type { CrowdPlayer } from "@/game/crowd";
 import { RevealScreen } from "@/components/RevealScreen";
 import { WheelScreen } from "@/components/WheelScreen";
 import { useNow } from "@/hooks/useNow";
@@ -7,7 +9,15 @@ import { playCue } from "@/lib/sound";
 
 const REFRESH_MS = 100;
 
-function CountdownScreen({ endsAt }: { endsAt: number | null }) {
+function CountdownScreen({
+  endsAt,
+  town,
+  day,
+}: {
+  endsAt: number | null;
+  town: CrowdPlayer[];
+  day: number;
+}) {
   const now = useNow(REFRESH_MS);
   const seconds = countdownSeconds(endsAt, now);
 
@@ -25,16 +35,21 @@ function CountdownScreen({ endsAt }: { endsAt: number | null }) {
       <p className="gb-countdown" data-testid="countdown-seconds">
         {seconds ?? "-"}
       </p>
+      {/* Seeded by the DAY, so the town does not re-shuffle itself under a number
+          that re-renders ten times a second. */}
+      <Crowd town={town} seed={day} />
     </>
   );
 }
 
 export function EventOverlay({
   event,
+  town,
   onHostNext,
   onDone,
 }: {
   event: EventState;
+  town: CrowdPlayer[];
   onHostNext: () => void;
   onDone: () => void;
 }) {
@@ -46,7 +61,11 @@ export function EventOverlay({
       data-phase={event.phase}
     >
       {event.phase === "countdown" && (
-        <CountdownScreen endsAt={event.countdownEndsAt} />
+        <CountdownScreen
+          endsAt={event.countdownEndsAt}
+          town={town}
+          day={event.day}
+        />
       )}
       {event.phase === "reveal" && (
         // KEYED on the stage, which is what closes an open full-screen photo on every
@@ -55,10 +74,13 @@ export function EventOverlay({
         <RevealScreen
           key={`${String(event.podiumRank)}-${String(event.podiumNextAt)}`}
           event={event}
+          town={town}
           onHostNext={onHostNext}
         />
       )}
-      {event.phase === "wheel" && <WheelScreen event={event} onDone={onDone} />}
+      {event.phase === "wheel" && (
+        <WheelScreen event={event} town={town} onDone={onDone} />
+      )}
       <p className="gb-event-day">DAY {event.day}</p>
     </div>
   );

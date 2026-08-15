@@ -29,8 +29,11 @@ export function AvatarGallery({
   const [wearing, setWearing] = useState<number | null>(null);
   useRealtimeEvents(town.mutate);
 
+  // A player with no sprites is in the listing so a CROWD can be drawn from it; a
+  // shelf under their name with nothing on it is not a gallery.
   const players = (town.data?.players ?? []).filter(
-    (player) => !mineOnly || player.user.id === user?.id,
+    (player) =>
+      player.sprites.length > 0 && (!mineOnly || player.user.id === user?.id),
   );
   const faces: Face[] = players.flatMap((player) =>
     player.sprites.map((sprite) => ({ ...sprite, user: player.user })),

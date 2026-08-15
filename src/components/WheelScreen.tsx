@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { wheelProgress, type EventState } from "@shared/events";
+import { NamedCharacter } from "@/components/Crowd";
 import { EventSnap } from "@/components/EventSnap";
 import { useAuth } from "@/context/AuthContext";
 import { useEvent } from "@/context/EventContext";
+import { wornBy, type CrowdPlayer } from "@/game/crowd";
 import { useDayResults } from "@/hooks/useDayResults";
 import { useNow } from "@/hooks/useNow";
 import { playCue } from "@/lib/sound";
@@ -21,10 +23,12 @@ function drumOffset(event: EventState, now: number): number {
 
 function LastPage({
   event,
+  town,
   prize,
   onDone,
 }: {
   event: EventState;
+  town: CrowdPlayer[];
   prize: string;
   onDone: () => void;
 }) {
@@ -47,9 +51,11 @@ function LastPage({
             testId="wheel-winner-photo"
             title="The winning snap"
           />
-          <p className="gb-reveal-name" data-testid="wheel-winner-name">
-            {winner.uploader.name.toUpperCase()}
-          </p>
+          <NamedCharacter
+            who={winner.uploader}
+            url={wornBy(town, winner.uploader.id)}
+            testId="wheel-winner-name"
+          />
         </>
       )}
       <button
@@ -66,9 +72,11 @@ function LastPage({
 
 export function WheelScreen({
   event,
+  town,
   onDone,
 }: {
   event: EventState;
+  town: CrowdPlayer[];
   onDone: () => void;
 }) {
   const { user } = useAuth();
@@ -114,7 +122,7 @@ export function WheelScreen({
   };
 
   if (landed && prize !== undefined) {
-    return <LastPage event={event} prize={prize} onDone={onDone} />;
+    return <LastPage event={event} town={town} prize={prize} onDone={onDone} />;
   }
 
   return (

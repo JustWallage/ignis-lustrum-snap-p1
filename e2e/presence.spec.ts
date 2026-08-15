@@ -19,8 +19,10 @@ async function pixelAt(
   tile: { x: number; y: number },
 ): Promise<number[]> {
   return page.evaluate(({ x, y }) => {
-    const canvas = document.querySelector("canvas");
-    if (canvas === null) throw new Error("the LCD canvas is missing");
+    const canvas = document.querySelector("canvas.gb-lcd");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      throw new Error("the LCD canvas is missing");
+    }
     const ctx = canvas.getContext("2d");
     if (ctx === null) throw new Error("the LCD has no 2d context");
     const { data } = ctx.getImageData(x * 16 + 8, y * 16 + 8, 1, 1);

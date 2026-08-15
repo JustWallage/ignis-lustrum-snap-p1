@@ -47,6 +47,15 @@
   white CONNECTED to the border goes, and a subject in a white shirt keeps it. Positions are a REF
   (six frames a second, not six re-renders); the remote sprite cache is module-level because the rAF
   loop cannot await.
+- **The crowd is drawn TWICE because there are two canvases, not one.** `game/crowd.ts` is the only
+  arrangement — a count and a seed in, back-to-front places out — and both surfaces read it: the
+  title screen paints it onto the LCD inside `drawSplash`, the event overlay stands one `<canvas>`
+  per character with the place written in as inline geometry. **The overlay cannot use the LCD**:
+  `.gb-event` is opaque and covers it. An `<img>` cannot be used either — a sprite is keyed out in
+  the BROWSER, so `/api/sprites/:key` serves the portrait on its white ground. The splash's crowd is
+  arranged per SHOWING and held in a ref, because `drawSplash` runs every frame and a crowd shuffled
+  inside it is a strobe. Nobody stands beside a parade snap: photographs are anonymous until their
+  day is out.
 - `footstepCue` is a total `Record<WalkableTile, CueName>`, so a new walkable tile is a type error
   until it has a sound. TWO gait counters, local and remote, or a friend's steps make your own walk
   stutter. `remoteStep` is silent for the roster frame, a first sighting, and the keep-alive repeat —

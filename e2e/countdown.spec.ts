@@ -1,18 +1,49 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
+import { townAvatarsSchema } from "../shared/api";
 import { eventStateSchema } from "../shared/events";
 import { gameStateSchema } from "../shared/state";
 import {
   apiSignIn,
+  apiStoreAvatar,
+  boxAround,
+  encloses,
   expect,
+  lcd,
   operate,
+  overlaps,
   pressStart,
   recordAudio,
   setPhase,
   test,
   voices,
+  type Box,
 } from "./fixtures";
 
 const SECONDS = "countdown-seconds";
+
+async function boxesOf(figures: Locator): Promise<Box[]> {
+  return Promise.all((await figures.all()).map(boxAround));
+}
+
+/** Reads the character's OWN canvas: the box is sized by CSS whether or not anything
+ * landed in it, so only its pixels can say a player who never drew is standing there
+ * in the default sprite rather than in nothing at all. */
+async function painted(figure: Locator): Promise<number> {
+  return figure.evaluate((node: HTMLCanvasElement) => {
+    const ctx = node.getContext("2d");
+    if (ctx === null) throw new Error("a character has no 2d context");
+    const { data } = ctx.getImageData(0, 0, node.width, node.height);
+    return data.filter((value, at) => at % 4 === 3 && value !== 0).length;
+  });
+}
+
+function figure(page: Page, who: string): Locator {
+  return page.locator(`[data-testid="crowd-character"][data-player="${who}"]`);
+}
+
+async function pixelsOf(one: Locator): Promise<string> {
+  return one.evaluate((node: HTMLCanvasElement) => node.toDataURL());
+}
 
 async function startCountdown(page: Page): Promise<number> {
   await operate(page, "Start event", "Start it");
@@ -153,6 +184,63 @@ test("the countdown hands over to the reveal without anyone pressing anything", 
     "reveal",
     { timeout: 30_000 },
   );
+});
+
+test("the whole town stands under the number, in a group and not a row", async ({
+  page,
+}) => {
+  await apiSignIn(page);
+  await apiStoreAvatar(page);
+  await page.goto("/");
+  await pressStart(page);
+  const endsAt = await startCountdown(page);
+  // Holds the DIGIT still, so every box below is measured against one number's box.
+  // It does NOT hold the phase — the reveal arrives on the DO's broadcast — so the
+  // whole measurement has to land inside the countdown's ten real seconds.
+  await page.clock.setFixedTime(endsAt - 8_000);
+
+  const town = townAvatarsSchema.parse(
+    await (await page.request.get("/api/avatars")).json(),
+  );
+  expect(town.players.length).toBeGreaterThan(1);
+  const figures = page.getByTestId("crowd-character");
+  await expect(figures).toHaveCount(town.players.length);
+  const undrawn = figure(page, "rival");
+  expect(
+    await painted(undrawn),
+    "an undrawn player is drawn anyway",
+  ).toBeGreaterThan(0);
+  const boxes = await boxesOf(figures);
+  expect(
+    new Set(boxes.map((box) => Math.round(box.width))).size,
+    "at least two distances from the camera",
+  ).toBeGreaterThan(1);
+  const behind = boxes.some((one, at) =>
+    boxes
+      .slice(at + 1)
+      .some((later) => later.width > one.width && overlaps(one, later)),
+  );
+  expect(behind, "somebody stands in front of somebody").toBe(true);
+
+  const screen = await boxAround(lcd(page));
+  const digits = await boxAround(page.getByTestId(SECONDS));
+  const day = await boxAround(page.locator(".gb-event-day"));
+  for (const box of [digits, day, ...boxes]) {
+    expect(encloses(screen, box), "on the LCD").toBe(true);
+  }
+  for (const box of boxes) {
+    expect(box.y, "under the number").toBeGreaterThanOrEqual(
+      digits.y + digits.height - 1,
+    );
+    expect(box.y + box.height, "above the day").toBeLessThanOrEqual(day.y + 1);
+  }
+
+  // LAST, because it POLLS: the sprite is fetched and keyed out after the character
+  // mounts — a figure that never notices that stays in the default sprite forever —
+  // and retrying here spends none of the margin the measurements above need.
+  await expect
+    .poll(async () => pixelsOf(figure(page, "tester")))
+    .not.toBe(await pixelsOf(undrawn));
 });
 
 test("a countdown with no target counts nothing rather than counting wrong", async ({
