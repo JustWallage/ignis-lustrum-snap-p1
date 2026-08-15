@@ -11,10 +11,17 @@ import {
   portraitRect,
   type Box,
 } from "@/game/avatar";
-import { jurySpriteRamp, PLAYER_RAMP, type SpriteRamp } from "@/game/palette";
+import {
+  BEAST_RAMP,
+  jurySpriteRamp,
+  PLAYER_RAMP,
+  type SpriteRamp,
+} from "@/game/palette";
 
 export const PLAYER_W = 12;
 export const PLAYER_H = 16;
+
+const BEAST_W = 16;
 
 const PARTS: Record<string, keyof SpriteRamp> = {
   o: "outline",
@@ -87,6 +94,25 @@ const HATS: Record<Exclude<JurySprite["hat"], "none">, string[]> = {
   beanie: ["....aaaa....", "..aaaaaaaa..", ".aaaaaaaaaa."],
 };
 
+const BEAST = [
+  ".....oooooo.....",
+  "...ooccccccoo...",
+  "..occcccccccco..",
+  ".occcccccccccco.",
+  ".ochhhhhhhhhhco.",
+  "ochhhoohhhoohhco",
+  "ochhhoohhhoohhco",
+  "ochhhhhhhhhhhhco",
+  "oaaaaaaaaaaaaaao",
+  "oppppppppppppppo",
+  ".oppppppppppppo.",
+  ".oaaaaaaaaaaaao.",
+  "..osssssssssso..",
+  "..ohhhhhhhhhho..",
+  "..ohho....ohho..",
+  "..ooo.....ooo...",
+];
+
 function frame(head: string[], body: string[], legs: string[]): string[] {
   return [...head, ...body, ...legs];
 }
@@ -123,10 +149,22 @@ function paint(
   });
 }
 
-function buildSprite(rows: string[], ramp: SpriteRamp): HTMLCanvasElement {
-  const { canvas, ctx } = blank();
+function buildSprite(
+  rows: string[],
+  ramp: SpriteRamp,
+  width = PLAYER_W,
+  height = PLAYER_H,
+): HTMLCanvasElement {
+  const { canvas, ctx } = blank(width, height);
   paint(ctx, rows, ramp);
   return canvas;
+}
+
+let beast: HTMLCanvasElement | null = null;
+
+export function beastSprite(): HTMLCanvasElement {
+  beast ??= buildSprite(BEAST, BEAST_RAMP, BEAST_W, BEAST_W);
+  return beast;
 }
 
 function mirror(sprite: HTMLCanvasElement): HTMLCanvasElement {

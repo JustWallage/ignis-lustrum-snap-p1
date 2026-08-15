@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  beastProgress,
+  BEAST_MS,
   countdownEvent,
   countdownSeconds,
   eventStateSchema,
@@ -7,6 +9,7 @@ import {
   HOST_IDLE_MS,
   idleEvent,
   isAwaitingHost,
+  isBeastOn,
   isEventRunning,
   nextDeadline,
   nextPodiumStage,
@@ -53,6 +56,8 @@ describe("idleEvent", () => {
       spunAt: null,
       prizeIndex: null,
       segments: [],
+      bowser: false,
+      beastEndsAt: null,
     });
   });
 });
@@ -398,7 +403,7 @@ describe("isAwaitingHost", () => {
   it("is false where there is nothing for a host to press", () => {
     expect(isAwaitingHost(reveal)).toBe(false);
     expect(isAwaitingHost(stateFrom(idleEvent()))).toBe(false);
-    const wheel = stateFrom(wheelEvent(reveal, ["a", "b"], NOW));
+    const wheel = stateFrom(wheelEvent(reveal, ["a", "b"], NOW, false));
     expect(isAwaitingHost(wheel)).toBe(false);
     const building = stateFrom(
       podiumAdvanceEvent(stateFrom(podiumEvent(reveal, 2, NOW)), NOW),
@@ -412,7 +417,7 @@ describe("wheelEvent", () => {
 
   it("snapshots the segments and carries the frozen winner across", () => {
     const reveal = aReveal(1, [9]);
-    const wheel = stateFrom(wheelEvent(reveal, ["Bed", "Buddy"], NOW));
+    const wheel = stateFrom(wheelEvent(reveal, ["Bed", "Buddy"], NOW, false));
     expect(wheel.phase).toBe("wheel");
     expect(wheel.segments).toEqual(["Bed", "Buddy"]);
     expect(wheel.winnerPhotoId).toBe(9);
@@ -426,8 +431,62 @@ describe("wheelEvent", () => {
   });
 
   it("will not wait for its winner forever", () => {
-    const wheel = stateFrom(wheelEvent(aReveal(1, [9]), ["a", "b"], NOW));
+    const wheel = stateFrom(
+      wheelEvent(aReveal(1, [9]), ["a", "b"], NOW, false),
+    );
     expect(wheel.stageEndsAt).toBe(NOW + HOST_IDLE_MS);
+  });
+
+  it("opens an ordinary day with no beast to play", () => {
+    const wheel = stateFrom(
+      wheelEvent(aReveal(1, [9]), ["a", "b"], NOW, false),
+    );
+    expect(wheel.bowser).toBe(false);
+    expect(wheel.beastEndsAt).toBeNull();
+    expect(isBeastOn(wheel, NOW)).toBe(false);
+    expect(beastProgress(wheel, NOW)).toBe(1);
+  });
+
+  it("stamps the beast's moment on a Bowser day", () => {
+    const wheel = stateFrom(wheelEvent(aReveal(1, [9]), ["a", "b"], NOW, true));
+    expect(wheel.bowser).toBe(true);
+    expect(wheel.beastEndsAt).toBe(NOW + BEAST_MS);
+    expect(wheel.stageEndsAt).toBe(NOW + HOST_IDLE_MS);
+  });
+});
+
+describe("the beast", () => {
+  const NOW = 1_700_000_000_000;
+  const beastly = stateFrom(
+    wheelEvent(
+      { winnerPhotoId: 9, winnerUserId: 4, hostUserId: HOST },
+      ["Bowser bed", "Bowser bier"],
+      NOW,
+      true,
+    ),
+  );
+
+  it("runs from its arrival to its moment, and is over after it", () => {
+    expect(beastProgress(beastly, NOW)).toBe(0);
+    expect(beastProgress(beastly, NOW + BEAST_MS / 2)).toBeCloseTo(0.5);
+    expect(beastProgress(beastly, NOW + BEAST_MS)).toBe(1);
+    expect(beastProgress(beastly, NOW + BEAST_MS * 10)).toBe(1);
+  });
+
+  // A screen that joined late renders the beast where everybody else is, because the
+  // moment is absolute and the progress is read off the joiner's own clock.
+  it("is on until its moment and not one tick after", () => {
+    expect(isBeastOn(beastly, NOW)).toBe(true);
+    expect(isBeastOn(beastly, NOW + BEAST_MS - 1)).toBe(true);
+    expect(isBeastOn(beastly, NOW + BEAST_MS)).toBe(false);
+  });
+
+  it("keeps its moment and its wheel across the spin", () => {
+    const spun = stateFrom(spunEvent(beastly, NOW + BEAST_MS + 1_000, 1));
+    expect(spun.bowser).toBe(true);
+    expect(spun.beastEndsAt).toBe(beastly.beastEndsAt);
+    expect(spun.segments).toEqual(["Bowser bed", "Bowser bier"]);
+    expect(isBeastOn(spun, NOW + BEAST_MS + 1_000)).toBe(false);
   });
 });
 
@@ -438,6 +497,7 @@ describe("spunEvent", () => {
       { winnerPhotoId: 9, winnerUserId: 4, hostUserId: HOST },
       ["Bed", "Buddy", "Beer", "Bag"],
       NOW,
+      false,
     ),
   );
 
@@ -479,7 +539,7 @@ describe("nextDeadline", () => {
     expect(nextDeadline(reveal)).toBe(paradeEndsAt(reveal));
 
     const spun = stateFrom(
-      spunEvent(stateFrom(wheelEvent(reveal, ["a", "b"], NOW)), NOW, 1),
+      spunEvent(stateFrom(wheelEvent(reveal, ["a", "b"], NOW, false)), NOW, 1),
     );
     expect(nextDeadline(spun)).toBe(wheelEndsAt(spun));
   });
@@ -502,6 +562,7 @@ describe("nextDeadline", () => {
         { winnerPhotoId: 1, winnerUserId: 2, hostUserId: HOST },
         ["a", "b"],
         NOW,
+        false,
       ),
     );
     expect(wheel.spunAt).toBeNull();

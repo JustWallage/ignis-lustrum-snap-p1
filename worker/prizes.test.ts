@@ -1,7 +1,13 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { prizeListSchema, prizeSchema, type Prize } from "../shared/api";
+import {
+  prizeListSchema,
+  prizeSchema,
+  prizesPath,
+  type Prize,
+  type PrizeSet,
+} from "../shared/api";
 import { MIN_ENABLED_PRIZES, SEED_PRIZES } from "../shared/prizes";
 import { wsEventSchema, type WsEvent } from "../shared/ws-events";
 import { app } from "./index";
@@ -36,9 +42,14 @@ async function request(
   return app.request(path, { ...init, headers }, bindings);
 }
 
-function post(cookie: string, body: object, bindings?: object) {
+function post(
+  cookie: string,
+  body: object,
+  bindings?: object,
+  set: PrizeSet = "ordinary",
+) {
   return request(
-    "/api/prizes",
+    prizesPath(set),
     cookie,
     { method: "POST", body: JSON.stringify(body) },
     bindings,
@@ -54,14 +65,21 @@ function patch(cookie: string, id: number, body: object, bindings?: object) {
   );
 }
 
-async function listPrizes(cookie: string): Promise<Prize[]> {
-  const res = await request("/api/prizes", cookie);
+async function listPrizes(
+  cookie: string,
+  set: PrizeSet = "ordinary",
+): Promise<Prize[]> {
+  const res = await request(prizesPath(set), cookie);
   expect(res.status).toBe(200);
   return prizeListSchema.parse(await res.json()).prizes;
 }
 
-async function createPrize(cookie: string, label: string): Promise<Prize> {
-  const res = await post(cookie, { label });
+async function createPrize(
+  cookie: string,
+  label: string,
+  set: PrizeSet = "ordinary",
+): Promise<Prize> {
+  const res = await post(cookie, { label }, undefined, set);
   expect(res.status).toBe(201);
   return prizeSchema.parse(await res.json());
 }
@@ -139,6 +157,77 @@ describe("the prize list", () => {
 
   it("needs a session at all", async () => {
     expect((await app.request("/api/prizes", {}, env)).status).toBe(401);
+  });
+});
+
+describe("the Bowser prize list", () => {
+  it("ships empty, and reads to any signed-in friend exactly as the ordinary one does", async () => {
+    expect(await listPrizes(cookie, "bowser")).toEqual([]);
+    const asAFriend = await request(
+      prizesPath("bowser"),
+      cookie,
+      {},
+      asFriend(),
+    );
+    expect(asAFriend.status).toBe(200);
+    expect(prizeListSchema.parse(await asAFriend.json()).prizes).toEqual([]);
+    expect((await app.request(prizesPath("bowser"), {}, env)).status).toBe(401);
+  });
+
+  it("refuses every mutation from a non-admin, and changes nothing", async () => {
+    const friend = asFriend();
+    const mine = await createPrize(cookie, "Bowsers bier", "bowser");
+
+    expect(
+      (await post(cookie, { label: "Sneaky prize" }, friend, "bowser")).status,
+    ).toBe(403);
+    expect(
+      (await patch(cookie, mine.id, { label: "Mine" }, friend)).status,
+    ).toBe(403);
+    const deleted = await request(
+      `/api/prizes/${String(mine.id)}`,
+      cookie,
+      { method: "DELETE" },
+      friend,
+    );
+    expect(deleted.status).toBe(403);
+
+    expect((await listPrizes(cookie, "bowser")).map((p) => p.label)).toEqual([
+      "Bowsers bier",
+    ]);
+  });
+
+  it("is edited independently of the ordinary one, in both directions", async () => {
+    const beastly = await createPrize(cookie, "Bowsers bed", "bowser");
+    expect(beastly.sortOrder).toBe(0);
+    expect((await listPrizes(cookie)).map((p) => p.label)).toEqual([
+      ...SEED_PRIZES,
+    ]);
+
+    const ordinary = (await listPrizes(cookie))[0];
+    if (ordinary === undefined) throw new Error("the wheel seeded empty");
+    expect(
+      (await patch(cookie, ordinary.id, { label: "Renamed" })).status,
+    ).toBe(200);
+    expect((await listPrizes(cookie, "bowser")).map((p) => p.label)).toEqual([
+      "Bowsers bed",
+    ]);
+
+    expect((await patch(cookie, beastly.id, { enabled: false })).status).toBe(
+      200,
+    );
+    expect((await listPrizes(cookie)).every((p) => p.enabled)).toBe(true);
+  });
+
+  it("answers the ordinary set to anybody who asks for nothing readable", async () => {
+    await createPrize(cookie, "Bowsers bier", "bowser");
+    for (const query of ["", "?set=", "?set=nonsense"]) {
+      const res = await request(`/api/prizes${query}`, cookie);
+      expect(res.status).toBe(200);
+      expect(
+        prizeListSchema.parse(await res.json()).prizes.map((p) => p.label),
+      ).toEqual([...SEED_PRIZES]);
+    }
   });
 });
 

@@ -122,9 +122,25 @@ export const prizes = sqliteTable(
     label: text("label").notNull(),
     enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
+    prizeSet: text("prize_set", { enum: ["ordinary", "bowser"] })
+      .notNull()
+      .default("ordinary"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (t) => [index("prizes_order_idx").on(t.sortOrder)],
+);
+
+export const bowserDays = sqliteTable(
+  "bowser_days",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    day: integer("day").notNull(),
+    markedBy: integer("marked_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [uniqueIndex("bowser_days_day_idx").on(t.day)],
 );
 
 export const prizeAwards = sqliteTable(

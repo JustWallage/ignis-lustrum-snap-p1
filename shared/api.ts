@@ -193,6 +193,17 @@ export type Prize = z.infer<typeof prizeSchema>;
 
 export const prizeListSchema = z.object({ prizes: z.array(prizeSchema) });
 
+export const prizeSetSchema = z.enum(["ordinary", "bowser"]);
+export type PrizeSet = z.infer<typeof prizeSetSchema>;
+
+export function prizesPath(set: PrizeSet): string {
+  return set === "ordinary" ? "/api/prizes" : `/api/prizes?set=${set}`;
+}
+
+export const bowserDaysSchema = z.object({
+  days: z.array(z.object({ day: z.int().positive(), markedBy: userSchema })),
+});
+
 const prizeLabelSchema = z.string().trim().min(1).max(80);
 
 export const prizeCreateSchema = z.object({ label: prizeLabelSchema });

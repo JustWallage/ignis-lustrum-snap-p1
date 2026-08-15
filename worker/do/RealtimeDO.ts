@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { prizeAwards } from "../../db/schema";
+import type { PrizeSet } from "../../shared/api";
 import {
   countdownEvent,
   eventStateSchema,
@@ -7,6 +8,7 @@ import {
   HOST_IDLE_MS,
   idleEvent,
   isAwaitingHost,
+  isBeastOn,
   nextDeadline,
   nextPodiumStage,
   podiumAdvanceEvent,
@@ -39,7 +41,7 @@ import {
   readGameState,
   setGamePhase,
 } from "../lib/game-state";
-import { enabledPrizeLabels } from "../lib/wheel";
+import { enabledPrizeLabels, prizeSetForDay } from "../lib/wheel";
 import {
   isPresent,
   playerOf,
@@ -75,6 +77,11 @@ function refuse(status: 403 | 409, error: string): EventOutcome {
 function landingIndex(count: number): number {
   const [value] = crypto.getRandomValues(new Uint32Array(1));
   return (value ?? 0) % count;
+}
+
+function tooFewPrizes(set: PrizeSet, count: number): string {
+  const which = set === "bowser" ? "Bowser wheel" : "wheel";
+  return `The ${which} needs at least ${String(MIN_ENABLED_PRIZES)} enabled prizes; ${String(count)} is not a wheel. Turn more on in the prize manager.`;
 }
 
 /**
@@ -173,12 +180,14 @@ export class RealtimeDO extends DurableObject<Bindings> {
       if (current.phase !== "submission") {
         return refuse(409, "An event is already running");
       }
-      const segments = await enabledPrizeLabels(getDb(this.env));
+      // Refused HERE, on the set the DAY will use, because three phases later
+      // `wheelDraft` runs on an alarm with nobody left to answer and falls silently
+      // back to normal play.
+      const db = getDb(this.env);
+      const set = await prizeSetForDay(db, current.day);
+      const segments = await enabledPrizeLabels(db, set);
       if (segments.length < MIN_ENABLED_PRIZES) {
-        return refuse(
-          409,
-          `The wheel needs at least ${String(MIN_ENABLED_PRIZES)} enabled prizes; ${String(segments.length)} is not a wheel. Turn more on in the prize manager.`,
-        );
+        return refuse(409, tooFewPrizes(set, segments.length));
       }
       return {
         ok: true,
@@ -202,6 +211,9 @@ export class RealtimeDO extends DurableObject<Bindings> {
       const event = await this.readEvent();
       if (event.phase !== "wheel") {
         return refuse(409, "The wheel is not up");
+      }
+      if (isBeastOn(event, Date.now())) {
+        return refuse(409, "The beast has not finished with the winner");
       }
       if (event.winnerUserId !== userId && event.hostUserId !== userId) {
         return refuse(
@@ -316,9 +328,11 @@ export class RealtimeDO extends DurableObject<Bindings> {
 
   private async wheelDraft(event: EventState): Promise<EventDraft> {
     if (event.winnerUserId === null) return idleEvent();
-    const segments = await enabledPrizeLabels(getDb(this.env));
+    const db = getDb(this.env);
+    const set = await prizeSetForDay(db, event.day);
+    const segments = await enabledPrizeLabels(db, set);
     if (segments.length < MIN_ENABLED_PRIZES) return idleEvent();
-    return wheelEvent(event, segments, Date.now());
+    return wheelEvent(event, segments, Date.now(), set === "bowser");
   }
 
   private async land(event: EventState): Promise<void> {

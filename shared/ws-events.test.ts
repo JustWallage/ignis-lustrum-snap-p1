@@ -83,6 +83,8 @@ describe("wsEventSchema", () => {
         spunAt: null,
         prizeIndex: null,
         segments: [],
+        bowser: false,
+        beastEndsAt: null,
       },
     };
     expect(wsEventSchema.parse(event)).toEqual(event);

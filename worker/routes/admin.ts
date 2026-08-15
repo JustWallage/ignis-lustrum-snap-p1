@@ -23,6 +23,7 @@ import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
 import { scorePhoto } from "../lib/photo-score";
 import { rateLimiter } from "../lib/rate-limit";
+import { adminBowserRoutes } from "./admin-bowser";
 import { adminClockRoutes } from "./admin-clock";
 import { adminImagesRoutes } from "./admin-images";
 import { adminDayRoutes, adminPhotoRoutes } from "./admin-retire";
@@ -37,6 +38,7 @@ adminRoutes.use("*", async (c, next) => {
   return next();
 });
 
+adminRoutes.route("/bowser", adminBowserRoutes);
 adminRoutes.route("/day", adminClockRoutes);
 adminRoutes.route("/days", adminDayRoutes);
 adminRoutes.route("/photos", adminPhotoRoutes);

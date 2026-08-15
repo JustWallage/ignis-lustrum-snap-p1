@@ -2,6 +2,7 @@ import { useState } from "react";
 import { gameStateSchema } from "@shared/state";
 import { AvatarsPanel } from "@/admin/AvatarsPanel";
 import { BenchPanel } from "@/admin/BenchPanel";
+import { BowserPanel } from "@/admin/BowserPanel";
 import { BucketPanel } from "@/admin/BucketPanel";
 import { ClockPanel } from "@/admin/ClockPanel";
 import { PrizesPanel } from "@/admin/PrizesPanel";
@@ -15,6 +16,7 @@ const SECTIONS = [
   { id: "snaps", label: "Snaps" },
   { id: "bucket", label: "Bucket" },
   { id: "prizes", label: "Prizes" },
+  { id: "bowser", label: "Bowser days" },
   { id: "avatars", label: "Avatars" },
   { id: "bench", label: "Jury bench" },
   { id: "retries", label: "Jury retries" },
@@ -92,6 +94,7 @@ export function AdminConsole() {
           )}
           {section === "bucket" && <BucketPanel />}
           {section === "prizes" && <PrizesPanel />}
+          {section === "bowser" && <BowserPanel />}
           {section === "avatars" && <AvatarsPanel clock={state} />}
           {section === "bench" && <BenchPanel />}
           {section === "retries" && <RetryPanel clock={state} />}

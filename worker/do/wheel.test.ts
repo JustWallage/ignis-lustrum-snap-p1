@@ -1,16 +1,20 @@
 import { env } from "cloudflare:workers";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { apiErrorSchema } from "../../shared/api";
+import type { EventState } from "../../shared/events";
 import { MIN_ENABLED_PRIZES, SEED_PRIZES } from "../../shared/prizes";
 import { gameStateSchema } from "../../shared/state";
 import { app } from "../index";
 import {
+  aBowserWheel,
   aWheel,
+  BOWSER_PRIZES,
   currentDay,
   eventAction,
   fireEventAlarm,
   IDLE_EVENT,
+  markBowserDay,
   openSocket,
   postSpin,
   readEvent,
@@ -22,6 +26,21 @@ import {
 } from "../test-helpers";
 
 beforeEach(resetWorld);
+
+async function afterTheBeast<T>(
+  wheel: EventState,
+  body: () => Promise<T>,
+): Promise<T> {
+  const endsAt = wheel.beastEndsAt;
+  if (endsAt === null) throw new Error("that wheel came up with no beast");
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(endsAt + 1);
+  try {
+    return await body();
+  } finally {
+    vi.useRealTimers();
+  }
+}
 
 function prizeIdsOf(body: unknown): number[] {
   const parsed = z
@@ -166,6 +185,92 @@ describe("the prize wheel", () => {
     expect(refused.status).toBe(409);
     expect(apiErrorSchema.parse(await refused.json()).error).toMatch(/prizes/i);
     expect((await readEvent()).phase).toBe("submission");
+  });
+});
+
+describe("a Bowser day", () => {
+  it("comes back with the beast and the Bowser set, and says so nowhere earlier", async () => {
+    const { wheel } = await aBowserWheel();
+    expect(wheel.bowser).toBe(true);
+    expect(wheel.segments).toEqual(BOWSER_PRIZES);
+    expect(wheel.beastEndsAt).not.toBeNull();
+  });
+
+  it("leaves an unmarked day exactly as it was", async () => {
+    const { wheel } = await aWheel();
+    expect(wheel.bowser).toBe(false);
+    expect(wheel.beastEndsAt).toBeNull();
+    expect(wheel.segments).toEqual([...SEED_PRIZES]);
+  });
+
+  it("is still the Bowser day's wheel, on the same moment, after the spin", async () => {
+    const { wheel, winnerCookie } = await aBowserWheel();
+    await afterTheBeast(wheel, async () => {
+      expect((await postSpin(winnerCookie)).status).toBe(200);
+    });
+
+    const spun = await readEvent();
+    expect(spun.bowser).toBe(true);
+    expect(spun.segments).toEqual(BOWSER_PRIZES);
+    expect(spun.beastEndsAt).toBe(wheel.beastEndsAt);
+    expect(spun.prizeIndex).not.toBeNull();
+  });
+
+  it("will not be spun past the beast, by the winner or by the host", async () => {
+    const { wheel, hostCookie, winnerCookie } = await aBowserWheel("judge");
+    for (const cookie of [winnerCookie, hostCookie]) {
+      const refused = await postSpin(cookie);
+      expect(refused.status).toBe(409);
+      expect(apiErrorSchema.parse(await refused.json()).error).toMatch(
+        /beast/i,
+      );
+    }
+    expect((await readEvent()).spunAt).toBeNull();
+
+    await afterTheBeast(wheel, async () => {
+      expect((await postSpin(hostCookie)).status).toBe(200);
+    });
+    expect((await readEvent()).spunAt).not.toBeNull();
+  });
+
+  it("awards a Bowser prize and turns the day over", async () => {
+    const { wheel, winnerCookie } = await aBowserWheel();
+    await afterTheBeast(wheel, async () => {
+      expect((await postSpin(winnerCookie)).status).toBe(200);
+    });
+    expect(await runEventAlarm()).toBe(true);
+
+    const award = await storedAward(1);
+    expect(BOWSER_PRIZES).toContain(award?.prize_label);
+    expect(award?.user_id).toBe(wheel.winnerUserId);
+    expect(await currentDay()).toBe(2);
+  });
+
+  it("refuses to start when its OWN list is short, and names which one is", async () => {
+    const admin = await signIn("tester");
+    expect((await markBowserDay(admin, 1)).status).toBe(200);
+
+    const refused = await eventAction(admin, "start");
+    expect(refused.status).toBe(409);
+    expect(apiErrorSchema.parse(await refused.json()).error).toMatch(
+      /Bowser wheel/,
+    );
+    expect((await readEvent()).phase).toBe("submission");
+  });
+
+  it("is the day's own affair: unmarking it puts the ordinary wheel back", async () => {
+    const admin = await signIn("tester");
+    expect((await markBowserDay(admin, 1)).status).toBe(200);
+    const unmarked = await app.request(
+      "/api/admin/bowser/1",
+      { method: "DELETE", headers: { Cookie: admin } },
+      env,
+    );
+    expect(unmarked.status).toBe(200);
+
+    const { wheel } = await aWheel();
+    expect(wheel.bowser).toBe(false);
+    expect(wheel.segments).toEqual([...SEED_PRIZES]);
   });
 });
 

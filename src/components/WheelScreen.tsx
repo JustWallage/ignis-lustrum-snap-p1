@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { wheelProgress, type EventState } from "@shared/events";
+import { isBeastOn, wheelProgress, type EventState } from "@shared/events";
+import { BeastScreen } from "@/components/BeastScreen";
 import { NamedCharacter } from "@/components/Crowd";
 import { EventSnap } from "@/components/EventSnap";
 import { useAuth } from "@/context/AuthContext";
@@ -121,6 +122,10 @@ export function WheelScreen({
     }
   };
 
+  if (isBeastOn(event, now)) {
+    return <BeastScreen event={event} town={town} now={now} />;
+  }
+
   if (landed && prize !== undefined) {
     return <LastPage event={event} town={town} prize={prize} onDone={onDone} />;
   }
@@ -136,6 +141,7 @@ export function WheelScreen({
       <div
         className="gb-wheel"
         data-testid="wheel"
+        data-bowser={event.bowser}
         style={{
           height: `${drum.windowCqw.toFixed(3)}cqw`,
           perspective: `${drum.perspectiveCqw.toFixed(3)}cqw`,

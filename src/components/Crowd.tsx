@@ -12,7 +12,7 @@ import {
   type CrowdMember,
   type CrowdPlayer,
 } from "@/game/crowd";
-import { PLAYER_H, PLAYER_W, playerSprites } from "@/game/player";
+import { playerSprites } from "@/game/player";
 import { remoteSprites, whenSpritesSettle } from "@/game/remote-sprites";
 
 /** How much of `.gb-crowd`'s height the back row is lifted by. It has to be MORE than
@@ -37,7 +37,43 @@ function useWorn(url: string | null): HTMLCanvasElement {
   return (worn ?? playerSprites()).down[0];
 }
 
-function Character({
+export function PixelSprite({
+  sprite,
+  className,
+  style,
+  testId,
+  player,
+}: {
+  sprite: HTMLCanvasElement;
+  className: string;
+  style?: CSSProperties | undefined;
+  testId: string;
+  player?: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (ctx === null || ctx === undefined) return;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, sprite.width, sprite.height);
+    ctx.drawImage(sprite, 0, 0);
+  }, [sprite]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={sprite.width}
+      height={sprite.height}
+      className={className}
+      style={style}
+      data-testid={testId}
+      {...(player === undefined ? {} : { "data-player": player })}
+    />
+  );
+}
+
+export function Character({
   who,
   url,
   style,
@@ -46,26 +82,13 @@ function Character({
   url: string | null;
   style?: CSSProperties;
 }) {
-  const sprite = useWorn(url);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const ctx = canvasRef.current?.getContext("2d");
-    if (ctx === null || ctx === undefined) return;
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, PLAYER_W, PLAYER_H);
-    ctx.drawImage(sprite, 0, 0);
-  }, [sprite]);
-
   return (
-    <canvas
-      ref={canvasRef}
-      width={PLAYER_W}
-      height={PLAYER_H}
+    <PixelSprite
+      sprite={useWorn(url)}
       className="gb-character"
       style={style}
-      data-testid="crowd-character"
-      data-player={who}
+      testId="crowd-character"
+      player={who}
     />
   );
 }
