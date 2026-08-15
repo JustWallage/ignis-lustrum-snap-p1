@@ -24,8 +24,14 @@ Everything both sides read. Change a schema here first.
   clock-derived parade survives skew; a podium rank does not, and checking the clock first left a
   slow client parading while everyone else was on third.
 - `podiumRank` is the ONE field saying which reveal page is up, so there is no fourth phase to
-  disagree with it. `draftOf` drops the day rather than listing fields, so a new state field survives
-  a transition by default.
+  disagree with it. The beast is a MOMENT on the wheel (`beastEndsAt`), not a fourth reveal page.
+  `draftOf` drops the day rather than listing fields, so a new state field survives a transition by
+  default — but **only `podiumEvent` and `podiumAdvanceEvent` go through it**. `countdownEvent`,
+  `revealEvent`, `wheelEvent` and `spunEvent` REBUILD from `idleEvent()` and then list their fields,
+  so a field of the wheel's is stated again in `spunEvent` or it is lost the instant the winner
+  presses SPIN. `beastEndsAt` is worse than lost: `spunEvent` hands `wheelEvent` a fresh `now`, which
+  restamps it, and the beast replays over the landing while the flag and the segments both survive —
+  so a test that only checks the colour and the prizes stays green through it.
 - Movement goes through `stepTarget`, which returns where a step LANDS or `null` for a bump. **Never
   fork the terrain.** `WalkableTile` is a UNION because `src/lib/sound.ts` keys its footstep table by
   it: nothing becomes walkable without a decision about what it sounds like.
@@ -46,4 +52,9 @@ Everything both sides read. Change a schema here first.
   turns a stroll into a load test.
 - `juryForDay` WRAPS, so day 15 is jury 1 and play continues. `capOptions` never returns an empty
   list, because an option is a BUTTON LABEL. The `prizes` migration duplicates `SEED_PRIZES` in SQL
-  because migrations cannot import TypeScript; `worker/prizes.test.ts` holds the two together.
+  because migrations cannot import TypeScript; `worker/prizes.test.ts` holds the two together. The
+  Bowser set has no second copy of either, because it ships EMPTY.
+- **`ordinary` is the prize set everywhere it is not said** (`prizesPath`, and the route's own
+  fallback for an unreadable `?set=`): `GET /api/prizes` has live callers that read or patch the
+  whole list, and a default answering both sets turns four unrelated tests red for a reason nobody
+  would connect to Bowser days.

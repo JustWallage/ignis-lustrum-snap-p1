@@ -4,7 +4,9 @@ import { prizes } from "../../db/schema";
 import {
   prizeCreateSchema,
   prizeListSchema,
+  prizeSetSchema,
   prizeUpdateSchema,
+  type PrizeSet,
 } from "../../shared/api";
 import type { AppEnv } from "../env";
 import { isAdmin } from "../lib/auth";
@@ -25,11 +27,17 @@ prizesRoutes.use(async (c, next) => {
   return next();
 });
 
+function askedSet(query: string | undefined): PrizeSet {
+  const parsed = prizeSetSchema.safeParse(query);
+  return parsed.success ? parsed.data : "ordinary";
+}
+
 /** `sort_order` is not unique, so `id` breaks the tie and the order is stable. */
-function listPrizes(db: Db) {
+function listPrizes(db: Db, set: PrizeSet) {
   return db
     .select()
     .from(prizes)
+    .where(eq(prizes.prizeSet, set))
     .orderBy(asc(prizes.sortOrder), asc(prizes.id));
 }
 
@@ -39,7 +47,7 @@ async function findPrize(db: Db, id: number) {
 }
 
 prizesRoutes.get("/", async (c) => {
-  const rows = await listPrizes(getDb(c.env));
+  const rows = await listPrizes(getDb(c.env), askedSet(c.req.query("set")));
   return c.json(prizeListSchema.parse({ prizes: rows.map(toPrize) }));
 });
 
@@ -49,15 +57,20 @@ prizesRoutes.post("/", async (c) => {
     return c.json({ error: "A prize needs a label" }, 400);
   }
   const db = getDb(c.env);
+  const set = askedSet(c.req.query("set"));
+  // The end of ITS OWN set: the two orders are independent, so adding to one cannot
+  // shuffle the other.
   const highest = await db
     .select({ value: max(prizes.sortOrder) })
-    .from(prizes);
+    .from(prizes)
+    .where(eq(prizes.prizeSet, set));
   const inserted = await db
     .insert(prizes)
     .values({
       label: parsed.data.label,
       enabled: true,
       sortOrder: (highest[0]?.value ?? -1) + 1,
+      prizeSet: set,
       createdAt: new Date(),
     })
     .returning();

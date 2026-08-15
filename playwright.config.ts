@@ -32,6 +32,7 @@ const baseURL = process.env.BASE_URL ?? "http://localhost:5174";
 // not turn that into a second explicit list: a file in neither project is a file
 // nothing runs, and the pipeline stays green while it does so.
 const EVENT_SPECS = [
+  "bowser.spec.ts",
   "live-event.spec.ts",
   "live-loop.spec.ts",
   "podium.spec.ts",

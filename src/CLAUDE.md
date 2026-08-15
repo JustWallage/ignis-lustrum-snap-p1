@@ -160,7 +160,12 @@
   marker's frame in as it renders and the stylesheet holds no copy to go stale — bar the shading
   gradient's stops, which are pinned to where the radius puts the horizon. **The marker frames
   the near face MAGNIFIED by the perspective**, never a face's own height — that is the copy that
-  went false first. `.gb-wheel`'s `overflow: hidden` is why the `preserve-3d` wrapper sits INSIDE
+  went false first. **A Bowser day's drum is a VARIANT of that one drum** — `data-bowser` on
+  `.gb-wheel` and four custom properties, never a second drum and never a second geometry — and the
+  beast that comes on before it is `BeastScreen`, the first beat of the `wheel` phase rather than a
+  fourth reveal page. It places itself from `beastEndsAt` and the clock, like everything else on this
+  screen, so a screen joining mid-beast lands inside it; `PixelSprite` is the ONE canvas figure of
+  the overlay and the beast comes through it beside the character it eats. `.gb-wheel`'s `overflow: hidden` is why the `preserve-3d` wrapper sits INSIDE
   it (any overflow but `visible` forces the used `transform-style` of that same element to flat, so
   `preserve-3d` on `.gb-wheel` is ignored), and why the
   barrel is built narrower than its window: Chromium cuts a face against that clip in the face's

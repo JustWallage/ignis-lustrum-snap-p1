@@ -6,7 +6,12 @@ import {
 import { env } from "cloudflare:workers";
 import { afterEach, expect, vi } from "vitest";
 import { z } from "zod";
-import { failedEvaluationsSchema, photoSchema } from "../shared/api";
+import {
+  failedEvaluationsSchema,
+  photoSchema,
+  prizesPath,
+  type PrizeSet,
+} from "../shared/api";
 import {
   eventStateSchema,
   nextDeadline,
@@ -79,6 +84,8 @@ export const IDLE_EVENT = {
   spunAt: null,
   prizeIndex: null,
   segments: [],
+  bowser: false,
+  beastEndsAt: null,
 };
 
 function realtimeStub() {
@@ -181,6 +188,50 @@ export async function aWheel(host: "tester" | "judge" = "tester") {
     winnerCookie: winnerIs("tester") ? mine : theirs,
     loserCookie: winnerIs("tester") ? theirs : mine,
   };
+}
+
+export const BOWSER_PRIZES = ["Bowsers bed", "Bowsers bier"];
+
+export async function markBowserDay(
+  cookie: string,
+  day: number,
+): Promise<Response> {
+  return app.request(
+    "/api/admin/bowser",
+    {
+      method: "POST",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ day }),
+    },
+    env,
+  );
+}
+
+async function addPrize(
+  cookie: string,
+  label: string,
+  set: PrizeSet,
+): Promise<Response> {
+  return app.request(
+    prizesPath(set),
+    {
+      method: "POST",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    },
+    env,
+  );
+}
+
+/** A wheel on a MARKED day, its Bowser set filled first: the START it goes through
+ * refuses a marked day whose own list is short. */
+export async function aBowserWheel(host: "tester" | "judge" = "tester") {
+  const admin = await signIn("tester");
+  expect((await markBowserDay(admin, 1)).status).toBe(200);
+  for (const label of BOWSER_PRIZES) {
+    expect((await addPrize(admin, label, "bowser")).status).toBe(201);
+  }
+  return aWheel(host);
 }
 
 export async function playToLanding(): Promise<string> {

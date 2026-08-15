@@ -19,6 +19,8 @@ export const eventStateSchema = z.object({
   spunAt: z.int().positive().nullable(),
   prizeIndex: z.int().nonnegative().nullable(),
   segments: z.array(z.string()),
+  bowser: z.boolean(),
+  beastEndsAt: z.int().positive().nullable(),
 });
 export type EventState = z.infer<typeof eventStateSchema>;
 
@@ -45,6 +47,8 @@ export const WHEEL_SPIN_MS = 5_000;
 
 const WHEEL_HOLD_MS = 20_000;
 
+export const BEAST_MS = 6_000;
+
 export function idleEvent(): EventDraft {
   return {
     phase: "submission",
@@ -60,6 +64,8 @@ export function idleEvent(): EventDraft {
     spunAt: null,
     prizeIndex: null,
     segments: [],
+    bowser: false,
+    beastEndsAt: null,
   };
 }
 
@@ -141,6 +147,7 @@ export function wheelEvent(
   event: Pick<EventState, "winnerPhotoId" | "winnerUserId" | "hostUserId">,
   segments: readonly string[],
   now: number,
+  bowser: boolean,
 ): EventDraft {
   return {
     ...idleEvent(),
@@ -149,6 +156,8 @@ export function wheelEvent(
     winnerUserId: event.winnerUserId,
     hostUserId: event.hostUserId,
     segments: [...segments],
+    bowser,
+    beastEndsAt: bowser ? now + BEAST_MS : null,
     // Without this an unspun wheel armed no alarm and hung until an admin
     // aborted it.
     stageEndsAt: now + HOST_IDLE_MS,
@@ -161,11 +170,26 @@ export function spunEvent(
   prizeIndex: number,
 ): EventDraft {
   return {
-    ...wheelEvent(wheel, wheel.segments, now),
+    // This REBUILDS from `idleEvent()`, so anything the wheel is carrying is stated
+    // again here or lost — the flag as an argument, and the beast's moment as a field,
+    // because `wheelEvent` stamps that from the `now` it is handed and the press would
+    // otherwise push it forward and replay the beast over the landing.
+    ...wheelEvent(wheel, wheel.segments, now, wheel.bowser),
+    beastEndsAt: wheel.beastEndsAt,
     spunAt: now,
     prizeIndex,
     stageEndsAt: null,
   };
+}
+
+export function beastProgress(event: EventState, now: number): number {
+  const endsAt = event.beastEndsAt;
+  if (endsAt === null) return 1;
+  return Math.min(1, Math.max(0, 1 - (endsAt - now) / BEAST_MS));
+}
+
+export function isBeastOn(event: EventState, now: number): boolean {
+  return event.beastEndsAt !== null && now < event.beastEndsAt;
 }
 
 export function countdownSeconds(

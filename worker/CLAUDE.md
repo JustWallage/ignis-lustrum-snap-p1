@@ -47,6 +47,14 @@
   `db.batch`, or a day advances without a claimable prize. An abort and a day nobody submitted to
   both end with no landing and no increment; below `MIN_ENABLED_PRIZES`, START refuses with the
   reason, because at the button there is still an admin to tell.
+- **Whether tonight is a Bowser day is READ IN THE DO, from `bowser_days`, and nowhere else** — in
+  `startEvent`, so the refusal checks the set the day will actually use and names which one is short,
+  and in `wheelDraft`, which stamps the flag and the beast's moment into the wheel it publishes.
+  Nothing under `src/` asks the question: what a browser learns is the flag on the wheel it is
+  already being sent, and no surface announces a Bowser day in advance. **The spin's guard is in
+  `spinWheel` with a reason string**, because hiding the button and the SELECT item is only the
+  cosmetic half. Marking a day broadcasts nothing (it is config nobody is rendering); a Bowser-set
+  prize edit broadcasts `prizes_changed` like any other.
 - **Presence lives in the socket's ATTACHMENT, never a field on the class** (hibernation) — a field
   would be a roster that quietly emptied itself. `presenceUpgrade` builds the DO's request FROM
   SCRATCH, so a client cannot smuggle a name, id or sprite. Expiry is by silence as well as by
@@ -109,6 +117,11 @@
   apart on who may delete what. The avatar mount sits above its listing to match the photos pair, not
   because it must: `townAvatarRoutes` declares only `/`, so nothing there could swallow it. Nothing
   on a sprite thread is anonymous: the gallery already prints the name beside every face.
+- **`/api/prizes` keeps its own gate** — GET readable by any signed-in friend, mutations admin — and
+  that asymmetry holds for BOTH sets: `?set=bowser` is the same router, the same rows and the same
+  gate, so the Bowser list reads to a friend and 403s their every mutation. Bowser DAYS are the other
+  lever and land under the `isAdmin` sub-router instead (`routes/admin-bowser.ts`), where reads are
+  admin too.
 - ONE `isAdmin` gate on the admin sub-router, not per handler — which is why the console's routers
   are mounted ON `adminRoutes` rather than in `index.ts`, where `adminEventRoutes` sits outside that
   gate and carries its own. What it serves is COUNTS, CONFIG and the operator's LEVERS — the clock,

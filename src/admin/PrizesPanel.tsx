@@ -1,13 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
-import { prizeListSchema, type Prize } from "@shared/api";
+import {
+  prizeListSchema,
+  prizesPath,
+  type Prize,
+  type PrizeSet,
+} from "@shared/api";
 import { MIN_ENABLED_PRIZES } from "@shared/prizes";
 import { ConfirmButton } from "@/admin/ConfirmButton";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 
 type PrizePatch = Partial<Pick<Prize, "label" | "enabled" | "sortOrder">>;
 
+const SETS: { id: PrizeSet; label: string }[] = [
+  { id: "ordinary", label: "Ordinary" },
+  { id: "bowser", label: "Bowser" },
+];
+
+// One list with a switch rather than two panels: a second copy of the row editor is
+// what jscpd catches.
 export function PrizesPanel() {
-  const list = useCachedFetch("/api/prizes", prizeListSchema);
+  const [set, setSet] = useState<PrizeSet>("ordinary");
+  const list = useCachedFetch(prizesPath(set), prizeListSchema);
   const { mutate } = list;
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,7 +52,7 @@ export function PrizesPanel() {
     if (trimmed === "") return;
     setBusy(true);
     try {
-      await fetch("/api/prizes", {
+      await fetch(prizesPath(set), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: trimmed }),
@@ -51,7 +64,7 @@ export function PrizesPanel() {
       // wait for the list invisible.
       setBusy(false);
     }
-  }, [label, mutate]);
+  }, [label, mutate, set]);
 
   const prizes = useMemo(() => list.data?.prizes ?? [], [list.data]);
 
@@ -80,6 +93,27 @@ export function PrizesPanel() {
   return (
     <section className="ops-panel" data-testid="ops-prizes">
       <h2 className="ops-heading">The prize wheel</h2>
+      <div className="ops-row" role="group" aria-label="Prize set">
+        {SETS.map((one) => (
+          <button
+            key={one.id}
+            type="button"
+            className="ops-btn"
+            aria-pressed={set === one.id}
+            data-testid={`ops-prize-set-${one.id}`}
+            onClick={() => {
+              setSet(one.id);
+            }}
+          >
+            {one.label}
+          </button>
+        ))}
+      </div>
+      <p className="ops-note">
+        {set === "bowser"
+          ? "The wheel a Bowser day comes back with. It ships empty; a marked day whose list is short refuses at START."
+          : "The wheel every ordinary day ends on."}
+      </p>
       {enabledCount < MIN_ENABLED_PRIZES && (
         <p className="ops-error" role="alert" data-testid="ops-prize-warning">
           {`The wheel needs ${String(MIN_ENABLED_PRIZES)} enabled prizes to spin — ${String(enabledCount)} in.`}

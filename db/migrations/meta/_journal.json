@@ -127,6 +127,13 @@
       "when": 1786713891711,
       "tag": "0017_retired_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1786794058733,
+      "tag": "0018_bowser_days",
+      "breakpoints": true
     }
   ]
 }

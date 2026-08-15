@@ -158,6 +158,17 @@ export const PLAYER_RAMP: SpriteRamp = {
   trousers: "#3c58a8",
 };
 
+/** A `SpriteRamp` because the beast is drawn by the same `paint`, but the six slots are
+ * spent on a beast: hide, shell, belly, maw and teeth. */
+export const BEAST_RAMP: SpriteRamp = {
+  outline: SPRITE_INK,
+  skin: "#f8e0b8",
+  hair: "#68b048",
+  hat: "#f8f8f8",
+  shirt: "#1c6830",
+  trousers: "#d84038",
+};
+
 const JURY_HAIR: Record<JurySprite["hair"], string> = {
   dark: "#3c2820",
   blond: "#e8c060",

@@ -495,6 +495,26 @@
   gap: 1.6cqw;
 }
 
+.gb-beast-stage {
+  position: relative;
+  width: 100%;
+  height: 22cqw;
+}
+.gb-beast-stage .gb-character,
+.gb-beast {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+/* Nothing here animates, for the reason the drum below does not: a transition would be
+   a second opinion about where the beast has got to. */
+.gb-beast {
+  display: block;
+  width: 18cqw;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+}
+
 .gb-countdown {
   font-size: 14cqw;
   font-weight: 700;
@@ -651,14 +671,26 @@
    thing below still tied to that radius is the gradient's stops, which cover where it
    puts the horizon. */
 .gb-wheel {
+  /* A VARIANT of the one drum, never a second one: the geometry above is written in by
+     `WheelScreen.tsx` for both, and only these four values differ. */
+  --gb-drum-face: #2a5744;
+  --gb-drum-face-alt: #386e56;
+  --gb-drum-edge: #4d7f66;
+  --gb-drum-rim: #306850;
   position: relative;
   /* NEVER shrunk: the overlay is a flex column, and a window shorter than the barrel
      crops the rolling edges that are the whole of reading it as a drum. */
   flex: none;
   width: 100%;
   overflow: hidden;
-  border-top: 0.4cqw solid #306850;
-  border-bottom: 0.4cqw solid #306850;
+  border-top: 0.4cqw solid var(--gb-drum-rim);
+  border-bottom: 0.4cqw solid var(--gb-drum-rim);
+}
+.gb-wheel[data-bowser="true"] {
+  --gb-drum-face: #7c1c24;
+  --gb-drum-face-alt: #a02830;
+  --gb-drum-edge: #d85048;
+  --gb-drum-rim: #58101c;
 }
 /* The barrel's 3D context has to sit INSIDE the window rather than on it: `overflow`
    other than `visible` forces the used `transform-style` of THAT element to flat, so a
@@ -678,8 +710,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 1.2cqw;
-  background: #2a5744;
-  border-top: 0.3cqw solid #4d7f66;
+  background: var(--gb-drum-face);
+  border-top: 0.3cqw solid var(--gb-drum-edge);
   border-bottom: 0.3cqw solid #1b2830;
   font-size: 2.2cqw;
   font-weight: 700;
@@ -688,7 +720,7 @@
   text-align: center;
 }
 .gb-wheel-seg:nth-child(even) {
-  background: #386e56;
+  background: var(--gb-drum-face-alt);
 }
 /* The first stop is OPAQUE rather than the start of the fade: a face crosses the
    horizon under it, and an edge-on face is a sliver rather than nothing, so without

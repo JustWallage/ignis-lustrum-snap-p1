@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AvatarState, DayResult } from "@shared/api";
-import { isEventRunning } from "@shared/events";
+import { isBeastOn, isEventRunning } from "@shared/events";
 import { juryForDay, type Jury } from "@shared/juries";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
 import {
@@ -780,7 +780,10 @@ export function Overworld() {
             // has not ended anybody's event, so an admin is still offered Abort.
             inEvent: running,
             isHost: user !== null && event?.hostUserId === user.id,
-            wheelUnspun: event?.phase === "wheel" && event.prizeIndex === null,
+            wheelUnspun:
+              event?.phase === "wheel" &&
+              event.prizeIndex === null &&
+              !isBeastOn(event, Date.now()),
           }).map((item) => ({
             label: item.label,
             onPick: menuHandlers[item.id],
