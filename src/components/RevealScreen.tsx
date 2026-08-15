@@ -6,9 +6,11 @@ import {
   type EventState,
 } from "@shared/events";
 import { BONUS_POINTS, NO_VOTE_MULTIPLIER } from "@shared/scoring";
+import { NamedCharacter } from "@/components/Crowd";
 import { EventSnap } from "@/components/EventSnap";
 import { RevealScoreboard } from "@/components/RevealScoreboard";
 import { useAuth } from "@/context/AuthContext";
+import { wornBy, type CrowdPlayer } from "@/game/crowd";
 import { useDayResults } from "@/hooks/useDayResults";
 import { useNow } from "@/hooks/useNow";
 import { curvedText, isFallbackRating, ratingText } from "@/lib/rating";
@@ -61,7 +63,15 @@ function JuryRating({ result }: { result: DayResult }) {
   );
 }
 
-function PodiumCard({ rank, result }: { rank: number; result: DayResult }) {
+function PodiumCard({
+  rank,
+  result,
+  town,
+}: {
+  rank: number;
+  result: DayResult;
+  town: CrowdPlayer[];
+}) {
   return (
     <>
       <p className="gb-reveal-place" data-testid="podium-place">
@@ -73,9 +83,11 @@ function PodiumCard({ rank, result }: { rank: number; result: DayResult }) {
         testId="podium-photo"
         title={`${placeLabel(rank)} place`}
       />
-      <p className="gb-reveal-name" data-testid="podium-name">
-        {result.uploader.name.toUpperCase()}
-      </p>
+      <NamedCharacter
+        who={result.uploader}
+        url={wornBy(town, result.uploader.id)}
+        testId="podium-name"
+      />
       {result.juryCaption !== null && (
         <p className="gb-reveal-caption" data-testid="podium-caption">
           “{result.juryCaption}”
@@ -132,9 +144,11 @@ function PodiumFooter({
 
 export function RevealScreen({
   event,
+  town,
   onHostNext,
 }: {
   event: EventState;
+  town: CrowdPlayer[];
   onHostNext: () => void;
 }) {
   const { user } = useAuth();
@@ -203,7 +217,7 @@ export function RevealScreen({
       ) : showing === undefined ? (
         <p className="gb-event-line">THE JURY HAS SEEN THEM ALL</p>
       ) : (
-        <PodiumCard rank={stage.rank} result={showing} />
+        <PodiumCard rank={stage.rank} result={showing} town={town} />
       )}
       <PodiumFooter
         event={event}

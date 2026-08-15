@@ -27,6 +27,32 @@ test("the title screen stands in front of every load", async ({ page }) => {
   await walk(page, "ArrowRight", SPAWN.x + 1, SPAWN.y);
 });
 
+test("a signed-in title screen gathers the town, an anonymous one asks for nobody", async ({
+  page,
+}) => {
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/avatars")) asked.push(request.url());
+  });
+
+  await apiSignIn(page);
+  await page.goto("/");
+  await expect(page.getByRole("img", { name: "Title screen" })).toBeVisible();
+  await expect(page.getByTestId("player-name")).toHaveText("tester");
+  // COUNTED, not pinned at one: `useTownAvatars` reloads the roster on every content
+  // event the socket delivers, so the number of requests is not fixed.
+  await expect.poll(() => asked.length).toBeGreaterThan(0);
+  const whileSignedIn = asked.length;
+
+  await page.context().clearCookies();
+  await page.reload();
+  await expect(page.getByRole("img", { name: "Title screen" })).toBeVisible();
+  await expect(page.getByTestId("player-name")).toHaveCount(0);
+  await pressStart(page);
+  await walk(page, "ArrowRight", SPAWN.x + 1, SPAWN.y);
+  expect(asked).toHaveLength(whileSignedIn);
+});
+
 test("a live event already running skips the title screen", async ({
   page,
 }) => {

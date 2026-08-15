@@ -227,8 +227,9 @@ export const avatarStateSchema = z.object({
 });
 export type AvatarState = z.infer<typeof avatarStateSchema>;
 
-/** The town's drawn avatars, as a name beside every sprite key that name has drawn.
- * Never the bytes and never `/api/avatar/image`, which serves only your own. */
+/** EVERY player in the town, as a name beside every sprite key that name has drawn —
+ * an empty `sprites` for anybody who never has. Never the bytes and never
+ * `/api/avatar/image`, which serves only your own. */
 export const townAvatarsSchema = z.object({
   players: z.array(
     z.object({

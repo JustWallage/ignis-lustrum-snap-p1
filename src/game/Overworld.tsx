@@ -41,6 +41,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEvent, type EventAction } from "@/context/EventContext";
 import type { Standing } from "@/context/WebSocketContext";
 import { drawBubble } from "@/game/badge";
+import { crowdOf, type CrowdMember } from "@/game/crowd";
 import { KEY_DIRS, isCancelKey, isConfirmKey, isSelectKey } from "@/game/keys";
 import { MENU_ITEMS, visibleItems, type MenuItemId } from "@/game/menu";
 import {
@@ -83,6 +84,7 @@ import { useMySubmission } from "@/hooks/useMySubmission";
 import { useNpcChat } from "@/hooks/useNpcChat";
 import { usePresence } from "@/hooks/usePresence";
 import { useSnapUpload } from "@/hooks/useSnapUpload";
+import { useTownAvatars } from "@/hooks/useTownAvatars";
 import { useVoice, type Voice } from "@/hooks/useVoice";
 import { ADMIN_PATH } from "@/lib/admin";
 import { noVoteWarning } from "@/lib/ballot";
@@ -326,6 +328,8 @@ export function Overworld() {
   const speechRef = useRef<Speech | null>(null);
   const announceRef = useRef<(standing: Standing) => void>(() => undefined);
   const avatarRef = useRef<SpriteSet | null>(null);
+  const crowdRef = useRef<CrowdMember[]>([]);
+  const crowdSeedRef = useRef(0);
   const drewAtRef = useRef(0);
 
   const [tile, setTile] = useState({ x: SPAWN.x, y: SPAWN.y });
@@ -363,6 +367,7 @@ export function Overworld() {
     refresh: refreshAvatar,
   } = useMyAvatar(user?.id ?? null);
   const champion = useChampion(gameState?.day);
+  const town = useTownAvatars();
   const chat = useNpcChat(
     dialog?.kind === "chat" || dialog?.kind === "chat-say",
   );
@@ -397,6 +402,16 @@ export function Overworld() {
   useEffect(() => {
     if (shouldSkipSplash(gameState)) setSplash(false);
   }, [gameState]);
+
+  // A seed per SHOWING, held: the roster below revalidates on every content event the
+  // socket delivers, and seeding off that re-shuffles a title screen nobody touched
+  // because somebody else left a comment.
+  useEffect(() => {
+    if (splash) crowdSeedRef.current = Date.now();
+  }, [splash]);
+  useEffect(() => {
+    crowdRef.current = splash ? crowdOf(town, crowdSeedRef.current) : [];
+  }, [splash, town]);
 
   useEffect(() => {
     setDone(false);
@@ -941,7 +956,7 @@ export function Overworld() {
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, now: number) => {
       if (splashRef.current) {
-        drawSplash(ctx, now);
+        drawSplash(ctx, now, crowdRef.current);
         return;
       }
       const local = poseAt(posRef.current, stepRef.current, now);
@@ -1128,6 +1143,7 @@ export function Overworld() {
               {!splash && event !== undefined && !done && (
                 <EventOverlay
                   event={event}
+                  town={town}
                   onHostNext={askHostNext}
                   onDone={dismissEvent}
                 />

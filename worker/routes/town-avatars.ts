@@ -24,7 +24,15 @@ townAvatarRoutes.get("/", async (c) => {
       user: { id: row.userId, name: row.userName },
       sprites: [],
     };
-    group.sprites.push({ id: row.id, url: spriteUrl(row.key), worn: row.worn });
+    // A player who has never been drawn arrives on ONE row with no key: they stand in
+    // the crowd on an empty group rather than not standing at all.
+    if (row.id !== null && row.key !== null) {
+      group.sprites.push({
+        id: row.id,
+        url: spriteUrl(row.key),
+        worn: row.worn,
+      });
+    }
     players.set(row.userId, group);
   }
   return c.json(townAvatarsSchema.parse({ players: [...players.values()] }));

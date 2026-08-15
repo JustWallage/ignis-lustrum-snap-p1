@@ -1,17 +1,23 @@
 import type { Locator, Page } from "@playwright/test";
+import { townAvatarsSchema } from "../shared/api";
 import { JURIES } from "../shared/juries";
 import { MAP_W } from "../shared/map";
 import {
   apiSignIn,
   apiStoreAvatar,
+  boxAround,
+  encloses,
   expect,
   lcd,
   operate,
+  overlaps,
   pressStart,
   reachPhase,
   setDay,
   test,
+  USERS,
   walkToShelf,
+  type Box,
 } from "./fixtures";
 
 /** The worst case for the badge the avatar takes width from, read off the data rather
@@ -33,37 +39,6 @@ const NARROW = { width: 375, height: 667 };
 const DESKTOP = { width: 1280, height: 900 };
 
 const AVATAR_SHARE = 3 / MAP_W;
-
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-async function boxOf(target: Locator): Promise<Box> {
-  const box = await target.boundingBox();
-  if (box === null) throw new Error("that element is not on screen");
-  return box;
-}
-
-function overlaps(a: Box, b: Box): boolean {
-  return (
-    a.x < b.x + b.width &&
-    b.x < a.x + a.width &&
-    a.y < b.y + b.height &&
-    b.y < a.y + a.height
-  );
-}
-
-function encloses(outer: Box, inner: Box): boolean {
-  return (
-    inner.x >= outer.x - 1 &&
-    inner.y >= outer.y - 1 &&
-    inner.x + inner.width <= outer.x + outer.width + 1 &&
-    inner.y + inner.height <= outer.y + outer.height + 1
-  );
-}
 
 /**
  * Every claim about the badge measured against the LCD's own box, never a pixel count:
@@ -100,16 +75,17 @@ async function expectWholeTheme(page: Page): Promise<void> {
   );
   expect(clipped, "the day's theme reads whole").toBe(false);
 
-  const box = await boxOf(theme);
-  expect(encloses(await boxOf(lcd(page)), box), "the theme is on screen").toBe(
-    true,
-  );
+  const box = await boxAround(theme);
   expect(
-    overlaps(box, await boxOf(page.locator(".gb-textbox"))),
+    encloses(await boxAround(lcd(page)), box),
+    "the theme is on screen",
+  ).toBe(true);
+  expect(
+    overlaps(box, await boxAround(page.locator(".gb-textbox"))),
     "the theme is clear of the menu",
   ).toBe(false);
   expect(
-    overlaps(box, await boxOf(page.getByTestId("game-day"))),
+    overlaps(box, await boxAround(page.getByTestId("game-day"))),
     "the theme is clear of the day",
   ).toBe(false);
 }
@@ -147,6 +123,12 @@ test("the archive lists the town's drawn avatars, by sprite key", async ({
     await title.evaluate((node) => node.scrollWidth - node.clientWidth),
     "the archive still says Archive",
   ).toBeLessThanOrEqual(0);
+
+  const town = townAvatarsSchema.parse(
+    await (await page.request.get("/api/avatars")).json(),
+  );
+  expect(town.players).toHaveLength(Object.keys(USERS).length);
+  expect(town.players.filter((one) => one.sprites.length > 0)).toHaveLength(1);
 
   const faces = page.getByTestId("archive-face");
   await expect(faces).toHaveCount(1);
@@ -210,28 +192,30 @@ test("your own avatar is three tiles in the LCD's corner while the menu is open"
     .poll(() => face.evaluate((node: HTMLImageElement) => node.naturalWidth))
     .toBeGreaterThan(0);
 
-  const phone = await boxOf(face);
-  expectCornerBadge(phone, await boxOf(lcd(page)));
+  const phone = await boxAround(face);
+  expectCornerBadge(phone, await boxAround(lcd(page)));
 
   const theme = page.getByTestId("game-theme");
   const day = page.getByTestId("game-day");
   await expectWholeTheme(page);
   await expect(day).toHaveText(`DAY ${String(WORST_THEME.day)}`);
   for (const other of [theme, day, page.locator(".gb-textbox")]) {
-    expect(overlaps(phone, await boxOf(other)), "the corner is its own").toBe(
-      false,
-    );
+    expect(
+      overlaps(phone, await boxAround(other)),
+      "the corner is its own",
+    ).toBe(false);
   }
 
   await page.setViewportSize(DESKTOP);
-  const wide = await boxOf(face);
+  const wide = await boxAround(face);
   expect(wide.width).toBeGreaterThan(phone.width);
-  expectCornerBadge(wide, await boxOf(lcd(page)));
+  expectCornerBadge(wide, await boxAround(lcd(page)));
   await expectWholeTheme(page);
   for (const other of [theme, day, page.locator(".gb-textbox")]) {
-    expect(overlaps(wide, await boxOf(other)), "the corner is its own").toBe(
-      false,
-    );
+    expect(
+      overlaps(wide, await boxAround(other)),
+      "the corner is its own",
+    ).toBe(false);
   }
 
   await page.keyboard.press("Escape");

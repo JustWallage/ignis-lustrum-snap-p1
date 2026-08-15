@@ -193,12 +193,41 @@ export async function filterBy(
   await page.getByTestId(rail).getByRole("button", { name: chip }).click();
 }
 
+export interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** Playwright calls anything with a box "visible", an element clipped by
  * `overflow: hidden` included — so a claim about size is a claim about the box. */
-export async function boxOf(page: Page, testId: string) {
-  const box = await page.getByTestId(testId).first().boundingBox();
-  if (box === null) throw new Error(`${testId} is not on screen`);
+export async function boxAround(target: Locator): Promise<Box> {
+  const box = await target.boundingBox();
+  if (box === null) throw new Error("that element is not on screen");
   return box;
+}
+
+export async function boxOf(page: Page, testId: string): Promise<Box> {
+  return boxAround(page.getByTestId(testId).first());
+}
+
+export function overlaps(a: Box, b: Box): boolean {
+  return (
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height
+  );
+}
+
+export function encloses(outer: Box, inner: Box): boolean {
+  return (
+    inner.x >= outer.x - 1 &&
+    inner.y >= outer.y - 1 &&
+    inner.x + inner.width <= outer.x + outer.width + 1 &&
+    inner.y + inner.height <= outer.y + outer.height + 1
+  );
 }
 
 /** The box of whichever Game Boy window is open — every one of them comes through the
@@ -418,8 +447,10 @@ async function samplePixels(
           resolve();
         });
       });
-      const canvas = document.querySelector("canvas");
-      if (canvas === null) throw new Error("the LCD canvas is missing");
+      const canvas = document.querySelector("canvas.gb-lcd");
+      if (!(canvas instanceof HTMLCanvasElement)) {
+        throw new Error("the LCD canvas is missing");
+      }
       const ctx = canvas.getContext("2d");
       if (ctx === null) throw new Error("the LCD has no 2d context");
       return points.map((point) => {
@@ -454,8 +485,10 @@ export async function pixelAt(
   return pixelAtPoint(page, tx + 0.5, ty + 0.5);
 }
 
+/** PINNED to the LCD's own class: the event overlay stands a canvas per character on
+ * top of it, so a bare `canvas` is a strict-mode violation while a crowd is up. */
 export function lcd(page: Page): Locator {
-  return page.locator("canvas");
+  return page.locator("canvas.gb-lcd");
 }
 
 export async function joinAs(

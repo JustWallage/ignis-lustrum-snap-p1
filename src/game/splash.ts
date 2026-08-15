@@ -1,6 +1,9 @@
 import type { GameState } from "@shared/state";
+import { CROWD_FIGURE_W, type CrowdMember } from "@/game/crowd";
 import { drawText, GLYPH_H, measureText } from "@/game/font";
 import { rampFor } from "@/game/palette";
+import { PLAYER_H, PLAYER_W, playerSprites } from "@/game/player";
+import { remoteSprites } from "@/game/remote-sprites";
 import { animFrame, drawTile, TILE, tileAtlas } from "@/game/tiles";
 
 export const SPLASH_TITLE = ["IGNIS", "SNAPS"] as const;
@@ -26,6 +29,12 @@ const SHADOW_INK = rampFor("H").darkest;
 // Decoration, not terrain: written in the map's legend so it reuses the tile art, but
 // nobody walks here.
 const GROUND_ROWS = ["T..t...t.T", ".F......F."] as const;
+
+const CROWD_W = PLAYER_W / CROWD_FIGURE_W;
+const CROWD_FEET = 128;
+// MORE than the 6 rows a back figure loses to its scale, or the row in front covers it
+// completely and fourteen friends read as five.
+const CROWD_LIFT = 13;
 
 function centeredX(
   text: string,
@@ -59,7 +68,31 @@ export const START_LABELS: Record<StartAction, string> = {
   none: "Start — unavailable during the event",
 };
 
-export function drawSplash(ctx: CanvasRenderingContext2D, now: number): void {
+function drawCrowd(
+  ctx: CanvasRenderingContext2D,
+  crowd: readonly CrowdMember[],
+): void {
+  const left = (ctx.canvas.width - CROWD_W) / 2;
+  for (const member of crowd) {
+    const sprites = remoteSprites(member.url) ?? playerSprites();
+    const w = Math.round(PLAYER_W * member.scale);
+    const h = Math.round(PLAYER_H * member.scale);
+    const feet = CROWD_FEET - Math.round((1 - member.depth) * CROWD_LIFT);
+    ctx.drawImage(
+      sprites.down[0],
+      Math.round(left + member.x * CROWD_W - w / 2),
+      feet - h,
+      w,
+      h,
+    );
+  }
+}
+
+export function drawSplash(
+  ctx: CanvasRenderingContext2D,
+  now: number,
+  crowd: readonly CrowdMember[],
+): void {
   const { width, height } = ctx.canvas;
   ctx.fillStyle = SKY;
   ctx.fillRect(0, 0, width, height);
@@ -71,6 +104,8 @@ export function drawSplash(ctx: CanvasRenderingContext2D, now: number): void {
       drawTile(ctx, atlas, row.charAt(tx), tx, groundTop + ry);
     }
   });
+
+  drawCrowd(ctx, crowd);
 
   SPLASH_TITLE.forEach((line, index) => {
     const x = centeredX(line, TITLE_SCALE, width, TITLE_TRACKING);

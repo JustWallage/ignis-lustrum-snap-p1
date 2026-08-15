@@ -48,21 +48,38 @@ async function waitFor(socket: TestSocket, type: WsEventType): Promise<void> {
   expect(seen).toBe(type);
 }
 
+/** By NAME, because the listing is the whole town now and the first group belongs to
+ * whoever sorts first, drawn or not. */
+async function spritesOf(cookie: string, name: string) {
+  const town = await readTown(cookie);
+  return town.players.find((one) => one.user.name === name)?.sprites ?? [];
+}
+
 describe("GET /api/avatars", () => {
-  it("lists whoever has been drawn, by their sprite key, and nobody else", async () => {
+  it("lists the WHOLE town, with the keys of whoever has been drawn", async () => {
     const mine = await signIn();
     const theirs = await signIn("rival");
     await drawFor(theirs);
 
     const first = await readTown(mine);
-    expect(first.players.map((one) => one.user.name)).toEqual(["rival"]);
-    expect(first.players[0]?.sprites[0]?.url).toMatch(SPRITE_URL);
-
-    await drawFor(mine);
-    expect((await readTown(mine)).players.map((one) => one.user.name)).toEqual([
+    // A crowd is everybody, so a player who has never been drawn is a group with no
+    // sprites — not an absence the crowd would have to stand without.
+    expect(first.players.map((one) => one.user.name)).toEqual([
+      "judge",
       "rival",
       "tester",
+      "voter",
     ]);
+    const drawn = first.players.filter((one) => one.sprites.length > 0);
+    expect(drawn.map((one) => one.user.name)).toEqual(["rival"]);
+    expect(drawn[0]?.sprites[0]?.url).toMatch(SPRITE_URL);
+
+    await drawFor(mine);
+    expect(
+      (await readTown(mine)).players
+        .filter((one) => one.sprites.length > 0)
+        .map((one) => one.user.name),
+    ).toEqual(["rival", "tester"]);
   });
 
   it("keeps every generation, newest first, and marks the worn one", async () => {
@@ -70,7 +87,7 @@ describe("GET /api/avatars", () => {
     await drawFor(cookie);
     await drawFor(cookie);
 
-    const sprites = (await readTown(cookie)).players[0]?.sprites ?? [];
+    const sprites = await spritesOf(cookie, "tester");
     expect(sprites).toHaveLength(2);
     // Insert-only, so the higher id is the later drawing and the listing puts it first.
     expect(sprites[0]?.id).toBeGreaterThan(sprites[1]?.id ?? 0);
@@ -98,7 +115,7 @@ describe("GET /api/avatars", () => {
   it("keeps a player who takes their avatar off, wearing none of it", async () => {
     const cookie = await signIn();
     await drawFor(cookie);
-    expect((await readTown(cookie)).players).toHaveLength(1);
+    expect(await spritesOf(cookie, "tester")).toHaveLength(1);
 
     const removed = await app.request(
       "/api/avatar",
@@ -106,7 +123,7 @@ describe("GET /api/avatars", () => {
       env,
     );
     expect(removed.status).toBe(200);
-    const sprites = (await readTown(cookie)).players[0]?.sprites ?? [];
+    const sprites = await spritesOf(cookie, "tester");
     expect(sprites).toHaveLength(1);
     expect(sprites[0]?.worn).toBe(false);
   });

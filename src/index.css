@@ -473,6 +473,28 @@
   color: #98b8a0;
 }
 
+.gb-character {
+  display: block;
+  width: 8cqw;
+  aspect-ratio: 12 / 16;
+  image-rendering: pixelated;
+}
+.gb-crowd {
+  position: relative;
+  width: 100%;
+  height: 20cqw;
+}
+.gb-crowd .gb-character {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.gb-named {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1.6cqw;
+}
+
 .gb-countdown {
   font-size: 14cqw;
   font-weight: 700;

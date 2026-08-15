@@ -79,12 +79,24 @@ test("the host walks 3 to 2 to 1 and every other screen follows", async ({
   const friend = await watcher(browser, "rival");
   await operate(page, "Start event", "Start it");
 
+  await expect(page.getByTestId("reveal-photo")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.getByTestId("crowd-character")).toHaveCount(0);
+
   for (const place of ["3RD", "2ND", "1ST"]) {
     await reachPodium(page, place);
     await reachPodium(friend, place);
     for (const screen of [page, friend]) {
       await expect(screen.getByTestId("podium-photo")).toBeVisible();
       await expect(screen.getByTestId("podium-name")).not.toBeEmpty();
+      const figures = screen.getByTestId("crowd-character");
+      await expect(figures).toHaveCount(1);
+      const named = await screen.getByTestId("podium-name").textContent();
+      await expect(figures).toHaveAttribute(
+        "data-player",
+        named?.toLowerCase() ?? "",
+      );
       await expect(screen.getByTestId("podium-critique")).not.toBeEmpty();
       await expect(screen.getByTestId("podium-score")).toContainText("PEER");
       await expect(screen.getByTestId("podium-rating")).toContainText("/");

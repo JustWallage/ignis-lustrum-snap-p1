@@ -95,9 +95,12 @@
   answers 404 for one that is not yours as well as for one nobody drew — ONE refusal, so the two
   cannot disagree about which it is. It broadcasts what a fresh drawing broadcasts. `clearAvatar`
   takes off what you WEAR and nothing else.
-  **`/api/avatars` pairs a name with every key that name has ever drawn** — wider than the presence
-  roster, which pairs a name only with what somebody is wearing. A deliberate widening, behind the
-  cookie, going ONE way: owner → their keys. There is still no route answering "whose sprite is this
+  **`/api/avatars` pairs EVERY player with every key that name has ever drawn** — an empty `sprites`
+  for whoever never has, because the crowds under the countdown and the title screen are the whole
+  town, and a second route over the same rows is the sibling query jscpd fails on. The surface that
+  only wants faces filters the empty players out. Wider than the presence roster, which pairs a name
+  only with what somebody is wearing. A deliberate widening, behind the cookie, going ONE way:
+  owner → their keys. There is still no route answering "whose sprite is this
   key?", which `/api/sprites/:key` refuses and must keep refusing. `pushSprite` broadcasts
   `avatar_changed` as well as the roster frame, because `presence_*` is not content news and the
   roster frame skips the socket that generated.
