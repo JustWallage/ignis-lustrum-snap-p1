@@ -1,15 +1,32 @@
 # e2e/
 
-Playwright against its own dev server on 5174. `pnpm check` never runs these, so `pnpm verify` is the
-gate before a PR.
+Playwright against servers of its own from 5174 up. `pnpm check` never runs these, so `pnpm verify`
+is the gate before a PR.
 
-- **`workers: 1`, one shared database and one browser per project.** A second client is a second
-  CONTEXT inside the test, and one left open leaves a rival standing on the map for every spec after.
-- `playwright.config.ts` splits specs into `event` and `town` by MEASURED time; CI runs them as two
-  jobs, each with its own deployment and database. A new file lands in `town` on its own — move it
-  into `EVENT_SPECS` if it belongs with the live event. **Adding a spec does not oblige you to
-  re-measure or re-document the split**: no timings are recorded in that config, deliberately, and
-  restating them per ticket is how it became a conflict on four branches at once.
+- **One WHOLE APP per worker, addressed by `parallelIndex`.** `pnpm test:e2e` builds once and starts
+  a shard per core, each `vite preview`ing that build with a miniflare directory of its own, so a
+  worker has a D1, an R2 and a `RealtimeDO` nobody else touches. `appUrl` in `fixtures.ts` is the
+  only place those ports are chosen and `playwright.config.ts`'s `workers` is the only thing that
+  picks a shard: **a worker without a server of its own silently shares its neighbour's database**,
+  which is a green run that tested nothing it claims to.
+- **Still ONE browser per test.** A second client is a second CONTEXT inside the test, and one left
+  open leaves a rival standing on the map for every spec after it on that shard.
+- **`fullyParallel`, and nothing in a spec file may assume otherwise**: no `describe`, no
+  `beforeAll`, no state at module scope, because two tests in one file run on two different apps at
+  the same time. Everything a test needs, the fixture seeds and resets for it.
+- **One retry locally, and a shard per core is why.** A browser that loses its core for longer than
+  the 170ms the game steps in walks two tiles on one press. Six shards on four cores lost two tests
+  a run and eight lost nine — always those. A retried test still prints as FLAKY, so read them.
+- Serving the BUILD, not a dev server, is what makes the shards fit: a dev server recompiles and
+  re-serves ~200 modules on every `page.goto`, and four of those doing it at once is the starvation
+  above. The cost is that `dist/` must be current — `scripts/e2e-shard.mjs` refuses to serve a build
+  older than the source, so `npx playwright test` cannot quietly test yesterday's code.
+- `playwright.config.ts` splits specs into `event` and `town` by MEASURED time FOR CI ONLY; CI runs
+  them as two jobs, each with its own deployment and database, and locally the shards make the split
+  pointless. A new file lands in `town` on its own — move it into `EVENT_SPECS` if it belongs with
+  the live event. **Adding a spec does not oblige you to re-measure or re-document the split**: no
+  timings are recorded in that config, deliberately, and restating them per ticket is how it became
+  a conflict on four branches at once.
 - `fixtures.ts` is the only shared file, deliberately: a per-spec copy of `walk` or `pressStart` is how
   the suite drifts. Every test starts seeded, reset and **anonymous**, because walking must work
   without a session.
@@ -47,5 +64,6 @@ gate before a PR.
 - `round-trip.spec.ts` decodes a low-density QR fixture back off the served `<img>`, so a degraded
   round trip (downscale → JPEG → R2 → back) fails loudly instead of passing as a 201. Enlarging the
   fixture to make it pass misses the point.
-- Every e2e run shares ONE R2 bucket and is isolated by `IMAGE_PREFIX`, which `/api/test/reset` sweeps
-  — so the reset every test starts with empties the bucket as well as the tables.
+- Every e2e run IN CI shares ONE R2 bucket and is isolated by `IMAGE_PREFIX`, which `/api/test/reset`
+  sweeps — so the reset every test starts with empties the bucket as well as the tables. Locally each
+  shard's bucket is its own miniflare directory, so the prefix does nothing and the sweep is enough.

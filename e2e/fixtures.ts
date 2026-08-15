@@ -20,6 +20,19 @@ import {
   type Point,
 } from "../shared/map";
 
+/**
+ * The app this worker talks to. `parallelIndex` is the only number that is stable for
+ * a worker's whole life and never held by two workers at once, so it — not the file,
+ * the project or the test — is what a shard's database can safely be keyed on.
+ *
+ * `BASE_URL` is CI, where the suite runs against ONE deployed Worker and Playwright is
+ * configured down to a single worker; the same expression then answers for every index.
+ * `scripts/e2e-shard.mjs` is handed these ports, so this is where they are chosen.
+ */
+export function appUrl(worker: number): string {
+  return process.env.BASE_URL ?? `http://localhost:${5174 + worker}`;
+}
+
 let seeded = false;
 
 async function seedUsers(page: Page): Promise<void> {
@@ -33,6 +46,12 @@ async function seedUsers(page: Page): Promise<void> {
 }
 
 export const test = base.extend({
+  // Playwright reads a fixture's dependencies off this destructuring pattern and
+  // refuses a first parameter that is not one, so the empty object is the signature.
+  // eslint-disable-next-line no-empty-pattern
+  baseURL: async ({}, use, testInfo) => {
+    await use(appUrl(testInfo.parallelIndex));
+  },
   page: async ({ page }, use) => {
     await seedUsers(page);
     await apiSignIn(page);
