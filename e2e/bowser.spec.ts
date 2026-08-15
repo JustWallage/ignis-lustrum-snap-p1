@@ -80,6 +80,7 @@ async function watchingFrom(
 test("the operator marks a day and fills the Bowser wheel, and neither touches the other", async ({
   page,
 }) => {
+  await apiSignIn(page, "tester");
   const panel = await openConsole(page, "Bowser days");
   await expect(page.getByTestId("ops-bowser-empty")).toBeVisible();
   await page.getByTestId("ops-bowser-day").fill("3");
@@ -174,9 +175,10 @@ test("a marked day ends in the beast and a red wheel carrying the Bowser prizes"
   await expect(page.getByTestId("beast")).toBeHidden();
   await expect(page.getByTestId("wheel")).toBeVisible();
   expect(await faceColour(page)).toBe(DRUM.bowser);
-  await expect(page.getByTestId("wheel")).toContainText(
-    (BOWSER_PRIZES[0] ?? "").toUpperCase(),
-  );
+  // Read off the wheel the DO published, not off the labels typed above.
+  for (const label of wheel.segments) {
+    await expect(page.getByTestId("wheel")).toContainText(label.toUpperCase());
+  }
 
   await page.getByTestId("wheel-spin").click();
   await expect
