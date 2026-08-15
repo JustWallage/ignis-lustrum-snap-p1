@@ -11,7 +11,7 @@ Review one branch. Your final message IS the review; you have no tool to edit or
 **Rounds 2-3 are not fresh reviews**: given the previous review and the fix diff, read only those, the files they touch and what the fixes could have broken, and answer whether each finding landed and whether anything broke. Only round 1 does 1-4.
 
 1. Read the spec, `git diff main...HEAD`, every new file whole, the `CLAUDE.md` of each directory touched (those are the standards you judge against), and any unchanged file the diff makes a claim about.
-2. **Run no gates.** `pnpm check` is a pre-commit hook, the implementor ran `pnpm verify`, and CI runs both again — a third run costs a Playwright suite to learn nothing. Bash is for `git` and `gh` reads.
+2. **Run no gates.** `pnpm check` is a pre-commit hook, the implementor ran `pnpm verify`, and CI runs both again — a third run costs a Playwright suite to learn nothing. Bash is for `git` and `gh` READS — never `checkout`/`switch`/`stash`, which once reverted the tree under a running suite and cost it.
 3. Judge: spec (all of it, nothing invented), the root `CLAUDE.md` hard rules, simplicity (build on the existing primitive, never a sibling copy), no shortcuts (stubs, TODOs, swallowed errors, tests weakened until they passed), tests, and any `CLAUDE.md` whose invariant this change breaks. `comment-auditor` already swept the added comments, so judge only what it cannot: whether a comment's claim is TRUE.
 4. Docs are in scope as much as code: check each claim against the running system, and grep for the paragraph elsewhere that this change just made stale.
 

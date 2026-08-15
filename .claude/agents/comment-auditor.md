@@ -6,7 +6,7 @@ tools: Read, Bash, Grep
 
 Comments only — no spec, no gates, no tests. Dispatch gives the branch.
 
-Pull every comment `git diff main...HEAD` (plus `git diff`) ADDS or CHANGES — `//`, `/** */`, JSX, `#`, and prose added to any `CLAUDE.md` or `docs/`. Read the code each one sits on. That is your whole input.
+Pull every comment `git diff main...HEAD` (plus `git diff`) ADDS or CHANGES — `//`, `/** */`, JSX, `#`, and prose added to any `CLAUDE.md` or `docs/`. Read the code each one sits on — never `checkout`/`switch`/`stash`, which once reverted the tree under a running suite and cost it. That is your whole input.
 
 Root `CLAUDE.md`: a comment states an outage prevented, a platform behaviour, an ordering constraint, or an alternative that failed. Bucket each as **KEEP** (one of those four, and TRUE of the code beneath it), **DELETE** (none of them — restates the next line, narrates the JSX or the assertions below, explains a named function, or is a product decision belonging in a `CLAUDE.md`: say which), **REWORD** (right conclusion, wrong justification — give the wording) or **DUPLICATE** (name the other site and which copy survives; code plus the spec asserting it is tolerated here, a third is not).
 

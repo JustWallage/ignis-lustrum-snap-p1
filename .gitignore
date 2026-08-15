@@ -6,6 +6,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.e2e.example
 .dev.vars
 .seed.sql
 
@@ -16,6 +17,7 @@ users.json
 users.md
 
 # Test artifacts
+*.tsbuildinfo
 playwright-report/
 test-results/
 coverage/
