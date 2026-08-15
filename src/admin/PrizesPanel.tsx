@@ -114,7 +114,7 @@ export function PrizesPanel() {
       </p>
       {enabledCount < MIN_ENABLED_PRIZES && (
         <p className="ops-error" role="alert" data-testid="ops-prize-warning">
-          {`The wheel needs ${String(MIN_ENABLED_PRIZES)} enabled prizes to spin — ${String(enabledCount)} in.`}
+          {`${set === "bowser" ? "A Bowser day" : "The wheel"} needs ${String(MIN_ENABLED_PRIZES)} enabled prizes to spin — ${String(enabledCount)} in.`}
         </p>
       )}
       <ul className="ops-list">
