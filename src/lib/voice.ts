@@ -58,6 +58,37 @@ export interface Capture {
   stop: () => void;
 }
 
+const ANTI_ALIAS_HZ = 3_400;
+
+/** The two Q values of a 4th-order Butterworth. A pair at the default Q of 1 instead
+ * puts a +2.5 dB peak exactly where a voice's sibilance sits. */
+const ANTI_ALIAS_Q = { head: 0.5412, tail: 1.3066 };
+
+interface Band {
+  head: AudioNode;
+  tail: AudioNode;
+}
+
+/**
+ * 8 kHz carries nothing above 4 kHz and `downsample` merely PICKS samples, so without
+ * this every band above that folds back down into the middle of speech as a crunch no
+ * gain setting removes. Belongs before the processor for the same reason: what has
+ * already folded cannot be filtered apart afterwards.
+ */
+function antiAlias(audio: AudioContext): Band {
+  const stage = (q: number) => {
+    const filter = audio.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = ANTI_ALIAS_HZ;
+    filter.Q.value = q;
+    return filter;
+  };
+  const head = stage(ANTI_ALIAS_Q.head);
+  const tail = stage(ANTI_ALIAS_Q.tail);
+  head.connect(tail);
+  return { head, tail };
+}
+
 /**
  * `ScriptProcessorNode`, deprecated and still working in every browser fourteen friends
  * own, over `AudioWorkletNode`, which is the current API and needs a separate module
@@ -78,7 +109,16 @@ export async function startCapture(
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
+      // `autoGainControl` is what lets somebody hold the phone at arm's length rather
+      // than against their mouth: half a metre of air is about 20 dB gone, and the three
+      // together are also what asks iOS and Android for the VOICE path, whose echo
+      // cancellation and gain are tuned per handset by whoever built it. Raising
+      // `VOICE_GAIN` instead only makes the room louder along with the voice.
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
     });
   } catch {
     return null;
@@ -98,13 +138,17 @@ export async function startCapture(
   // back out of their own speaker.
   const sink = audio.createGain();
   sink.gain.value = 0;
-  source.connect(processor);
+  const band = antiAlias(audio);
+  source.connect(band.head);
+  band.tail.connect(processor);
   processor.connect(sink);
   sink.connect(audio.destination);
   return {
     stop: () => {
       processor.onaudioprocess = null;
       source.disconnect();
+      band.head.disconnect();
+      band.tail.disconnect();
       processor.disconnect();
       sink.disconnect();
       stream.getTracks().forEach((track) => {
