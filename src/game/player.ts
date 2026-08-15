@@ -94,7 +94,6 @@ const HATS: Record<Exclude<JurySprite["hat"], "none">, string[]> = {
   beanie: ["....aaaa....", "..aaaaaaaa..", ".aaaaaaaaaa."],
 };
 
-// Square rather than 12x16, because it has to loom over the character it eats.
 const BEAST = [
   ".....oooooo.....",
   "...ooccccccoo...",

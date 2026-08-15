@@ -16,8 +16,6 @@ const SETS: { id: PrizeSet; label: string }[] = [
   { id: "bowser", label: "Bowser" },
 ];
 
-// One list with a switch rather than two panels: a second copy of the row editor is
-// what jscpd catches.
 export function PrizesPanel() {
   const [set, setSet] = useState<PrizeSet>("ordinary");
   const list = useCachedFetch(prizesPath(set), prizeListSchema);

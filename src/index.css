@@ -671,8 +671,6 @@
    thing below still tied to that radius is the gradient's stops, which cover where it
    puts the horizon. */
 .gb-wheel {
-  /* A VARIANT of the one drum, never a second one: the geometry above is written in by
-     `WheelScreen.tsx` for both, and only these four values differ. */
   --gb-drum-face: #2a5744;
   --gb-drum-face-alt: #386e56;
   --gb-drum-edge: #4d7f66;

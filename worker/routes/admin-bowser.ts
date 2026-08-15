@@ -26,8 +26,6 @@ async function markedDays(db: Db) {
   });
 }
 
-// Nothing here broadcasts: a marked day is config no screen is rendering, and nothing
-// announces one in advance.
 adminBowserRoutes.get("/", async (c) => {
   return c.json(await markedDays(getDb(c.env)));
 });

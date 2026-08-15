@@ -219,8 +219,6 @@ describe("the Bowser prize list", () => {
     expect((await listPrizes(cookie)).every((p) => p.enabled)).toBe(true);
   });
 
-  // An unreadable `set` is the ordinary one, so a stray query string cannot hand a
-  // caller reading the wheel a list it has never seen before.
   it("answers the ordinary set to anybody who asks for nothing readable", async () => {
     await createPrize(cookie, "Bowsers bier", "bowser");
     for (const query of ["", "?set=", "?set=nonsense"]) {

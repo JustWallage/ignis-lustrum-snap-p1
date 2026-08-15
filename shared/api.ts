@@ -193,9 +193,6 @@ export type Prize = z.infer<typeof prizeSchema>;
 
 export const prizeListSchema = z.object({ prizes: z.array(prizeSchema) });
 
-/** The Bowser wheel is a second SET of the same rows, so one router, one editor and one
- * ordering serve both. `ordinary` is the default everywhere, which is what keeps
- * `GET /api/prizes` answering its existing callers unchanged. */
 export const prizeSetSchema = z.enum(["ordinary", "bowser"]);
 export type PrizeSet = z.infer<typeof prizeSetSchema>;
 

@@ -37,8 +37,6 @@ function useWorn(url: string | null): HTMLCanvasElement {
   return (worn ?? playerSprites()).down[0];
 }
 
-/** The ONE canvas figure of the event's overlay: the crowd, the winner beside their
- * card and the beast all come through here. */
 export function PixelSprite({
   sprite,
   className,

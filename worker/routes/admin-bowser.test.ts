@@ -43,8 +43,6 @@ describe("the operator's Bowser days", () => {
     expect(days[0]?.markedBy.name).toBe("tester");
   });
 
-  // The unique index is the enforcement, so the second press is the same marked day
-  // rather than a refusal an operator has to make sense of.
   it("takes the same day twice as one marked day", async () => {
     const admin = await signIn("tester");
     expect((await markBowserDay(admin, 3)).status).toBe(200);
@@ -60,7 +58,6 @@ describe("the operator's Bowser days", () => {
     expect((await unmark(admin, 1)).status).toBe(200);
     expect((await markedDays(admin)).map((one) => one.day)).toEqual([4]);
 
-    // Unmarking a day nobody marked is the state the caller asked for.
     expect((await unmark(admin, 9)).status).toBe(200);
   });
 

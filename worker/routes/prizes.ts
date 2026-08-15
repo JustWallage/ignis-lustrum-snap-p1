@@ -58,8 +58,8 @@ prizesRoutes.post("/", async (c) => {
   }
   const db = getDb(c.env);
   const set = askedSet(c.req.query("set"));
-  // The end of ITS OWN set: the two orders are independent, so adding to one cannot
-  // shuffle the other.
+  // Scoped to ITS OWN set, so each set's `sort_order` starts at 0: an unscoped `max`
+  // would open the Bowser list numbered past the end of the ordinary one.
   const highest = await db
     .select({ value: max(prizes.sortOrder) })
     .from(prizes)

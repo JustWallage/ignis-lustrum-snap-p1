@@ -27,8 +27,6 @@ import {
 
 beforeEach(resetWorld);
 
-/** The beast holds the wheel for a few seconds of real clock, so every spin below it
- * happens at a moment on the other side of it rather than after a sleep. */
 async function afterTheBeast<T>(
   wheel: EventState,
   body: () => Promise<T>,
@@ -205,10 +203,6 @@ describe("a Bowser day", () => {
     expect(wheel.segments).toEqual([...SEED_PRIZES]);
   });
 
-  // BOTH halves of what `spunEvent` breaks: it rebuilds from `idleEvent()`, which drops
-  // the flag, and it passes a fresh `now` into `wheelEvent`, which would restamp the
-  // beast's moment and replay it over the landing. A test omitting the moment passes
-  // against a beast that replays.
   it("is still the Bowser day's wheel, on the same moment, after the spin", async () => {
     const { wheel, winnerCookie } = await aBowserWheel();
     await afterTheBeast(wheel, async () => {

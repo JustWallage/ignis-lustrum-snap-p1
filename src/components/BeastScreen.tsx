@@ -21,8 +21,6 @@ function beastPct(progress: number): number {
   );
 }
 
-/** The first beat of the `wheel` phase, not a fourth reveal page — `podiumRank` is the
- * ONE field saying which of those is up. */
 export function BeastScreen({
   event,
   town,

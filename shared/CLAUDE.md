@@ -53,7 +53,6 @@ Everything both sides read. Change a schema here first.
 - `juryForDay` WRAPS, so day 15 is jury 1 and play continues. `capOptions` never returns an empty
   list, because an option is a BUTTON LABEL. The `prizes` migration duplicates `SEED_PRIZES` in SQL
   because migrations cannot import TypeScript; `worker/prizes.test.ts` holds the two together. The
-  Bowser set has no second copy of either, because it ships EMPTY.
 - **`ordinary` is the prize set everywhere it is not said** (`prizesPath`, and the route's own
   fallback for an unreadable `?set=`): `GET /api/prizes` has live callers that read or patch the
   whole list, and a default answering both sets turns four unrelated tests red for a reason nobody

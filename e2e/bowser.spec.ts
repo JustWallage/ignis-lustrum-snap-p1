@@ -17,8 +17,7 @@ const BOWSER_TIMEOUT_MS = 180_000;
 
 const BOWSER_PRIZES = ["Bowsers bed", "Bowsers bier"];
 
-/** Hardcoded because the palette lives under `src/`, which e2e cannot see. The odd
- * faces take `--gb-drum-face` and the even ones its alternate. */
+/** The odd faces take `--gb-drum-face` and the even ones its alternate. */
 const DRUM = {
   ordinary: "rgb(42, 87, 68)",
   bowser: "rgb(124, 28, 36)",
@@ -38,8 +37,6 @@ async function fillBowserWheel(page: Page): Promise<void> {
   }
 }
 
-/** `tester` is the admin, so they host — and, handing today's only snap in themselves,
- * win it too. */
 async function aWheelOn(page: Page, day: "marked" | "ordinary"): Promise<void> {
   await apiSignIn(page, "tester");
   if (day === "marked") {
@@ -67,8 +64,6 @@ async function watchingFrom(
   const context = await browser.newContext();
   const page = await context.newPage();
   await apiSignIn(page, "voter");
-  // Pinned BEFORE the first paint: what this screen shows is what it worked out from
-  // the beast's absolute moment, never the beginning of something it started itself.
   await page.clock.setFixedTime(at);
   await page.goto("/");
   return {
@@ -97,8 +92,6 @@ test("the operator marks a day and fills the Bowser wheel, and neither touches t
     await expect(panel.getByLabel(`Prize ${label}`)).toBeVisible();
   }
 
-  // The ordinary list is the one every other caller reads, and adding to the Bowser
-  // one may not have moved it.
   await page.getByTestId("ops-prize-set-ordinary").click();
   const listed = await page.request.get("/api/prizes");
   const ordinary = prizeListSchema
@@ -124,7 +117,6 @@ test("the operator marks a day and fills the Bowser wheel, and neither touches t
     await expect(page.getByLabel(`Prize ${label}`)).toBeVisible();
   }
 
-  // Unmarking puts the day back to an ordinary one.
   await page.getByRole("button", { name: "Bowser days", exact: true }).click();
   await page.getByTestId("ops-bowser-unmark-3").click();
   await page.getByTestId("ops-bowser-unmark-3-yes").click();
@@ -169,13 +161,10 @@ test("a marked day ends in the beast and a red wheel carrying the Bowser prizes"
   await page.keyboard.press("Escape");
   await expect(choices).toBeHidden();
 
-  // `setSystemTime`, not `setFixedTime`: everything after this is the event running
-  // itself again.
   await page.clock.setSystemTime(Date.now());
   await expect(page.getByTestId("beast")).toBeHidden();
   await expect(page.getByTestId("wheel")).toBeVisible();
   expect(await faceColour(page)).toBe(DRUM.bowser);
-  // Read off the wheel the DO published, not off the labels typed above.
   for (const label of wheel.segments) {
     await expect(page.getByTestId("wheel")).toContainText(label.toUpperCase());
   }

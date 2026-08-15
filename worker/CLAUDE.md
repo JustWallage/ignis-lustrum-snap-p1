@@ -50,8 +50,9 @@
 - **Whether tonight is a Bowser day is READ IN THE DO, from `bowser_days`, and nowhere else** — in
   `startEvent`, so the refusal checks the set the day will actually use and names which one is short,
   and in `wheelDraft`, which stamps the flag and the beast's moment into the wheel it publishes.
-  Nothing under `src/` asks the question: what a browser learns is the flag on the wheel it is
-  already being sent, and no surface announces a Bowser day in advance. **The spin's guard is in
+  Nothing a player's browser loads asks the question: what it learns is the flag on the wheel it is
+  already being sent, and the only surface naming a marked day before it plays is the operator's own
+  console (`GET /api/admin/bowser`, admin-gated). **The spin's guard is in
   `spinWheel` with a reason string**, because hiding the button and the SELECT item is only the
   cosmetic half. Marking a day broadcasts nothing (it is config nobody is rendering); a Bowser-set
   prize edit broadcasts `prizes_changed` like any other.
