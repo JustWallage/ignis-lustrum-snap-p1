@@ -333,8 +333,8 @@ export interface UploadOptions {
   bindings?: object;
 }
 
-/** A real ExecutionContext, so a test can await the `waitUntil` the route hands the AI
- * evaluation to. `bindings` defaults to the pool's own `env`, which is NOT the same as
+/** A real ExecutionContext, so a test can await the two `waitUntil`s the route hands the
+ * evaluation and the description to. `bindings` defaults to the pool's own `env`, which is NOT the same as
  * "no key": wrangler loads a developer's `.env`, so a test that needs one absent says so
  * with `withoutGeminiKey()`. */
 export async function uploadPhoto(

@@ -972,11 +972,16 @@ describe("the AI jury", () => {
   });
 
   it("answers the upload before the model does", async () => {
-    let answer: (res: Response) => void = () => undefined;
-    const thinking = new Promise<Response>((resolve) => {
+    let answer: () => void = () => undefined;
+    const thinking = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    stubGemini(() => thinking);
+    // A Response body may be read ONCE, and the description beside the verdict is
+    // reading too — so the wait is shared and the reply built per call.
+    stubGemini(async () => {
+      await thinking;
+      return geminiReply(JSON.stringify(VERDICT));
+    });
 
     const cookie = await signIn();
     const ctx = createExecutionContext();
@@ -990,7 +995,7 @@ describe("the AI jury", () => {
     const id = photoSchema.parse(await res.json()).id;
     expect(await storedScore(id)).toBeNull();
 
-    answer(geminiReply(JSON.stringify(VERDICT)));
+    answer();
     await waitOnExecutionContext(ctx);
     expect(await storedScore(id)).toMatchObject({ ai_status: "ok" });
   });

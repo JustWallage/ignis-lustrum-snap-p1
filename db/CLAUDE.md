@@ -7,6 +7,7 @@ deploys a schema without the column while everything stays green.
 - **Unique indexes are the enforcement, not the routes**, because a read-then-write leaves a window
   two racing requests both pass through: `photos_user_day_idx` (one submission per user per day, the
   route 409s on the violation), `photo_scores_photo_idx` (one verdict, so `scorePhoto` is an upsert),
+  `photo_descriptions_photo_idx` (one description, so the console's retry is an upsert too),
   `prize_awards.day` (one award, so a repeated landing rolls its batch back), `bowser_days.day` (a
   day is marked once, so marking it twice is the same marked day rather than a refusal),
   `rigged_days.day` (a day has ONE rigged prize, so rigging it again REPLACES rather than adds), the
