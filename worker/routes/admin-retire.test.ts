@@ -292,7 +292,7 @@ describe("GET /api/admin/days/:day/photos", () => {
     const empty = dayPhotosSchema.parse(
       await getJson("/api/admin/days/6/photos", admin),
     );
-    expect(empty).toEqual({ day: 6, photos: [] });
+    expect(empty).toEqual({ day: 6, photos: [], descriptions: [] });
 
     const friend = await signIn("rival");
     const refused = await app.request(

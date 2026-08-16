@@ -8,11 +8,13 @@ import {
   votes,
 } from "../../db/schema";
 import type { Db } from "./db";
+import { deletePhotoDescription } from "./photo-description";
 import { deletePhotoScore } from "./photo-score";
 
 export function purgePhoto(db: Db, id: number) {
   return [
     deletePhotoScore(db, id),
+    deletePhotoDescription(db, id),
     db.delete(votes).where(eq(votes.photoId, id)),
     db.delete(likes).where(eq(likes.photoId, id)),
     db

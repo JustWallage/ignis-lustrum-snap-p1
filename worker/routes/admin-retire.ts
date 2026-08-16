@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { photos, retiredPhotos, type PhotoRow } from "../../db/schema";
+import {
+  photoDescriptions,
+  photos,
+  retiredPhotos,
+  type PhotoRow,
+} from "../../db/schema";
 import { dayPhotosSchema, retirementSchema } from "../../shared/api";
 import { isEventRunning } from "../../shared/events";
 import type { AppEnv, Bindings } from "../env";
@@ -103,6 +108,14 @@ adminDayRoutes.get("/:day/photos", async (c) => {
   const day = asked.data;
   const rows = await photoAggregates(db, viewerId, eq(photos.day, day));
   const revealed = isDayRevealed(day, await readGameState(db));
+  const described = await db
+    .select({
+      photoId: photoDescriptions.photoId,
+      status: photoDescriptions.status,
+    })
+    .from(photoDescriptions)
+    .innerJoin(photos, eq(photos.id, photoDescriptions.photoId))
+    .where(eq(photos.day, day));
   return c.json(
     dayPhotosSchema.parse({
       day,
@@ -112,6 +125,7 @@ adminDayRoutes.get("/:day/photos", async (c) => {
           score: revealed,
         }),
       ),
+      descriptions: described,
     }),
   );
 });

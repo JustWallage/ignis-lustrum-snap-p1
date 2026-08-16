@@ -162,6 +162,94 @@ export async function requestEvaluation(
   return evaluationSchema.parse(JSON.parse(text));
 }
 
+/** One row per photograph (`photo_descriptions_photo_idx`) and nothing re-runs it when
+ * the jury or the theme changes — so a quality left out of this list is one no later
+ * reader can recover. Nothing here names a jury, a theme or a score: a description that
+ * knew tonight's theme would have to be rewritten every time the jury changed. */
+const DESCRIPTION_FIELDS = [
+  {
+    name: "subject",
+    ask: "Who or what this is a photograph of, and what they do.",
+  },
+  {
+    name: "objects",
+    ask: "Every object in the frame, the small and the half-hidden included.",
+  },
+  {
+    name: "readableText",
+    ask: "Every readable word in the frame, quoted exactly as it is written.",
+  },
+  {
+    name: "setting",
+    ask: "Where this is: indoors or out, the place, the weather, the time of day.",
+  },
+  {
+    name: "composition",
+    ask: "The framing, the camera angle and height, what sits in the foreground and the background, and where the eye is led.",
+  },
+  {
+    name: "light",
+    ask: "The direction, hardness, colour and source of the light, and how the exposure sits from shadow to highlight.",
+  },
+  {
+    name: "technical",
+    ask: "Focus and sharpness, motion blur, grain, depth of field, and how much detail the picture holds.",
+  },
+  {
+    name: "colour",
+    ask: "The palette, how saturated it is, and which colours carry the frame.",
+  },
+  {
+    name: "oddities",
+    ask: "Anything unusual, accidental, damaged or hard to explain.",
+  },
+] as const;
+
+const DESCRIPTION_INSTRUCTIONS = [
+  "Describe this photograph for a reader who will never see it.",
+  "Report what is in the frame and nothing else: no praise, no fault, no opinion, no guess at who took it or why.",
+  'Answer every field. Where a field has nothing in it, write "none".',
+  ...DESCRIPTION_FIELDS.map(({ name, ask }) => `${name}: ${ask}`),
+].join("\n");
+
+const DESCRIPTION_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: Object.fromEntries(
+    DESCRIPTION_FIELDS.map(({ name }) => [name, { type: "string" }]),
+  ),
+  required: DESCRIPTION_FIELDS.map(({ name }) => name),
+  propertyOrdering: DESCRIPTION_FIELDS.map(({ name }) => name),
+};
+
+const describedSchema = z.record(z.string(), z.string().trim().min(1));
+
+/** A field the model dropped THROWS rather than coming back short: the caller stores a
+ * failure the console can retry, where a half-description lands as an `ok` row that
+ * nothing re-runs on its own. */
+export async function requestDescription(
+  apiKey: string,
+  image: GeminiImage,
+): Promise<string> {
+  const parts = await generateContent(
+    apiKey,
+    GEMINI_MODEL,
+    DESCRIPTION_INSTRUCTIONS,
+    image,
+    {
+      responseMimeType: "application/json",
+      responseSchema: DESCRIPTION_RESPONSE_SCHEMA,
+    },
+  );
+  const described = describedSchema.parse(
+    JSON.parse(parts.map((part) => part.text ?? "").join("")),
+  );
+  return DESCRIPTION_FIELDS.map(({ name }) => {
+    const answer = described[name];
+    if (answer === undefined) throw new Error(`Gemini left out ${name}`);
+    return `${name}: ${answer}`;
+  }).join("\n");
+}
+
 export const AVATAR_INSTRUCTIONS = [
   "Redraw the subject of this photograph as a Game Boy Color trainer sprite.",
   "Never refuse and never return the photograph unchanged. If the subject is not a person — an animal, a plant, an object, a meal, a landscape — personify it: invent a trainer whose hair, hat and outfit are built out of what it is, and draw that trainer.",

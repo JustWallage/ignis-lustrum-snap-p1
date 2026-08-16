@@ -29,7 +29,8 @@ Required before touching `wrangler.jsonc`, `.github/` or `iac/`.
   while the Worker that can still list it exists.
 - **Two Gemini secrets, and NOTHING falls back between them**: `GEMINI_API_KEY` is the jury's,
   `GEMINI_API_KEY_PAID` is the one the image model bills per picture. Both are **deliberately optional
-  everywhere** — without the jury's, every photograph scores 5; without the paid one, the avatar
+  everywhere** — without the jury's, every photograph scores 5 and nothing is described; without the
+  paid one, the avatar
   machine answers "offline"; local and e2e run with neither. `bootstrap:gha` and `deploy.yml` SKIP
   each one when unset rather than pushing an empty secret, and both are declared optional in
   `worker/env.ts` because appearing in no `vars` block hides them from cf-typegen.
