@@ -100,10 +100,11 @@
   and the admin retry.
 - **`lib/gemini.ts` makes TWO photograph calls, and the second one knows nothing**:
   `requestDescription` is THEME-BLIND and JURY-BLIND — no jury, no theme, no persona, no score in its
-  prompt — because one description is written per photograph and every jury, theme and re-run after
-  it reads that same text. It judges photographs, so it reads `GEMINI_API_KEY` and never the billed
-  key. It runs in the SAME `waitUntil` block as the verdict, beside it and never
-  after it, and blocks an upload no more than the jury does; a failure stores a row that SAYS it
+  prompt — because `photo_descriptions_photo_idx` allows one row per photograph and nothing re-runs
+  it when the jury or theme changes, so every later reader gets that same text. It judges
+  photographs, so it reads `GEMINI_API_KEY` and never the billed key. It is its OWN `waitUntil`
+  beside the verdict's rather than a step chained after it, so neither call waits on what the other
+  learns and it blocks an upload no more than the jury does; a failure stores a row that SAYS it
   failed (`lib/photo-description.ts`), since a missing one reads as "not described yet" forever. It
   UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are one function, and
   the state reaches the console on `dayPhotosSchema`'s parallel `descriptions` array — never as a

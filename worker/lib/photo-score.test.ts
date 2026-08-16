@@ -30,7 +30,6 @@ import { GEMINI_MODEL } from "./gemini";
 
 beforeEach(resetWorld);
 
-/** The jury's own prompt, and nothing the description asks for. */
 const JURY_ASKED = /judging one entry/;
 
 describe("the AI jury", () => {
@@ -51,8 +50,6 @@ describe("the AI jury", () => {
       bonus_reason: VERDICT.bonusReason,
       ai_status: "ok",
     });
-    // Throws unless exactly ONE of the upload's calls was the jury's: the description
-    // beside it is the other, and neither may be asked twice.
     expect(geminiCallAsking(fetched.mock.calls, JURY_ASKED).url).toContain(
       GEMINI_MODEL,
     );

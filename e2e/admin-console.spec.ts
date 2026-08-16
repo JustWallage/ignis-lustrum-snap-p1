@@ -166,10 +166,8 @@ test("the console says which snaps are described, and describes one again", asyn
   const id = await apiUpload(page, "rival");
   await apiSignIn(page);
 
-  // The description is written in `waitUntil`, so it lands AFTER the 201 — and the
-  // panel fetches its day once. No Playwright environment has a GEMINI_API_KEY, so
-  // what the upload's own pass stored is the failure, which is the state that must
-  // never read as "nobody has described it yet".
+  // The description is written in `waitUntil`, so it lands AFTER the 201 and the panel
+  // fetches its day once — poll the API for it rather than the screen.
   const described = async () => {
     const listed = await page.request.get("/api/admin/days/1/photos");
     return dayPhotosSchema.parse(await listed.json()).descriptions;
@@ -185,7 +183,6 @@ test("the console says which snaps are described, and describes one again", asyn
     `Snap #${String(id)} — Description failed`,
   );
   await expect(state).toHaveText("Description failed");
-  // Still ONE row: the console's button is the upload's own pass, upserting.
   expect(await described()).toEqual([{ photoId: id, status: "failed" }]);
 });
 

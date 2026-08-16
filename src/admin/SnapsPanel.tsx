@@ -18,8 +18,6 @@ function retiredText(retired: number, day: number): string {
   return `${String(retired)} snap${retired === 1 ? "" : "s"} retired out of day ${String(day)}. The pictures are still in the bucket.`;
 }
 
-/** `undefined` is the third state and not a failure: a snap the machine has not reached
- * yet has no row at all. */
 function describedText(status: PhotoDescription["status"] | undefined): string {
   if (status === undefined) return "Not described";
   return status === "ok" ? "Described" : "Description failed";

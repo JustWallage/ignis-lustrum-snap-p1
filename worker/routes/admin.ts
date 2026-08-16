@@ -258,15 +258,13 @@ adminRoutes.post("/bench", async (c) => {
 });
 
 /** Broadcasts nothing: a description is not news, and no player-facing surface renders
- * one. An upsert like the first pass, so pressing it twice replaces rather than adds. */
+ * one. */
 adminRoutes.post("/photos/:id/describe", async (c) => {
   const photo = await pickPhoto(getDb(c.env), c.req.param("id"));
   if (photo === undefined) {
     return c.json({ error: "Not found" }, 404);
   }
   const bytes = await readImage(c.env, photo.r2Key);
-  // A snap whose object has gone is refused rather than described, the way the jury
-  // retry SKIPS one: a description written over an empty image is worse than none.
   if (bytes === null) {
     return c.json({ error: "Not found" }, 404);
   }

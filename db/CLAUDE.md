@@ -60,7 +60,7 @@ deploys a schema without the column while everything stays green.
   that forgets it, and `ai_status` would have to mean two things at once for a snap described but not
   scored. It carries its own `status` for exactly that reason, stores a failed row with text saying
   so (same absence problem as above), and `photo_descriptions_photo_idx` is what makes the console's
-  retry an upsert. One description outlives every jury: nothing rewrites it when the theme changes.
+  retry an upsert.
 - `prize_awards.prize_label` is TEXT, not a foreign key: prizes are editable and retirable, and an
   award must survive its segment being renamed.
 - **`prizes.prize_set` is a COLUMN rather than a second table**, so the two sets share one router,

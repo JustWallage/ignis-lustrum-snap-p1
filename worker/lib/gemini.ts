@@ -162,10 +162,10 @@ export async function requestEvaluation(
   return evaluationSchema.parse(JSON.parse(text));
 }
 
-/** The description is written ONCE per photograph and every jury, theme and re-run
- * afterwards reads that same text — so a quality left out of this list is one no jury
- * can ever reward again. Nothing here names a jury, a theme or a score: a description
- * that knew tonight's theme would have to be rewritten when the jury changed. */
+/** One row per photograph (`photo_descriptions_photo_idx`) and nothing re-runs it when
+ * the jury or the theme changes — so a quality left out of this list is one no later
+ * reader can recover. Nothing here names a jury, a theme or a score: a description that
+ * knew tonight's theme would have to be rewritten every time the jury changed. */
 const DESCRIPTION_FIELDS = [
   {
     name: "subject",
@@ -224,8 +224,8 @@ const DESCRIPTION_RESPONSE_SCHEMA = {
 const describedSchema = z.record(z.string(), z.string().trim().min(1));
 
 /** A field the model dropped THROWS rather than coming back short: the caller stores a
- * failure it can retry, where a half-description would silently cost every jury after
- * it whatever was left out — and nothing rewrites a description that landed. */
+ * failure the console can retry, where a half-description lands as an `ok` row that
+ * nothing re-runs on its own. */
 export async function requestDescription(
   apiKey: string,
   image: GeminiImage,

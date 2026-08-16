@@ -888,8 +888,6 @@ describe("the AI jury", () => {
       bonus_reason: VERDICT.bonusReason,
       ai_status: "ok",
     });
-    // Throws unless exactly ONE of the upload's two calls was the jury's: the
-    // description beside it is the other, and neither may be asked twice.
     expect(
       geminiCallAsking(fetched.mock.calls, /judging one entry/).url,
     ).toContain(GEMINI_MODEL);

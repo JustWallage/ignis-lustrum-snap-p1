@@ -160,8 +160,6 @@ photosRoutes.post("/", async (c) => {
     contentType: file.type,
   };
   c.executionCtx.waitUntil(scorePhoto(c.env, { ...image, day }));
-  // Beside the verdict rather than after it: the description knows no jury and no
-  // theme, so neither call is waiting on anything the other learns.
   c.executionCtx.waitUntil(describePhoto(c.env, image));
   return c.json(
     toPhoto(

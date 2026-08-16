@@ -91,7 +91,6 @@ describe("the photograph's description", () => {
     }
 
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
-    // The jury's key, never the billed one: this reads photographs, it does not draw.
     expect(z.record(z.string(), z.string()).parse(init.headers)).toMatchObject({
       "x-goog-api-key": "test-key",
     });
@@ -154,7 +153,6 @@ describe("the photograph's description", () => {
       expect(res.status).toBe(201);
       const id = photoSchema.parse(await res.json()).id;
       const stored = await storedDescription(id);
-      // A row that SAYS it failed, which "not described yet" cannot be confused with.
       expect(stored?.status).toBe("failed");
       expect(stored?.description).not.toBe("");
     },
@@ -194,7 +192,6 @@ describe("the photograph's description", () => {
     expect(listed.status).toBe(200);
     const day = dayPhotosSchema.parse(await listed.json());
     expect(day.descriptions).toEqual([{ photoId: id, status: "ok" }]);
-    // The player-facing shape carries none of it.
     const mine = await app.request(
       `/api/photos/${String(id)}`,
       { headers: { Cookie: cookie } },
