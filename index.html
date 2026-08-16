@@ -2,7 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `maximum-scale=1` is what stops iOS Safari auto-zooming a focused field under
+         16px; `user-scalable=no` stays out, and the photograph carries a zoom of its
+         own (`SnapViewer`) because iOS ignores this for pinch and Android does not. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
     <title>Ignis Snaps</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#23252b" />

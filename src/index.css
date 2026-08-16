@@ -1115,6 +1115,16 @@ button.gb-pill-cap:disabled {
   border-style: dashed;
 }
 
+/* The photograph carries its OWN pinch and double-tap (`SnapViewer`), so the browser
+   must not take the gesture first. The effective value is the intersection down the
+   chain, so this `none` decides every touch that starts on the picture while the tap
+   zones over it still COMPUTE the stage's `manipulation`, which is what
+   `touch-action.spec.ts` reads off them. */
+.gb-viewer-frame {
+  overflow: hidden;
+  touch-action: none;
+}
+
 /* The arrow is a CHILD of the tap-zone button, not a layer over it — a sibling laid
    across the photograph would take the tap it advertises. Style it, never move it out. */
 .gb-viewer-arrow {
@@ -1608,6 +1618,12 @@ button.gb-pill-cap:disabled {
   background: #fbfbf8;
   color: #14181d;
   font-family: var(--font-sans);
+}
+/* The console is a PAGE, not a window: it is not inside `.gb-stage`, so the one rule
+   that kills double-tap zoom for the game never reached it. */
+.ops-screen,
+:where(.ops-screen *) {
+  touch-action: manipulation;
 }
 
 .ops-bar {

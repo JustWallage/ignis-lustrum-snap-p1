@@ -31,6 +31,10 @@ const DESKTOP = { width: 1280, height: 800 };
  * it on every viewport, which is the whole of #113. */
 const OLD_PHOTO_MAX_H = 224;
 
+/** `SnapViewer`'s own window, and the e2e project cannot import it from `src/`. Longer
+ * here than there on purpose: the point is to be outside it. */
+const DOUBLE_TAP_MS = 300;
+
 function viewerTitle(page: Page, at: number, of: number) {
   return page
     .locator(".gb-window")
@@ -277,6 +281,10 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   await page.getByTestId("archive-photo").click();
   await expect(viewerTitle(page, 1, 1)).toBeVisible();
   await tapViewer(page, "on");
+  // Past the viewer's double-tap window, or the second tap cancels the first's page and
+  // zooms the picture instead — two taps that never reached `step` say nothing about
+  // paging a one-photograph list, which is what this pair is here for.
+  await page.waitForTimeout(DOUBLE_TAP_MS);
   await tapViewer(page, "back");
   await expect(viewerTitle(page, 1, 1)).toBeVisible();
   await expect(page.getByTestId("viewer-who")).toHaveText("tester");

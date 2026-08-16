@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { dayPhotosSchema, retirementSchema } from "@shared/api";
+import {
+  dayPhotosSchema,
+  photoDescriptionSchema,
+  retirementSchema,
+  type PhotoDescription,
+} from "@shared/api";
 import type { GameState } from "@shared/state";
 import { ConfirmButton } from "@/admin/ConfirmButton";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
@@ -7,8 +12,15 @@ import { readApiError } from "@/lib/api";
 
 const REFUSED = "Nothing was retired.";
 
+const DESCRIBE_REFUSED = "Nothing was described.";
+
 function retiredText(retired: number, day: number): string {
   return `${String(retired)} snap${retired === 1 ? "" : "s"} retired out of day ${String(day)}. The pictures are still in the bucket.`;
+}
+
+function describedText(status: PhotoDescription["status"] | undefined): string {
+  if (status === undefined) return "Not described";
+  return status === "ok" ? "Described" : "Description failed";
 }
 
 export function SnapsPanel({
@@ -36,26 +48,44 @@ export function SnapsPanel({
   );
   const { mutate } = list;
 
-  const retire = async (path: string) => {
+  const press = async (path: string, refused: string): Promise<unknown> => {
     setBusy(true);
     setNote(null);
     setRefusal(null);
     try {
       const res = await fetch(path, { method: "POST" });
-      if (res.ok) {
-        const done = retirementSchema.parse(await res.json());
-        setNote(retiredText(done.retired, done.day));
-        mutate();
-        onRetired();
-      } else {
-        setRefusal(await readApiError(res, REFUSED));
-      }
+      if (res.ok) return await res.json();
+      setRefusal(await readApiError(res, refused));
+      return null;
     } finally {
       setBusy(false);
     }
   };
 
+  const retire = async (path: string) => {
+    const body = await press(path, REFUSED);
+    if (body === null) return;
+    const done = retirementSchema.parse(body);
+    setNote(retiredText(done.retired, done.day));
+    mutate();
+    onRetired();
+  };
+
+  const describe = async (id: number) => {
+    const body = await press(
+      `/api/admin/photos/${String(id)}/describe`,
+      DESCRIBE_REFUSED,
+    );
+    if (body === null) return;
+    const done = photoDescriptionSchema.parse(body);
+    setNote(`Snap #${String(done.photoId)} — ${describedText(done.status)}.`);
+    mutate();
+  };
+
   const photos = list.data?.photos ?? [];
+  const described = new Map(
+    (list.data?.descriptions ?? []).map((row) => [row.photoId, row.status]),
+  );
 
   return (
     <section className="ops-panel" data-testid="ops-snaps-panel">
@@ -115,7 +145,22 @@ export function SnapsPanel({
                 {photo.aiScore !== null && (
                   <span>{`Jury ${String(photo.aiScore)}`}</span>
                 )}
+                <span data-testid={`ops-described-${String(photo.id)}`}>
+                  {describedText(described.get(photo.id))}
+                </span>
               </p>
+              <button
+                type="button"
+                className="ops-btn"
+                data-testid={`ops-describe-${String(photo.id)}`}
+                aria-busy={busy}
+                disabled={busy}
+                onClick={() => {
+                  void describe(photo.id);
+                }}
+              >
+                Describe
+              </button>
               <ConfirmButton
                 label="Retire"
                 question={`Retire snap #${String(photo.id)}?`}

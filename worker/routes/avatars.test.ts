@@ -348,7 +348,9 @@ describe("avatar generation", () => {
       expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT);
     }
     expect(await storedAvatar()).toBeNull();
-    expect(fetched).toHaveBeenCalledTimes(1);
+    expect(
+      fetched.mock.calls.filter(([url]) => url.includes(GEMINI_IMAGE_MODEL)),
+    ).toEqual([]);
   });
 
   it("goes dark on both sides when neither key is set", async () => {

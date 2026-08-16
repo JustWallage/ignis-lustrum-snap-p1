@@ -115,6 +115,20 @@ export const photoScores = sqliteTable(
   (t) => [uniqueIndex("photo_scores_photo_idx").on(t.photoId)],
 );
 
+export const photoDescriptions = sqliteTable(
+  "photo_descriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    photoId: integer("photo_id")
+      .notNull()
+      .references(() => photos.id),
+    description: text("description").notNull(),
+    status: text("status", { enum: ["ok", "failed"] }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [uniqueIndex("photo_descriptions_photo_idx").on(t.photoId)],
+);
+
 export const prizes = sqliteTable(
   "prizes",
   {

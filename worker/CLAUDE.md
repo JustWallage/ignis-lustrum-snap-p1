@@ -12,10 +12,12 @@
 - `photos.day` is stamped from `game_state.day`, never the client. **One per user per day, only in
   `submission`**, enforced by `photos_user_day_idx`: the route reads no state, inserts, and turns
   the UNIQUE violation into a 409, so two racing POSTs cannot both land. Replace is purge + insert
-  in ONE `db.batch`, or a landed delete leaves a player with nothing in. `purgePhoto`
+  in ONE `db.batch` — whose positional holes are counted from what `purgePhoto` returns, so a new
+  dependant is a hole too — or a landed delete leaves a player with nothing in. `purgePhoto`
   (`lib/photo-rows.ts`, beside the ONE aggregate query both the photos router and the console's day
-  listing read a snap through) is the one place a photo's dependants die — and one of them is not a
-  table: the R2 object goes after the batch, never inside it. **Retiring is that same purge with a
+  listing read a snap through) is the one place a photo's dependants die — the verdict, the
+  description, the votes, the likes and the thread — and one of them is not a table: the R2 object
+  goes after the batch, never inside it. **Retiring is that same purge with a
   `retired_photos` insert in FRONT of it and no object delete at all**, which is what leaves the
   picture in the bucket; the row dying rather than gaining a flag is also what frees the player's
   `photos_user_day_idx` slot to re-shoot the day. Nothing writes a photo caption (#72).
@@ -96,6 +98,17 @@
 - **The jury never blocks an upload**: `waitUntil`, and any throw stores score 5,
   `ai_status = 'failed'` and NO caption. It UPSERTs, which makes one function both the first pass
   and the admin retry.
+- **`lib/gemini.ts` makes TWO photograph calls, and the second one knows nothing**:
+  `requestDescription` is THEME-BLIND and JURY-BLIND — no jury, no theme, no persona, no score in its
+  prompt — because `photo_descriptions_photo_idx` allows one row per photograph and nothing re-runs
+  it when the jury or theme changes, so every later reader gets that same text. It judges
+  photographs, so it reads `GEMINI_API_KEY` and never the billed key. It is its OWN `waitUntil`
+  beside the verdict's rather than a step chained after it, so neither call waits on what the other
+  learns and it blocks an upload no more than the jury does; a failure stores a row that SAYS it
+  failed (`lib/photo-description.ts`), since a missing one reads as "not described yet" forever. It
+  UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are one function, and
+  the state reaches the console on `dayPhotosSchema`'s parallel `descriptions` array — never as a
+  field on `photoSchema`, whose masking is the player's. Nothing scores off the text yet.
 - **Avatars are the opposite trade**: synchronous, no fallback, a failure the player reads. Two caps
   are STORED config an admin PATCHes (`settings`, seeded with what used to be compiled in), and 0 is
   legal — a closed machine. They are decided in ONE statement so two requests cannot spend the last slot;

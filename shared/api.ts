@@ -127,9 +127,16 @@ export const retirementSchema = z.object({
   retired: z.int().nonnegative(),
 });
 
+export const photoDescriptionSchema = z.object({
+  photoId: z.int(),
+  status: aiStatusSchema,
+});
+export type PhotoDescription = z.infer<typeof photoDescriptionSchema>;
+
 export const dayPhotosSchema = z.object({
   day: z.int().positive(),
   photos: z.array(photoSchema),
+  descriptions: z.array(photoDescriptionSchema),
 });
 
 const bucketObjectSchema = z.object({

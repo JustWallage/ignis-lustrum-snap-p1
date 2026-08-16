@@ -115,6 +115,16 @@
   resolved out of the LIST by id on every render (`lib/viewer.ts`) — a stored index becomes a
   different photograph the moment the feed refetches. `SnapDialog` is the small one-snap window for
   every caller that has an id and no list to page through.
+- **The picture carries a zoom of its own and the zones share their surface with it** (#41): a tap
+  therefore WAITS OUT the double-tap window before it pages, and a second tap inside that window
+  cancels the page and zooms instead — a double-tap that paged twice on its way to zooming is not a
+  double-tap. The ‹ › buttons and the arrow keys are not taps and still step at once. A finger that
+  travelled past the slop is a drag, not a tap, and the click ending it pages nothing. The geometry
+  is `lib/zoom.ts` and nothing else: pinch, double-tap and drag all land in the one `Zoom`, which
+  answers `FIT` for any scale at or below fit — below 1 the clamp's own limit goes NEGATIVE and pins
+  the picture off centre at a sub-fit size, so an overshooting pinch is caught before it is clamped.
+  Zoom is reset by the OPEN SNAP changing, so a page turn cannot hand the next reader a
+  magnified corner of a photograph they have not seen.
 - **A viewer asks to delete; the shell deletes** (#93). `confirmChain` lives in the LCD's dialogue
   box, which the modal layer covers, so the question cannot be asked while the viewer is on screen:
   `confirm-delete` carries the id and where to put a cancelling reader back.
@@ -152,14 +162,22 @@
   measures itself in `--gb-pc` — one percent of its own width — because `14cqw` there was 14vw, and
   on any short, wide viewport, where `98dvh` and not `96vw` decides the height, that foot grew to a
   third of the shell and swallowed the grille's corner.
-- **Double-tap zoom is killed once, globally, on `.gb-stage` plus a descendant selector** — the
+- **Double-tap zoom is killed on `.gb-stage` plus a descendant selector** — the
   value is not inherited, so the descendant half is what puts it on each surface itself, dialogs
   included: they are the stage's DOM children however the top layer paints them, and nothing new has
-  to remember to opt in. The value is `manipulation`, never `none`
+  to remember to opt in. The console is the one surface that rule cannot reach, being a PAGE outside
+  the stage, and carries the same pair under `.ops-screen` (#41) — the second copy is the whole net,
+  so a third surface outside `.gb-stage` needs its own. The value is `manipulation`, never `none`
   (which stops the feeds, rails and comment lists scrolling), and **`user-scalable=no` is out**: the
-  archive exists to be read and a photograph you cannot pinch is a worse one. The DESCENDANT half is
+  archive exists to be read. **`maximum-scale=1` on the viewport meta is the other half**, and the
+  only thing that stops iOS Safari zooming a focused field under 16px — no `touch-action` value
+  does, which is why the three fields are still sized as they are rather than bumped to 16px. It is
+  also why the photograph carries a zoom of its OWN: iOS ignores the meta for pinch as an
+  accessibility guarantee, Android honours it, and shipping the meta alone locks the archive's
+  pictures at one size on every Android in the town. The DESCENDANT half is
   wrapped in `:where()` — `.gb-stage` itself is bare, since nothing competes on it — so a control's
-  own `touch-action: none` (D-pad, A/B, pill caps, the grille) wins wherever it is declared rather
+  own `touch-action: none` (D-pad, A/B, pill caps, the grille, and `.gb-viewer-frame`, which takes
+  it precisely because `SnapViewer` runs the gesture itself) wins wherever it is declared rather
   than only by sitting later, and the effective value being the intersection down the chain is what
   keeps a thumb on those from panning the page.
 - **The prize drum's geometry is `lib/wheel.ts` and nothing else**: a face is placed by an ANGLE,

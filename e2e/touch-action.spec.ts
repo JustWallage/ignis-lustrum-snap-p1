@@ -5,6 +5,7 @@ import {
   expect,
   openArchive,
   openBallot,
+  openConsole,
   pressStart,
   setDay,
   test,
@@ -51,7 +52,22 @@ test("the shell suppresses double-tap zoom without touching the hardware or pinc
 
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
     "content",
-    "width=device-width, initial-scale=1.0",
+    "width=device-width, initial-scale=1.0, maximum-scale=1",
+  );
+});
+
+test("the operator's console suppresses it too, outside the stage as it is", async ({
+  page,
+}) => {
+  await apiSignIn(page);
+  const panel = await openConsole(page, "Clock");
+
+  expect(await touchAction(page.locator(".ops-screen"))).toBe("manipulation");
+  expect(await touchAction(panel.getByTestId("ops-day-input"))).toBe(
+    "manipulation",
+  );
+  expect(await touchAction(panel.getByTestId("ops-day-set"))).toBe(
+    "manipulation",
   );
 });
 

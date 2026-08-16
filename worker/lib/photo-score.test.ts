@@ -9,6 +9,7 @@ import { photoSchema } from "../../shared/api";
 import { juryForDay } from "../../shared/juries";
 import { app } from "../index";
 import {
+  geminiCallAsking,
   geminiReply,
   geminiRequestSchema,
   PHOTO_BYTES,
@@ -29,6 +30,8 @@ import { GEMINI_MODEL } from "./gemini";
 
 beforeEach(resetWorld);
 
+const JURY_ASKED = /judging one entry/;
+
 describe("the AI jury", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -47,7 +50,9 @@ describe("the AI jury", () => {
       bonus_reason: VERDICT.bonusReason,
       ai_status: "ok",
     });
-    expect(fetched).toHaveBeenCalledTimes(1);
+    expect(geminiCallAsking(fetched.mock.calls, JURY_ASKED).url).toContain(
+      GEMINI_MODEL,
+    );
   });
 
   it("asks for the caption as a title, and not as a second critique", async () => {
@@ -55,14 +60,7 @@ describe("the AI jury", () => {
     const cookie = await signIn();
     await uploadPhotoId(cookie, { bindings: withGeminiKey() });
 
-    const call = fetched.mock.calls[0];
-    if (call === undefined) throw new Error("Gemini was never called");
-    const body = geminiRequestSchema.parse(
-      JSON.parse(z.string().parse(call[1].body)),
-    );
-    const prompt = (body.contents[0]?.parts ?? [])
-      .map((part) => part.text ?? "")
-      .join("");
+    const { prompt } = geminiCallAsking(fetched.mock.calls, JURY_ASKED);
     expect(prompt).toMatch(/caption is a TITLE/);
     expect(prompt).toMatch(/not reuse any wording from the critique/i);
   });
@@ -72,9 +70,7 @@ describe("the AI jury", () => {
     const cookie = await signIn();
     await uploadPhotoId(cookie, { bindings: withGeminiKey() });
 
-    const call = fetched.mock.calls[0];
-    if (call === undefined) throw new Error("Gemini was never called");
-    const [url, init] = call;
+    const { url, init } = geminiCallAsking(fetched.mock.calls, JURY_ASKED);
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
     expect(z.record(z.string(), z.string()).parse(init.headers)).toMatchObject({
       "x-goog-api-key": "test-key",
@@ -170,11 +166,16 @@ describe("the AI jury", () => {
   });
 
   it("answers the upload before the model does", async () => {
-    let answer: (res: Response) => void = () => undefined;
-    const thinking = new Promise<Response>((resolve) => {
+    let answer: () => void = () => undefined;
+    const thinking = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    stubGemini(() => thinking);
+    // A Response body may be read ONCE, and the description beside the verdict is
+    // reading too — so the wait is shared and the reply built per call.
+    stubGemini(async () => {
+      await thinking;
+      return geminiReply(JSON.stringify(VERDICT));
+    });
 
     const cookie = await signIn();
     const ctx = createExecutionContext();
@@ -188,7 +189,7 @@ describe("the AI jury", () => {
     const id = photoSchema.parse(await res.json()).id;
     expect(await storedScore(id)).toBeNull();
 
-    answer(geminiReply(JSON.stringify(VERDICT)));
+    answer();
     await waitOnExecutionContext(ctx);
     expect(await storedScore(id)).toMatchObject({ ai_status: "ok" });
   });

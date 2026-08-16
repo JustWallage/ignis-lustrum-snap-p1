@@ -333,8 +333,8 @@ export interface UploadOptions {
   bindings?: object;
 }
 
-/** A real ExecutionContext, so a test can await the `waitUntil` the route hands the AI
- * evaluation to. `bindings` defaults to the pool's own `env`, which is NOT the same as
+/** A real ExecutionContext, so a test can await the two `waitUntil`s the route hands the
+ * evaluation and the description to. `bindings` defaults to the pool's own `env`, which is NOT the same as
  * "no key": wrangler loads a developer's `.env`, so a test that needs one absent says so
  * with `withoutGeminiKey()`. */
 export async function uploadPhoto(
@@ -598,7 +598,23 @@ export async function storedScore(photoId: number) {
   return row === null ? null : storedScoreSchema.parse(row);
 }
 
-async function rowCount(table: "photos" | "photo_scores"): Promise<number> {
+const storedDescriptionSchema = z.object({
+  description: z.string(),
+  status: z.enum(["ok", "failed"]),
+});
+
+export async function storedDescription(photoId: number) {
+  const row = await env.DB.prepare(
+    "SELECT description, status FROM photo_descriptions WHERE photo_id = ?",
+  )
+    .bind(photoId)
+    .first();
+  return row === null ? null : storedDescriptionSchema.parse(row);
+}
+
+async function rowCount(
+  table: "photos" | "photo_scores" | "photo_descriptions",
+): Promise<number> {
   const row = await env.DB.prepare(
     `SELECT count(*) AS n FROM ${table}`,
   ).first();
@@ -611,6 +627,37 @@ export function scoreRowCount(): Promise<number> {
 
 export function photoRowCount(): Promise<number> {
   return rowCount("photos");
+}
+
+export function descriptionRowCount(): Promise<number> {
+  return rowCount("photo_descriptions");
+}
+
+/** An upload asks Gemini TWICE — the verdict and the description — so a test about one
+ * of them picks its own call out by what it asked rather than by where it landed, and
+ * throws unless exactly one call asked it. */
+export function geminiCallAsking(
+  calls: [string, RequestInit][],
+  asking: RegExp,
+): { url: string; init: RequestInit; prompt: string } {
+  const asked = calls
+    .map(([url, init]) => {
+      const body = geminiRequestSchema.parse(
+        JSON.parse(z.string().parse(init.body)),
+      );
+      const prompt = (body.contents[0]?.parts ?? [])
+        .map((part) => part.text ?? "")
+        .join("");
+      return { url, init, prompt };
+    })
+    .filter(({ prompt }) => asking.test(prompt));
+  const [only, ...rest] = asked;
+  if (only === undefined || rest.length > 0) {
+    throw new Error(
+      `${String(asked.length)} Gemini calls asked ${String(asking)}`,
+    );
+  }
+  return only;
 }
 
 export const geminiRequestSchema = z.object({
