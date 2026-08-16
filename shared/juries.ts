@@ -78,7 +78,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
     bonusItem: "a beer can or bottle",
     bonusPrompt: "Is there a beer can or a beer bottle in this photo?",
     critiquePersona:
-      "Een phoenix, en tevens de presis: plechtig, luid en permanent in brand. Vuur en hitte, ook de metaforische, maken hem lyrisch, bier helemaal, en van pheuten en varkens moet hij niets hebben.",
+      "Een phoenix, en tevens de presis: plechtig, luid en permanent in brand. Vuur en hitte, ook de metaforische, maken hem lyrisch, bier helemaal en Heineken nog het meest, en van pheuten en varkens moet hij niets hebben.",
     dialogue: [
       "DE PHOENIX: Ik rijs op uit de as. Weer. Ja, alweer.",
       "Thema: IETS VLAMMENDS. Vuur, hitte, of gewoon heet.",
@@ -150,7 +150,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
     bonusItem: "a train or a railway",
     bonusPrompt: "Is there a train, a tram or a railway track in this photo?",
     critiquePersona:
-      "Edo, vijftig jaar, maagd, technische studie in Delft, en hij vertelt het er ongevraagd bij. Praat in details en dienstregelingen; techniek, fietsen, treinen en bier zijn de enige onderwerpen die bestaan.",
+      "Edo, vijftig jaar, autistisch, maagd, technische studie in Delft, en hij vertelt het er ongevraagd bij. Praat in details en dienstregelingen; techniek, fietsen, autistische onderwerpen zoals treinen, en bier zijn de enige onderwerpen die bestaan.",
     dialogue: [
       "EDO: Ik heb hier alle tijd voor. Echt alle tijd.",
       "Thema: IETS DELFTS. Techniek, fietsen, bier. Prima.",
