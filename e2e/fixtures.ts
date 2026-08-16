@@ -265,6 +265,12 @@ export async function tapViewer(
   await page.getByTestId(`viewer-tap-${side}`).click();
 }
 
+/** The arrow drawn inside a zone. Clicking the glyph rather than the zone around it is
+ * what says the decoration did not swallow the tap it advertises. */
+export async function tapArrow(page: Page, side: "back" | "on"): Promise<void> {
+  await page.getByTestId(`viewer-arrow-${side}`).click();
+}
+
 export async function openSnapViewer(page: Page, nth: number) {
   await page
     .getByTestId("vote-candidates")
@@ -275,13 +281,19 @@ export async function openSnapViewer(page: Page, nth: number) {
   return viewer;
 }
 
-export async function rankCurrent(page: Page, rank: 1 | 2 | 3): Promise<void> {
+/** The ballot's 1/2/3, by the name `BallotOverlay` gives it. `rankLabel` cannot be
+ * imported — the e2e project cannot see `src/` — so this is the one copy of those words. */
+export function rankButton(page: Page, rank: 1 | 2 | 3) {
   const labels = { 1: "1ST", 2: "2ND", 3: "3RD" } as const;
+  return page.getByRole("button", { name: `Rank ${labels[rank]}` });
+}
+
+export async function rankCurrent(page: Page, rank: 1 | 2 | 3): Promise<void> {
   const put = page.waitForResponse(
     (res) =>
       res.request().method() === "PUT" && res.url().includes("/api/votes"),
   );
-  await page.getByRole("button", { name: `Rank ${labels[rank]}` }).click();
+  await rankButton(page, rank).click();
   expect((await put).ok()).toBeTruthy();
   await expect(page.getByTestId("vote-save")).toHaveText("SAVED");
 }

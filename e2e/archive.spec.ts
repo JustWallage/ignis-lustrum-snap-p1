@@ -13,6 +13,7 @@ import {
   reachPhase,
   readEvent,
   setDay,
+  tapArrow,
   tapViewer,
   test,
   walkPodiumToWheel,
@@ -242,9 +243,9 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   expect(encloses(photo, backArrow)).toBe(true);
   expect(encloses(photo, onArrow)).toBe(true);
   expect(onArrow.x).toBeGreaterThan(backArrow.x);
-  await page.getByTestId("viewer-arrow-on").click();
+  await tapArrow(page, "on");
   await expect(viewerTitle(page, 2, 3)).toBeVisible();
-  await page.getByTestId("viewer-arrow-back").click();
+  await tapArrow(page, "back");
   await expect(viewerTitle(page, 1, 3)).toBeVisible();
 
   // The heart is under neither zone: it takes the tap and the page does not turn.

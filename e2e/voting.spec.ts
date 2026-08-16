@@ -9,8 +9,10 @@ import {
   openBallot,
   openSnapViewer,
   pressStart,
+  rankButton,
   rankCurrent,
   readDialogue,
+  tapArrow,
   tapViewer,
   test,
   walkToVotingNpc,
@@ -19,11 +21,6 @@ import {
 
 function filledSlots(page: Page) {
   return page.getByTestId("podium").locator('[data-filled="true"]');
-}
-
-function rankButton(page: Page, rank: 1 | 2 | 3) {
-  const labels = { 1: "1ST", 2: "2ND", 3: "3RD" } as const;
-  return page.getByRole("button", { name: `Rank ${labels[rank]}` });
 }
 
 function backgroundOf(page: Page, rank: 1 | 2 | 3) {
@@ -383,9 +380,9 @@ test("tapping the photograph pages the ballot and ranks nothing", async ({
     .evaluate((arrow) => getComputedStyle(arrow).backgroundColor);
   expect(plate).toMatch(/^rgba\(.+, 0\.\d+\)$/);
 
-  await page.getByTestId("viewer-arrow-on").click();
+  await tapArrow(page, "on");
   await expect(title(2)).toBeVisible();
-  await page.getByTestId("viewer-arrow-back").click();
+  await tapArrow(page, "back");
   await expect(title(1)).toBeVisible();
 
   await tapViewer(page, "on");
