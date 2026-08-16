@@ -195,3 +195,55 @@ test("the plinth lets go of a champion whose snap is torn up", async ({
     /plinth is bare/i,
   );
 });
+
+test("an answer for the day before, landing late, does not empty the plinth", async ({
+  page,
+}) => {
+  await apiUpload(page, "rival");
+  await apiSignIn(page);
+  await setDay(page, 2);
+  await apiUpload(page, "voter");
+  await apiSignIn(page);
+
+  await page.goto("/");
+  await pressStart(page);
+  await walkToTrophy(page);
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("dialogue-text")).toContainText(
+    /DAY 1'S CHAMPION: RIVAL/,
+  );
+
+  // Moving the clock publishes, and the two frames that carries reach the handler this
+  // render committed — which still asks for day 1 — before the clock itself reaches the
+  // plinth and it asks for day 2. Holding the OLDER answer is what makes it settle last.
+  let release: () => void = () => {
+    throw new Error("the older answer was never held");
+  };
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/days/1/results", async (route) => {
+    await held;
+    await route.continue();
+  });
+
+  await setDay(page, 3);
+  await expect(page.getByTestId("dialogue-text")).toContainText(
+    /DAY 2'S CHAMPION: VOTER/,
+  );
+
+  // The older answer LANDING is the positive behind the negative below: asserting
+  // straight after `release()` reads a plinth the response has not reached yet, and
+  // passes against a hook that is about to empty it.
+  const late = page.waitForResponse((res) =>
+    res.url().includes("/api/days/1/results"),
+  );
+  release();
+  await late;
+  await expect
+    .poll(async () => page.getByTestId("dialogue-text").textContent(), {
+      timeout: 2_000,
+      intervals: [200, 200, 200, 200, 200],
+    })
+    .toMatch(/DAY 2'S CHAMPION: VOTER/);
+});

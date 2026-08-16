@@ -616,7 +616,7 @@ describe("eventStageKey", () => {
     );
   });
 
-  it("moves for every published moment of the reveal and the wheel", () => {
+  it("moves for every stage the DO publishes through the reveal and the wheel", () => {
     const podium = stateFrom(podiumEvent(reveal, PODIUM_DEPTH, NOW));
     const building = stateFrom(podiumAdvanceEvent(podium, NOW));
     const second = stateFrom(podiumEvent(podium, PODIUM_DEPTH - 1, NOW));

@@ -122,8 +122,8 @@ test("View results opens the archive on the day that just played, and the landin
   await expect(cards.first()).toContainText("Day 1");
   await expect(page.getByTestId("event-overlay")).toBeHidden();
 
-  // The landing is a phase change like any other, and it must not take the results
-  // away from the reader who asked for them.
+  // The END of an event is the one phase change `eventStageKey` calls no transition at
+  // all, which is what leaves the archive standing for the reader who asked for it.
   await expect(page.getByTestId("game-day")).toHaveText("DAY 2", {
     timeout: 60_000,
   });
