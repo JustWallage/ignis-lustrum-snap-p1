@@ -70,8 +70,6 @@ function LastPage({
         >
           DONE
         </button>
-        {/* The archive opens on its newest revealed day, which is the one that just
-            played, so nothing has to be threaded through to say so. */}
         {winner !== undefined && (
           <button
             type="button"

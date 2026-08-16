@@ -35,6 +35,8 @@ Everything both sides read. Change a schema here first.
 - **`revealStage`'s branch order is load-bearing**: the published stage beats the clock. A
   clock-derived parade survives skew; a podium rank does not, and checking the clock first left a
   slow client parading while everyone else was on third.
+- `eventStageKey` is every PUBLISHED moment of an event as one value, and **null is "no event"** —
+  which is what keeps the END of one from reading as a transition the screens have to react to.
 - `podiumRank` is the ONE field saying which reveal page is up, so there is no fourth phase to
   disagree with it. The beast is a MOMENT on the wheel (`beastEndsAt`), not a fourth reveal page.
   `draftOf` drops the day rather than listing fields, so a new state field survives a transition by

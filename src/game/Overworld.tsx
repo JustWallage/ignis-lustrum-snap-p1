@@ -127,14 +127,6 @@ type Dialog =
    * question is asked — the dialogue box lives under the modal layer. */
   | { kind: "confirm-delete"; id: number; back: "view" | "archive" };
 
-/**
- * Which dialogs a running event leaves standing, TOTAL so that a new kind cannot exist
- * without somebody deciding. What the SELECT menu raises MUST survive — Abort event,
- * Spin the wheel and the host's own confirmation all come through that box. Everything
- * a player walked up to must not: `dialog` is derived through this, so one that somehow
- * outlives the transitions below is neither painted over the opaque overlay nor able to
- * hold SELECT shut while the host reaches for it.
- */
 const SURVIVES_EVENT: Record<Dialog["kind"], boolean> = {
   login: true,
   menu: true,
@@ -450,9 +442,9 @@ export function Overworld() {
     setDone(false);
   }, [event?.phase]);
 
-  // Every transition, not only the start: a conversation opened in the gap between two
-  // stages inherits the next one exactly the same way, and the box it is in is what
-  // takes SELECT — and with it Abort event — away from whoever is running the evening.
+  // The derived `dialog` above only HIDES a box the event does not carry: the state has
+  // to go with it, or the conversation the countdown interrupted comes back on the map
+  // the moment this screen presses Done.
   const stage = eventStageKey(event);
   useEffect(() => {
     if (stage === null) return;
@@ -619,8 +611,6 @@ export function Overworld() {
     setDone(true);
   }, []);
 
-  // The event is left behind rather than stacked under: what the reader closes the
-  // archive onto is the map, not a last page nobody has anything left to do with.
   const showResults = useCallback(() => {
     setDone(true);
     setDialog({ kind: "archive" });

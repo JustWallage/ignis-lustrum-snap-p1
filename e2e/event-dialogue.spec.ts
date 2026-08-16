@@ -6,8 +6,6 @@ import {
   operate,
   pressStart,
   reachPodium,
-  readDialogue,
-  readEvent,
   test,
   walkPodiumToWheel,
   walkToJury,
@@ -15,8 +13,6 @@ import {
 
 const EVENT_TIMEOUT_MS = 180_000;
 
-/** Every way in: the keyboard's A, the shell's own A button, and B, which reaches for
- * the message field. None of the three may put a box over the overlay. */
 async function nothingOpens(page: Page): Promise<void> {
   await page.keyboard.press("Enter");
   await page.keyboard.press("x");
@@ -25,8 +21,6 @@ async function nothingOpens(page: Page): Promise<void> {
   await expect(page.getByTestId("event-overlay")).toBeVisible();
 }
 
-/** The one box that must survive every stage: Abort event lives in it, and so does the
- * host's own question. */
 async function selectStillOpens(page: Page): Promise<void> {
   await page.getByTestId("select-button").click();
   await expect(
@@ -54,9 +48,8 @@ test("an event closes the conversation it lands on, and hands the host back SELE
   await walkToJury(page);
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("dialogue-text")).toBeVisible();
-  // The lockout this ticket is about: an open box takes SELECT — and with it Abort
-  // event — off the person running the evening. Which is also why the event below has
-  // to be started through the route: the menu is what the box is holding shut.
+  // Started through the route, not the menu: the box this spec just opened is what is
+  // holding SELECT — and with it every host item — shut.
   await expect(page.getByTestId("select-button")).toBeDisabled();
   expect((await page.request.post("/api/admin/event/start")).ok()).toBeTruthy();
 
@@ -72,21 +65,9 @@ test("an event closes the conversation it lands on, and hands the host back SELE
   await nothingOpens(page);
   await selectStillOpens(page);
 
-  // The host's question arrives through that same box, and the transition it causes
-  // does not take it away before it has been answered.
-  const before = await readEvent(page);
-  await page.getByTestId("podium-next").click();
-  const choices = await readDialogue(page);
-  await expect(page.getByTestId("dialogue-text")).toContainText(
-    /move the podium on/i,
-  );
-  await choices.getByRole("button", { name: "Next place" }).click();
-  await expect
-    .poll(
-      async () => (await readEvent(page)).podiumNextAt !== before.podiumNextAt,
-    )
-    .toBe(true);
-
+  // Every boundary `walkPodiumToWheel` crosses goes through `hostNext`, which reads the
+  // host's confirmation out of that same box — so walking the podium IS the assertion
+  // that an event closing conversations has not closed the one it raises itself.
   await walkPodiumToWheel(page);
   await nothingOpens(page);
   await selectStillOpens(page);

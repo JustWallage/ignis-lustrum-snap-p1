@@ -410,9 +410,8 @@ export async function walkPodiumToWheel(page: Page): Promise<void> {
   await reachPhase(page, "wheel");
 }
 
-/** A whole event, START to landed wheel, hosted and won by `tester` — every spec that
- * needs a finished day has to run one, and the wheel only lands for a page that walked
- * the podium through itself. Returns the prize it landed on. */
+/** A whole event, START to landed wheel, hosted and won by `tester`. Returns the prize
+ * it landed on. */
 export async function landTheWheel(page: Page): Promise<string> {
   await apiUpload(page, "tester");
   await apiSignIn(page, "tester");
