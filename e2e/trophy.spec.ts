@@ -240,10 +240,12 @@ test("an answer for the day before, landing late, does not empty the plinth", as
   );
   release();
   await late;
-  await expect
-    .poll(async () => page.getByTestId("dialogue-text").textContent(), {
-      timeout: 2_000,
-      intervals: [200, 200, 200, 200, 200],
-    })
-    .toMatch(/DAY 2'S CHAMPION: VOTER/);
+  // A plain wait, because every retrying assertion here passes on its FIRST sample —
+  // the plinth still reads right in the beat between that answer arriving and the hook
+  // acting on it. This is the beat, spent, so the emptying has happened if it is going
+  // to.
+  await page.waitForTimeout(500);
+  await expect(page.getByTestId("dialogue-text")).toContainText(
+    /DAY 2'S CHAMPION: VOTER/,
+  );
 });
