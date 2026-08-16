@@ -86,9 +86,10 @@ export function scoreDay(entries: readonly DayEntry[]): DayScore[] {
   }));
   const peerField = weighed.map((one) => one.peerPoints);
   const judged = entries.filter(isJudged).map((entry) => entry.aiScore);
-  // Without a `GEMINI_API_KEY` every snap of the day is the fallback, and ordering
-  // those by anything at all hands half the day to upload time. Undifferentiated is
-  // what they are, so they share the field's middle position and separate on nothing.
+  // A `failed` 5 is not a 5 the jury meant and a missing row is not a zero, so neither
+  // may be ranked among the real scores: on a mixed day the fallback would beat every
+  // honest 4 and the absent row would sink to last. The field's middle position is what
+  // an absence is worth.
   const median = (field + 1) / 2;
 
   return weighed

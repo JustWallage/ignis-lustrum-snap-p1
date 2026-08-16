@@ -10,9 +10,9 @@ describe("ratingText", () => {
     );
   });
 
-  // The bug the label caused: the day's best AI score curves to exactly
-  // HALF_WEIGHT, so "AI 50" was on the winner's card every single day. A rating is
-  // never that number, whatever the curve did.
+  // The bug the label caused: the day's best AI half is exactly HALF_WEIGHT, so
+  // "AI 50" was on the winner's card every single day. A rating is never that number,
+  // whatever the other half is measuring.
   it("is a rating, never the curved half", () => {
     expect(ratingText(AI_SCORE_MAX)).not.toContain(String(HALF_WEIGHT));
   });
