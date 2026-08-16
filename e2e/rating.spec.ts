@@ -23,7 +23,7 @@ import {
 //
 // With no GEMINI_API_KEY every verdict here is the fallback — score 5, `failed` — so no
 // snap has a jury position of its own and the whole field shares the median, which pays
-// 30 whatever the field size. The rating still reads 5/10: exactly the pair that was
+// 30 on any field of two or more. The rating still reads 5/10: exactly the pair that was
 // indistinguishable. A real answer changes the numerator and nothing else.
 
 const EVENT_TIMEOUT_MS = 240_000;

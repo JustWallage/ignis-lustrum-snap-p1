@@ -26,9 +26,9 @@ export async function resultsForDays(
       uploaderId: users.id,
       uploaderName: users.name,
       createdAt: photos.createdAt,
-      // Left-joined: the AI pass writes a row even when Gemini fails, so a missing
-      // one means the evaluation never landed. `aiStatus` travels with it because
-      // the fallback 5 a failure stores is not a position anybody earned.
+      // Left-joined: the AI pass writes a row even when Gemini fails, so a missing one
+      // means the evaluation never landed — and the snap must still reach `scoreDay`,
+      // which is the only place that decides what an absence is worth.
       aiScore: photoScores.aiScore,
       aiStatus: photoScores.aiStatus,
       critique: photoScores.critique,

@@ -9,11 +9,9 @@ export function ratingText(aiScore: number | null): string {
   return `${String(aiScore)}/${String(AI_SCORE_MAX)}`;
 }
 
-/**
- * The jury half, LABELLED so it cannot be read as a rating: it is a POSITION in the
- * day's field, where first place lands on exactly `HALF_WEIGHT`, and printing it under
- * a bare "AI" is the whole of #97. The player-facing word stays CURVED.
- */
+/** The number is a POSITION in the day's field, not a curve — CURVED is the player's
+ * word and stays, so nothing here follows `shared/scoring.ts` when the arithmetic
+ * changes name. */
 export function curvedText(aiNorm: number): string {
   return `CURVED ${String(Math.round(aiNorm))}`;
 }

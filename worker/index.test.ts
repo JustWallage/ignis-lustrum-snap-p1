@@ -50,9 +50,10 @@ const PASSWORDS: Record<string, string> = {
   judge: "judge-password-123",
 };
 
-// No test environment has a GEMINI_API_KEY, so every verdict here is the fallback
-// 5/`failed` and no snap has a jury position of its own: the whole field shares the
-// median, which pays 30 of the 50 whatever the field size.
+// Nothing here stubs a Gemini reply and the pool declares no key, so every verdict is
+// the fallback 5/`failed`: no snap has a jury position of its own and the whole field
+// shares the median, which pays 30 of the 50 on any field of two or more. A developer's
+// own `.env` DOES reach this pool, so a real key scores these snaps for real.
 const MEDIAN_HALF = 30;
 
 async function signIn(name = "tester"): Promise<string> {

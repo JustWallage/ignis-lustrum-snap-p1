@@ -22,9 +22,6 @@ import {
 
 beforeEach(resetWorld);
 
-// No test environment has a GEMINI_API_KEY, so every verdict here is the fallback
-// 5/`failed` and no snap has a jury position of its own: the whole field shares the
-// median, which pays 30 of the 50 whatever the field size.
 const MEDIAN_HALF = 30;
 
 describe("day results", () => {
@@ -218,8 +215,6 @@ describe("the archive", () => {
       const winner = dayOne?.results[0];
       expect(winner?.photoId).toBe(first);
       expect(winner?.uploader.name).toBe("tester");
-      // A solo day: neither half has a field to have a position in, so both pay in
-      // full and the day totals 100 before the no-ballot penalty halves it.
       expect(winner?.aiNorm).toBe(HALF_WEIGHT);
       expect(winner?.peerNorm).toBe(HALF_WEIGHT);
       expect(winner?.total).toBe(HALF_WEIGHT * 2 * NO_VOTE_MULTIPLIER);

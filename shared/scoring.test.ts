@@ -40,8 +40,6 @@ function normAt(rank: number, field: number): number {
   return HALF_WEIGHT * (FLOOR + (1 - FLOOR) * ((field - rank) / (field - 1)));
 }
 
-/** `normAt` is linear in the rank, so inverting it reads back a position the wire
- * never carries — the only way a test can add the day's ranks up. */
 function rankFrom(norm: number, field: number): number {
   return field - ((norm / HALF_WEIGHT - FLOOR) / (1 - FLOOR)) * (field - 1);
 }
@@ -68,8 +66,6 @@ describe("peer points", () => {
 
 describe("scoring a day", () => {
   it("gives a lone submission the whole of both halves and rank 1", () => {
-    // A field of one has no position to take, so both halves pay in full and the
-    // day totals 100 — the only day size where the two halves cannot disagree.
     const [only] = scoreDay([judged({ photoId: 7, aiScore: 4 })]);
     expect(only).toEqual({
       photoId: 7,
@@ -258,8 +254,6 @@ describe("scoring a day", () => {
 
 describe("a tied group takes the average of the positions it occupies", () => {
   it("keeps the day's peer positions adding up to n(n+1)/2", () => {
-    // Taking the WORST position of a tied group instead inflates this sum, and the
-    // whole overshoot lands on the players the ballot knows least about.
     const field = 6;
     const scored = scoreDay([
       judged({ photoId: 1, ranksReceived: [1, 1], aiScore: 5 }),
@@ -352,9 +346,6 @@ describe("a snap the jury never scored", () => {
   });
 
   it("does not let upload time decide a day the jury could not reach at all", () => {
-    // Every e2e run is in this state: no GEMINI_API_KEY, so every verdict is the
-    // fallback 5/`failed`. Ordering those by `createdAt` made the first uploader 50
-    // and the last 10 on a half nobody had earned.
     const scored = scoreDay(
       [100, 400, 200, 300].map((createdAt, index) =>
         entry({
@@ -373,8 +364,6 @@ describe("a snap the jury never scored", () => {
 
 describe("a position beats a curve", () => {
   it("lets a snap nobody voted for win the day the jury ranked it first", () => {
-    // The whole point of the change: under a curve, zero peer points curved to zero
-    // and no jury verdict could recover it.
     const field = 14;
     const peerFavourite = judged({
       photoId: 1,

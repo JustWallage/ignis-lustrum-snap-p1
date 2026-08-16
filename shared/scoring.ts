@@ -9,8 +9,6 @@ export const BONUS_POINTS = 10;
 
 export const NO_VOTE_MULTIPLIER = 0.5;
 
-/** What last place still takes of a half. Zero would put a snap nobody voted for
- * beyond recovery by the other half, which is the whole point of the position. */
 export const FLOOR = 0.2;
 
 export function pointsForRank(rank: number): number {
@@ -73,8 +71,6 @@ interface Weighed {
 }
 
 function compareForRank(a: Weighed, b: Weighed): number {
-  // The AI order is not strict — a whole day can share the median — so `createdAt`
-  // is what stops a tie falling through to whatever order the rows arrived in.
   return (
     b.total - a.total ||
     a.aiRank - b.aiRank ||
