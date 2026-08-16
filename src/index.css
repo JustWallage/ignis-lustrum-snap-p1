@@ -1097,6 +1097,28 @@ button.gb-pill-cap:disabled {
   transform: translateY(1px);
 }
 
+.gb-rank[data-slot="held"] {
+  background: #4870b8;
+  border-color: #4870b8;
+}
+.gb-rank[data-slot="taken"] {
+  background: #f8f8f0;
+  color: #071821;
+  border-color: #4870b8;
+  border-style: dashed;
+}
+
+/* It is a child of the tap zone, not a layer over one: that is what keeps the arrow from
+   eating the tap it advertises, so nothing here may take it out of the flow. */
+.gb-viewer-arrow {
+  padding: 0.35rem 0.4rem;
+  border-radius: 4px;
+  background: rgb(7 24 33 / 0.55);
+  color: #e0f8cf;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 .gb-input {
   display: block;
   width: 100%;

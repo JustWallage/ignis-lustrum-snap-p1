@@ -4,6 +4,7 @@ import {
   apiSignIn,
   apiUpload,
   boxOf,
+  encloses,
   expect,
   filterBy,
   openArchive,
@@ -235,6 +236,18 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   const back = await boxOf(page, "viewer-tap-back");
   const on = await boxOf(page, "viewer-tap-on");
   expect(on.x).toBeGreaterThan(back.x);
+
+  // The viewer is shared, so the arrows land here by construction — and a spec on the
+  // ballot only would not notice the day this surface stopped rendering them.
+  const backArrow = await boxOf(page, "viewer-arrow-back");
+  const onArrow = await boxOf(page, "viewer-arrow-on");
+  expect(encloses(photo, backArrow)).toBe(true);
+  expect(encloses(photo, onArrow)).toBe(true);
+  expect(onArrow.x).toBeGreaterThan(backArrow.x);
+  await page.getByTestId("viewer-arrow-on").click();
+  await expect(viewerTitle(page, 2, 3)).toBeVisible();
+  await page.getByTestId("viewer-arrow-back").click();
+  await expect(viewerTitle(page, 1, 3)).toBeVisible();
 
   // The heart is under neither zone: it takes the tap and the page does not turn.
   const heart = page.locator(".gb-window").getByRole("button", { name: /♡|♥/ });

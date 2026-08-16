@@ -4,6 +4,7 @@ import {
   apiSignIn,
   apiUpload,
   boxOf,
+  encloses,
   expect,
   openBallot,
   openSnapViewer,
@@ -18,6 +19,17 @@ import {
 
 function filledSlots(page: Page) {
   return page.getByTestId("podium").locator('[data-filled="true"]');
+}
+
+function rankButton(page: Page, rank: 1 | 2 | 3) {
+  const labels = { 1: "1ST", 2: "2ND", 3: "3RD" } as const;
+  return page.getByRole("button", { name: `Rank ${labels[rank]}` });
+}
+
+function backgroundOf(page: Page, rank: 1 | 2 | 3) {
+  return rankButton(page, rank).evaluate(
+    (button) => getComputedStyle(button).backgroundColor,
+  );
 }
 
 /** `.modal-layer.is-full`'s own padding, in px — the one gap a full-screen window is
@@ -217,6 +229,52 @@ test("tapping a snap's own rank clears it, and the ballot saves without it", asy
   expect(ballotSchema.parse(await mine.json()).photoIds).toHaveLength(1);
 });
 
+test("a rank slot reads free, held by this snap, or spent on another", async ({
+  page,
+}) => {
+  await apiUpload(page, "tester");
+  await apiUpload(page, "rival");
+  await apiUpload(page, "voter");
+  await page.context().clearCookies();
+  await apiSignIn(page, "judge");
+
+  await page.goto("/");
+  await pressStart(page);
+  await walkToVotingNpc(page);
+  await openBallot(page);
+  const viewer = await openSnapViewer(page, 1);
+
+  for (const rank of [1, 2, 3] as const) {
+    await expect(rankButton(page, rank)).toHaveAttribute("data-slot", "free");
+  }
+  const free = await backgroundOf(page, 1);
+
+  await rankCurrent(page, 1);
+  await expect(rankButton(page, 1)).toHaveAttribute("data-slot", "held");
+  await expect(rankButton(page, 1)).toHaveAttribute("aria-pressed", "true");
+  const held = await backgroundOf(page, 1);
+
+  await page.getByRole("button", { name: "Next snap" }).click();
+  await expect(
+    viewer.getByRole("heading", { name: "Snap 2 of 3" }),
+  ).toBeVisible();
+  await expect(rankButton(page, 1)).toHaveAttribute("data-slot", "taken");
+  await expect(rankButton(page, 1)).toHaveAttribute("aria-pressed", "false");
+  await expect(rankButton(page, 2)).toHaveAttribute("data-slot", "free");
+  const taken = await backgroundOf(page, 1);
+
+  // The attribute alone would still pass with every rule deleted: three states have to
+  // be three LOOKS, and spent-elsewhere must not borrow the one that reads as dead.
+  expect(new Set([free, held, taken]).size).toBe(3);
+  await expect(rankButton(page, 1)).toBeEnabled();
+
+  // Which is the decision this ticket names: pressing a spent slot moves that rank here.
+  await rankCurrent(page, 1);
+  await expect(page.getByTestId("viewer-rank")).toHaveText("1ST");
+  await expect(rankButton(page, 1)).toHaveAttribute("data-slot", "held");
+  await expect(filledSlots(page)).toHaveCount(1);
+});
+
 test("your own snap is on the ballot: visible, commentable, never rankable", async ({
   page,
 }) => {
@@ -263,9 +321,18 @@ test("the NPC says what skipping the day costs, and so does the ballot", async (
   await page.keyboard.press("Enter");
   const text = page.getByTestId("dialogue-text");
   await expect(text).toBeVisible();
+  await expect(text).toContainText(/top three/i);
   await expect(text).not.toContainText("50%");
-  const choices = await readDialogue(page);
+
+  // TWO pages, counted by pressing exactly once: what to do, then what skipping costs.
+  // This NPC is read before every vote of every day, so a third page is a paragraph
+  // fourteen people have already read thirteen times. ▼ is `hasMorePages` — page
+  // revealed, another behind it — and waiting on it is what makes the press below turn
+  // the page rather than finish the typewriter.
+  await expect(page.locator(".gb-textbox-more")).toBeVisible();
+  await page.keyboard.press("Enter");
   await expect(text).toContainText("50%");
+  const choices = page.getByTestId("dialogue-choices");
   await expect(
     choices.getByRole("button", { name: "View photos" }),
   ).toBeVisible();
@@ -307,6 +374,26 @@ test("tapping the photograph pages the ballot and ranks nothing", async ({
   expect(Math.abs(back.height - photo.height)).toBeLessThan(2);
   expect(on.x).toBeGreaterThan(back.x);
   expect(on.y + on.height).toBeLessThanOrEqual(photo.y + photo.height + 1);
+
+  const backArrow = await boxOf(page, "viewer-arrow-back");
+  const onArrow = await boxOf(page, "viewer-arrow-on");
+  expect(encloses(photo, backArrow)).toBe(true);
+  expect(encloses(photo, onArrow)).toBe(true);
+  expect(onArrow.x).toBeGreaterThan(backArrow.x);
+  expect(backArrow.x - photo.x).toBeLessThan(photo.width / 4);
+  expect(photo.x + photo.width - (onArrow.x + onArrow.width)).toBeLessThan(
+    photo.width / 4,
+  );
+  const plate = await page
+    .getByTestId("viewer-arrow-on")
+    .evaluate((arrow) => getComputedStyle(arrow).backgroundColor);
+  expect(plate).toMatch(/^rgba\(.+, 0\.\d+\)$/);
+
+  // Decoration on a live zone: the tap it advertises is a tap it must not swallow.
+  await page.getByTestId("viewer-arrow-on").click();
+  await expect(title(2)).toBeVisible();
+  await page.getByTestId("viewer-arrow-back").click();
+  await expect(title(1)).toBeVisible();
 
   await tapViewer(page, "on");
   await expect(title(2)).toBeVisible();

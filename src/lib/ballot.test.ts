@@ -8,6 +8,7 @@ import {
   rankOf,
   RANKS,
   sameBallot,
+  slotState,
   tapRank,
   type Picks,
 } from "@/lib/ballot";
@@ -116,6 +117,37 @@ describe("the ranking rule", () => {
     expect(sameBallot([10, 20], [10, 20])).toBe(true);
     expect(sameBallot([10, 20], [20, 10])).toBe(false);
     expect(sameBallot([10], [10, 20])).toBe(false);
+  });
+});
+
+describe("slotState", () => {
+  it("tells a free slot from the one this snap holds from one spent elsewhere", () => {
+    const picks = [10, 20];
+    expect(RANKS.map((rank) => slotState(picks, rank, 10))).toEqual([
+      "held",
+      "taken",
+      "free",
+    ]);
+    expect(RANKS.map((rank) => slotState(picks, rank, 20))).toEqual([
+      "taken",
+      "held",
+      "free",
+    ]);
+  });
+
+  it("calls every slot free for a snap on an empty ballot", () => {
+    expect(RANKS.map((rank) => slotState([], rank, 10))).toEqual([
+      "free",
+      "free",
+      "free",
+    ]);
+  });
+
+  it("never calls a slot taken for the snap that holds it", () => {
+    const picks = [10, 20, 30];
+    for (const [index, id] of picks.entries()) {
+      expect(slotState(picks, index + 1, id)).toBe("held");
+    }
   });
 });
 

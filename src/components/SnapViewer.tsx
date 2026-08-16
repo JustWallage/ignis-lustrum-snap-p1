@@ -10,8 +10,20 @@ import { pageOf, stepId, type ViewerSnap } from "@/lib/viewer";
  * page-wide, so a zone called "Next snap zone" is a strict-mode violation in every one
  * of them. */
 const ZONES = [
-  { side: "back", label: "Tap back", delta: -1, edge: "left-0" },
-  { side: "on", label: "Tap forward", delta: 1, edge: "right-0" },
+  {
+    side: "back",
+    label: "Tap back",
+    delta: -1,
+    edge: "left-0 justify-start",
+    glyph: "‹",
+  },
+  {
+    side: "on",
+    label: "Tap forward",
+    delta: 1,
+    edge: "right-0 justify-end",
+    glyph: "›",
+  },
 ] as const;
 
 /** A key that reaches the shell is the D-pad; a key aimed at a field is typing. The
@@ -98,13 +110,21 @@ export function SnapViewer({
             <button
               key={zone.side}
               type="button"
-              className={`absolute inset-y-0 w-1/2 ${zone.edge}`}
+              className={`absolute inset-y-0 flex w-1/2 items-center px-1 ${zone.edge}`}
               aria-label={zone.label}
               data-testid={`viewer-tap-${zone.side}`}
               onClick={() => {
                 step(zone.delta);
               }}
-            />
+            >
+              <span
+                aria-hidden="true"
+                data-testid={`viewer-arrow-${zone.side}`}
+                className="gb-viewer-arrow"
+              >
+                {zone.glyph}
+              </span>
+            </button>
           ))}
         </div>
         {note}

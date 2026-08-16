@@ -165,9 +165,7 @@ const REMOVE_FAILED_PAGE =
   "AVATAR ARTIST: The rubber would not take. Have another go.";
 
 const VOTING_PAGES = [
-  "So you want a say in this. Good.",
-  "Pick a top three out of today's snaps. Best first — I write down the order.",
-  "Nobody's name is on any of them until the reveal, mine included. Yours is in there too, and no, you cannot vote for it.",
+  "Pick a top three out of today's snaps, best first. No names until the reveal, and you cannot vote for your own.",
   noVoteWarning(NO_VOTE_MULTIPLIER),
 ];
 
