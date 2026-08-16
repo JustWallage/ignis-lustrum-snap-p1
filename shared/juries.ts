@@ -22,8 +22,10 @@ export type Jury = z.infer<typeof jurySchema>;
 
 /** Fourteen of the sixteen juries in `docs/juries-and-themes.md`, in that document's
  * order: the cycle is a fortnight BY CHOICE, so `Een dilemma` (Socrates) and `Iets duurs`
- * (Pablo Escobar) are held back, not forgotten. `bonusItem` is the one English field,
- * because the archive prints it inside "Bonus for …". */
+ * (Pablo Escobar) are held back, not forgotten. `bonusItem` is written in English even
+ * though the dialogue and persona are Dutch, because the archive splices it raw into
+ * "Bonus for …" (`src/components/ArchiveDialog.tsx`); `bonusPrompt` is English for the
+ * model, not for a reader. */
 export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Christopher Columbus",
@@ -62,7 +64,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
     bonusPrompt:
       "Is there kitchen equipment in this photo — a pan, a stove, a knife, a plate?",
     critiquePersona:
-      "Gorden Ramsay met een kort lontje. Eten in beeld vindt hij vies en dat schreeuwt hij erbij; vet in figuurlijke zin — een coole actie, een dikke gozer — vindt hij prachtig.",
+      "Kort lontje, harde stem, camera vlak voor je gezicht. Eten in beeld vindt hij vies en dat schreeuwt hij erbij; vet in figuurlijke zin — een coole actie, een dikke gozer — vindt hij juist prachtig.",
     dialogue: [
       "GORDEN RAMSEY: Waar is het lef in deze foto? WAAR?",
       "Vandaag: IETS VETS. Eten telt niet mee, dat is smerig.",
