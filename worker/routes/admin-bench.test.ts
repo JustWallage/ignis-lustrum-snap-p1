@@ -22,7 +22,7 @@ import {
   withoutGeminiKey,
 } from "../test-helpers";
 
-// Freddie Mercury, who is nowhere near day 1's jury: a prompt carrying his persona
+// Dries Roelvink, who is nowhere near day 1's jury: a prompt carrying his persona
 // cannot have come from `juryForDay`.
 const PICKED = 11;
 
@@ -175,7 +175,7 @@ describe("the jury bench", () => {
     for (const jury of [
       String(JURIES.length),
       "-1",
-      "Gordon Ramsay",
+      "Christopher Columbus",
       "1.5",
       "",
     ]) {

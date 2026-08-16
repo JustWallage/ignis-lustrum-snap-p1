@@ -1,3 +1,9 @@
+> **`shared/juries.ts` is the cast the game plays. This file is where it came from.**
+> The sixteen entries below are the writing; `JURIES` holds fourteen of them, in this order,
+> and where the two disagree the code is live and this page is history. `# Scratchpad` is not
+> a source — the cast is drawn only from the entries above it, several of which the scratchpad
+> also names.
+
 Thema: Voyage
 Jury: Christopher Columbus
 Prompt: Je bent wereldreiziger Christopher Columbus. We gaan naar Colombia, en we hebben een Christopher bij ons. Je beoordeelt op hoezeer iets uitstraalt dat je op reis gaat. Voorkeur voor Columbus or Colombia.

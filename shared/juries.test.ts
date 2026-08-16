@@ -23,6 +23,14 @@ describe("JURIES", () => {
     expect(new Set(themes).size).toBe(themes.length);
   });
 
+  it("opens on the jury's name and names the theme on the next line", () => {
+    for (const jury of JURIES) {
+      expect(jury.dialogue, jury.name).toHaveLength(3);
+      expect(jury.dialogue[0], jury.name).toContain(jury.name.toUpperCase());
+      expect(jury.dialogue[1], jury.name).toContain(jury.theme.toUpperCase());
+    }
+  });
+
   it("gives every jury a distinct look", () => {
     const looks = JURIES.map(
       ({ sprite }) => `${sprite.hat}/${sprite.hair}/${sprite.outfit}`,
