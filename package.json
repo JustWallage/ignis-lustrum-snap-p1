@@ -30,7 +30,7 @@
     "check:dup": "jscpd",
     "fix": "prettier --write . && eslint . --fix",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/e2e-build.mjs && playwright test",
     "playwright:install": "playwright install chromium",
     "prepare": "lefthook install",
     "migrate:gen": "drizzle-kit generate",
