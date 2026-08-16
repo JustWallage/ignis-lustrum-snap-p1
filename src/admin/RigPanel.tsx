@@ -52,9 +52,10 @@ export function RigPanel() {
       <p className="ops-note">
         The drum rolls exactly as it always does; only the segment it stops on
         is decided in advance. A rig names a PRIZE, not a position, so
-        reordering or renaming it changes nothing. If the rigged prize is not
-        among that night&rsquo;s segments — turned off, deleted, or in the set
-        the day&rsquo;s Bowser mark no longer uses — the day lands at random
+        reordering or renaming it before the wheel opens changes nothing. If the
+        rigged prize is not among that night&rsquo;s segments — turned off,
+        deleted, renamed once the wheel is already up, or in the set the
+        day&rsquo;s Bowser mark no longer uses — the day lands at random
         instead. Nothing expires a rig, so winding the clock back over one
         replays it.
       </p>
