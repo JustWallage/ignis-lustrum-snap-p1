@@ -9,7 +9,9 @@ import { z } from "zod";
 import {
   failedEvaluationsSchema,
   photoSchema,
+  prizeListSchema,
   prizesPath,
+  type Prize,
   type PrizeSet,
 } from "../shared/api";
 import {
@@ -207,7 +209,36 @@ export async function markBowserDay(
   );
 }
 
-async function addPrize(
+export async function rigDay(
+  cookie: string,
+  day: number,
+  prizeId: number,
+): Promise<Response> {
+  return app.request(
+    "/api/admin/rig",
+    {
+      method: "POST",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      body: JSON.stringify({ day, prizeId }),
+    },
+    env,
+  );
+}
+
+export async function prizeList(
+  cookie: string,
+  set: PrizeSet = "ordinary",
+): Promise<Prize[]> {
+  const res = await app.request(
+    prizesPath(set),
+    { headers: { Cookie: cookie } },
+    env,
+  );
+  expect(res.status).toBe(200);
+  return prizeListSchema.parse(await res.json()).prizes;
+}
+
+export async function addPrize(
   cookie: string,
   label: string,
   set: PrizeSet,

@@ -56,6 +56,13 @@
   `spinWheel` with a reason string**, because hiding the button and the SELECT item is only the
   cosmetic half. Marking a day broadcasts nothing (it is config nobody is rendering); a Bowser-set
   prize edit broadcasts `prizes_changed` like any other.
+- **The landing is the DO's decision alone, rigged or not.** `spinWheel` reads `rigged_days` for the
+  day and lands on that prize where it is among the segments it already published, and on
+  `crypto.getRandomValues` where it is not — ONE rule, so retired, deleted, wrong-set and
+  renamed-after-the-draft all take the same path and cannot disagree. `MIN_ENABLED_PRIZES` still
+  gates START; a rig exempts nothing. Like a Bowser mark, a rig is written through an admin-gated
+  router (`routes/admin-rig.ts`), read by the DO and that console panel and by no player-facing route,
+  and **broadcasts nothing** — a rig is not news, and news is how it would leak.
 - **Presence lives in the socket's ATTACHMENT, never a field on the class** (hibernation) — a field
   would be a roster that quietly emptied itself. `presenceUpgrade` builds the DO's request FROM
   SCRATCH, so a client cannot smuggle a name, id or sprite. Expiry is by silence as well as by

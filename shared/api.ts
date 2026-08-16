@@ -204,6 +204,25 @@ export const bowserDaysSchema = z.object({
   days: z.array(z.object({ day: z.int().positive(), markedBy: userSchema })),
 });
 
+export const riggedDaysSchema = z.object({
+  days: z.array(
+    z.object({
+      day: z.int().positive(),
+      prize: z.object({
+        id: z.int(),
+        label: z.string(),
+        set: prizeSetSchema,
+      }),
+      riggedBy: userSchema,
+    }),
+  ),
+});
+
+export const setRigSchema = z.object({
+  day: z.int().positive(),
+  prizeId: z.int().positive(),
+});
+
 const prizeLabelSchema = z.string().trim().min(1).max(80);
 
 export const prizeCreateSchema = z.object({ label: prizeLabelSchema });

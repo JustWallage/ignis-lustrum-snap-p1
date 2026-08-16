@@ -41,7 +41,7 @@ import {
   readGameState,
   setGamePhase,
 } from "../lib/game-state";
-import { enabledPrizeLabels, prizeSetForDay } from "../lib/wheel";
+import { enabledPrizeLabels, prizeSetForDay, riggedLabel } from "../lib/wheel";
 import {
   isPresent,
   playerOf,
@@ -206,6 +206,15 @@ export class RealtimeDO extends DurableObject<Bindings> {
     });
   }
 
+  /** ONE rule for a rigged prize that was retired, deleted, reordered, renamed after
+   * the draft, or left in the set a flipped Bowser mark no longer uses: if it is not
+   * among tonight's segments it is not an instruction, and the day rolls. */
+  private async landing(event: EventState): Promise<number> {
+    const rigged = await riggedLabel(getDb(this.env), event.day);
+    const found = rigged === null ? -1 : event.segments.indexOf(rigged);
+    return found === -1 ? landingIndex(event.segments.length) : found;
+  }
+
   async spinWheel(userId: number): Promise<EventOutcome> {
     return this.alone(async () => {
       const event = await this.readEvent();
@@ -224,7 +233,7 @@ export class RealtimeDO extends DurableObject<Bindings> {
       if (event.prizeIndex !== null) {
         return refuse(409, "The wheel has already been spun");
       }
-      const index = landingIndex(event.segments.length);
+      const index = await this.landing(event);
       return {
         ok: true,
         event: await this.publish(spunEvent(event, Date.now(), index)),

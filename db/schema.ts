@@ -143,6 +143,23 @@ export const bowserDays = sqliteTable(
   (t) => [uniqueIndex("bowser_days_day_idx").on(t.day)],
 );
 
+export const riggedDays = sqliteTable(
+  "rigged_days",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    day: integer("day").notNull(),
+    // NOT `.references(() => prizes.id)`: D1 enforces foreign keys, so a real reference
+    // would make the manager's Delete fail on any prize some day is rigged to. A rig
+    // naming a row that has gone is read as no rig at all.
+    prizeId: integer("prize_id").notNull(),
+    riggedBy: integer("rigged_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [uniqueIndex("rigged_days_day_idx").on(t.day)],
+);
+
 export const prizeAwards = sqliteTable(
   "prize_awards",
   {

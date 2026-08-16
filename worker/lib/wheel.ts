@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { bowserDays, prizes } from "../../db/schema";
+import { bowserDays, prizes, riggedDays } from "../../db/schema";
 import type { PrizeSet } from "../../shared/api";
 import type { Db } from "./db";
 
@@ -15,6 +15,19 @@ export async function enabledPrizeLabels(
     .where(and(eq(prizes.enabled, true), eq(prizes.prizeSet, set)))
     .orderBy(asc(prizes.sortOrder), asc(prizes.id));
   return rows.map((row) => row.label);
+}
+
+/** The join is the whole filter: it asks for no `enabled` and no `prize_set`, because
+ * the caller matches this against tonight's segments, which already encode both. Adding
+ * either here would be the landing rule written a second time, free to disagree. */
+export async function riggedLabel(db: Db, day: number): Promise<string | null> {
+  const rows = await db
+    .select({ label: prizes.label })
+    .from(riggedDays)
+    .innerJoin(prizes, eq(prizes.id, riggedDays.prizeId))
+    .where(eq(riggedDays.day, day))
+    .limit(1);
+  return rows[0]?.label ?? null;
 }
 
 export async function prizeSetForDay(db: Db, day: number): Promise<PrizeSet> {

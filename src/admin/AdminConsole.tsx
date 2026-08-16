@@ -7,6 +7,7 @@ import { BucketPanel } from "@/admin/BucketPanel";
 import { ClockPanel } from "@/admin/ClockPanel";
 import { PrizesPanel } from "@/admin/PrizesPanel";
 import { RetryPanel } from "@/admin/RetryPanel";
+import { RigPanel } from "@/admin/RigPanel";
 import { SnapsPanel } from "@/admin/SnapsPanel";
 import { useAuth } from "@/context/AuthContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
@@ -17,6 +18,7 @@ const SECTIONS = [
   { id: "bucket", label: "Bucket" },
   { id: "prizes", label: "Prizes" },
   { id: "bowser", label: "Bowser days" },
+  { id: "rig", label: "Rigged landings" },
   { id: "avatars", label: "Avatars" },
   { id: "bench", label: "Jury bench" },
   { id: "retries", label: "Jury retries" },
@@ -95,6 +97,7 @@ export function AdminConsole() {
           {section === "bucket" && <BucketPanel />}
           {section === "prizes" && <PrizesPanel />}
           {section === "bowser" && <BowserPanel />}
+          {section === "rig" && <RigPanel />}
           {section === "avatars" && <AvatarsPanel clock={state} />}
           {section === "bench" && <BenchPanel />}
           {section === "retries" && <RetryPanel clock={state} />}
