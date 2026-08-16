@@ -21,6 +21,21 @@ export function rankOf(picks: Picks, photoId: number): number | null {
   return index === -1 ? null : index + 1;
 }
 
+export type SlotState = "free" | "held" | "taken";
+
+/** Greying a "taken" slot out was the alternative, and it lies: pressing one MOVES that
+ * rank onto the snap on screen (`tapRank`), so the three states have to read as three
+ * looks rather than as free-versus-dead. */
+export function slotState(
+  picks: Picks,
+  rank: number,
+  photoId: number,
+): SlotState {
+  const holder = picks[rank - 1];
+  if (holder === undefined) return "free";
+  return holder === photoId ? "held" : "taken";
+}
+
 export function podium(picks: Picks): (number | null)[] {
   return RANKS.map((rank) => picks[rank - 1] ?? null);
 }

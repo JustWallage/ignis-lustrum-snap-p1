@@ -4,6 +4,7 @@ import {
   apiSignIn,
   apiUpload,
   boxOf,
+  encloses,
   expect,
   filterBy,
   openArchive,
@@ -12,6 +13,7 @@ import {
   reachPhase,
   readEvent,
   setDay,
+  tapArrow,
   tapViewer,
   test,
   walkPodiumToWheel,
@@ -235,6 +237,16 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   const back = await boxOf(page, "viewer-tap-back");
   const on = await boxOf(page, "viewer-tap-on");
   expect(on.x).toBeGreaterThan(back.x);
+
+  const backArrow = await boxOf(page, "viewer-arrow-back");
+  const onArrow = await boxOf(page, "viewer-arrow-on");
+  expect(encloses(photo, backArrow)).toBe(true);
+  expect(encloses(photo, onArrow)).toBe(true);
+  expect(onArrow.x).toBeGreaterThan(backArrow.x);
+  await tapArrow(page, "on");
+  await expect(viewerTitle(page, 2, 3)).toBeVisible();
+  await tapArrow(page, "back");
+  await expect(viewerTitle(page, 1, 3)).toBeVisible();
 
   // The heart is under neither zone: it takes the tap and the page does not turn.
   const heart = page.locator(".gb-window").getByRole("button", { name: /♡|♥/ });

@@ -18,6 +18,7 @@ import {
   rankOf,
   RANKS,
   sameBallot,
+  slotState,
   tapRank,
 } from "@/lib/ballot";
 import { readApiError } from "@/lib/api";
@@ -161,7 +162,8 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
           <button
             key={slot}
             type="button"
-            className="gb-btn px-3"
+            className="gb-btn gb-rank px-3"
+            data-slot={slotState(picks, slot, current.id)}
             disabled={current.isMine}
             aria-pressed={held === slot}
             aria-label={`Rank ${rankLabel(slot)}`}
