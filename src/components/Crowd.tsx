@@ -5,7 +5,6 @@ import {
   useRef,
   type CSSProperties,
 } from "react";
-import type { User } from "@shared/api";
 import {
   crowdOf,
   CROWD_FIGURE_W,
@@ -119,19 +118,19 @@ export function Crowd({ town, seed }: { town: CrowdPlayer[]; seed: number }) {
 }
 
 export function NamedCharacter({
-  who,
+  name,
   url,
   testId,
 }: {
-  who: User;
+  name: string;
   url: string | null;
   testId: string;
 }) {
   return (
     <div className="gb-named">
-      <Character who={who.name} url={url} />
+      <Character who={name} url={url} />
       <p className="gb-reveal-name" data-testid={testId}>
-        {who.name.toUpperCase()}
+        {name.toUpperCase()}
       </p>
     </div>
   );

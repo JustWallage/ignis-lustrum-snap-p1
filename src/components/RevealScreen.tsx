@@ -84,7 +84,7 @@ function PodiumCard({
         title={`${placeLabel(rank)} place`}
       />
       <NamedCharacter
-        who={result.uploader}
+        name={result.uploader.name}
         url={wornBy(town, result.uploader.id)}
         testId="podium-name"
       />

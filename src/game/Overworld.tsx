@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AvatarState, DayResult } from "@shared/api";
-import { isBeastOn, isEventRunning } from "@shared/events";
+import { eventStageKey, isBeastOn, isEventRunning } from "@shared/events";
 import { juryForDay, type Jury } from "@shared/juries";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
 import {
@@ -126,6 +126,36 @@ type Dialog =
    * the archive they opened it from. The viewer itself cannot stay on screen while the
    * question is asked — the dialogue box lives under the modal layer. */
   | { kind: "confirm-delete"; id: number; back: "view" | "archive" };
+
+/**
+ * Which dialogs a running event leaves standing, TOTAL so that a new kind cannot exist
+ * without somebody deciding. What the SELECT menu raises MUST survive — Abort event,
+ * Spin the wheel and the host's own confirmation all come through that box. Everything
+ * a player walked up to must not: `dialog` is derived through this, so one that somehow
+ * outlives the transitions below is neither painted over the opaque overlay nor able to
+ * hold SELECT shut while the host reaches for it.
+ */
+const SURVIVES_EVENT: Record<Dialog["kind"], boolean> = {
+  login: true,
+  menu: true,
+  signout: true,
+  note: true,
+  confirm: true,
+  view: false,
+  talk: false,
+  say: false,
+  votetalk: false,
+  vote: false,
+  archive: false,
+  artist: false,
+  wardrobe: false,
+  "avatar-splash": false,
+  trophy: false,
+  chat: false,
+  "chat-say": false,
+  "confirm-replace": false,
+  "confirm-delete": false,
+};
 
 const MENU_PAGES = [""];
 
@@ -271,7 +301,7 @@ const NO_CHAMPION_PAGE =
 
 function championPages(day: number, champion: DayResult): string[] {
   return [
-    `DAY ${String(day - 1)}'S CHAMPION: ${champion.uploader.name.toUpperCase()}, on ${String(Math.round(champion.total))} points.`,
+    `DAY ${String(day)}'S CHAMPION: ${champion.uploader.name.toUpperCase()}, on ${String(Math.round(champion.total))} points.`,
     champion.critique ?? "The jury never got round to writing this one up.",
   ];
 }
@@ -332,7 +362,7 @@ export function Overworld() {
 
   const [tile, setTile] = useState({ x: SPAWN.x, y: SPAWN.y });
   const [facing, setFacing] = useState<Direction>("down");
-  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [openDialog, setDialog] = useState<Dialog | null>(null);
   const [splash, setSplash] = useState(true);
   const [muted, showMuted] = useState(isMuted);
 
@@ -340,6 +370,11 @@ export function Overworld() {
   const [done, setDone] = useState(false);
   const running = isEventRunning(event);
   const inEvent = running && !done;
+
+  const dialog =
+    openDialog !== null && inEvent && !SURVIVES_EVENT[openDialog.kind]
+      ? null
+      : openDialog;
 
   const gameState = useGameState();
   const hearStep = useCallback((step: RemoteStep) => {
@@ -414,6 +449,17 @@ export function Overworld() {
   useEffect(() => {
     setDone(false);
   }, [event?.phase]);
+
+  // Every transition, not only the start: a conversation opened in the gap between two
+  // stages inherits the next one exactly the same way, and the box it is in is what
+  // takes SELECT — and with it Abort event — away from whoever is running the evening.
+  const stage = eventStageKey(event);
+  useEffect(() => {
+    if (stage === null) return;
+    setDialog((open) =>
+      open === null || SURVIVES_EVENT[open.kind] ? open : null,
+    );
+  }, [stage]);
 
   useEffect(() => {
     dialogRef.current = dialog;
@@ -573,6 +619,13 @@ export function Overworld() {
     setDone(true);
   }, []);
 
+  // The event is left behind rather than stacked under: what the reader closes the
+  // archive onto is the map, not a last page nobody has anything left to do with.
+  const showResults = useCallback(() => {
+    setDone(true);
+    setDialog({ kind: "archive" });
+  }, []);
+
   const askHostNext = useCallback(() => {
     setDialog({ kind: "confirm", action: "next" });
   }, []);
@@ -713,11 +766,11 @@ export function Overworld() {
         };
       case "trophy":
         return {
-          id: `trophy:${String(champion?.photoId ?? 0)}`,
+          id: `trophy:${String(champion?.result.photoId ?? 0)}`,
           pages:
-            champion === null || gameState === undefined
+            champion === null
               ? [NO_CHAMPION_PAGE]
-              : championPages(gameState.day, champion),
+              : championPages(champion.day, champion.result),
           choices:
             champion === null
               ? []
@@ -725,7 +778,7 @@ export function Overworld() {
                   {
                     label: "See the snap",
                     onPick: () => {
-                      setDialog({ kind: "view", id: champion.photoId });
+                      setDialog({ kind: "view", id: champion.result.photoId });
                     },
                   },
                   cancel,
@@ -853,7 +906,6 @@ export function Overworld() {
     closeDialog,
     dialog,
     event,
-    gameState,
     isAdmin,
     jury,
     logout,
@@ -1147,6 +1199,7 @@ export function Overworld() {
                   town={town}
                   onHostNext={askHostNext}
                   onDone={dismissEvent}
+                  onResults={showResults}
                 />
               )}
               {/* One slot at the bottom of the LCD, four things that can be

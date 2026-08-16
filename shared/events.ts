@@ -283,3 +283,17 @@ export function nextDeadline(event: EventState): number | null {
 export function isEventRunning(event: EventState | undefined): boolean {
   return event !== undefined && event.phase !== "submission";
 }
+
+/** Every PUBLISHED moment of a running event as one value, so a screen can tell a
+ * re-render from the event moving on. **Null is "no event"**, which is what keeps the
+ * END of one from reading as a transition: there is no overlay left for anything to
+ * have to survive under, and a reader the last page sent to the archive would lose it. */
+export function eventStageKey(event: EventState | undefined): string | null {
+  if (event === undefined || event.phase === "submission") return null;
+  return [
+    event.phase,
+    event.podiumRank,
+    event.podiumNextAt,
+    event.prizeIndex,
+  ].join(":");
+}

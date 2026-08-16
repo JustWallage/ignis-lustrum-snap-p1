@@ -5,7 +5,7 @@ import { NamedCharacter } from "@/components/Crowd";
 import { EventSnap } from "@/components/EventSnap";
 import { useAuth } from "@/context/AuthContext";
 import { useEvent } from "@/context/EventContext";
-import { wornBy, type CrowdPlayer } from "@/game/crowd";
+import { playerIn, wornBy, type CrowdPlayer } from "@/game/crowd";
 import { useDayResults } from "@/hooks/useDayResults";
 import { useNow } from "@/hooks/useNow";
 import { playCue } from "@/lib/sound";
@@ -27,11 +27,13 @@ function LastPage({
   town,
   prize,
   onDone,
+  onResults,
 }: {
   event: EventState;
   town: CrowdPlayer[];
   prize: string;
   onDone: () => void;
+  onResults: () => void;
 }) {
   const results = useDayResults(event.day);
   const winner = results?.find(
@@ -53,20 +55,34 @@ function LastPage({
             title="The winning snap"
           />
           <NamedCharacter
-            who={winner.uploader}
+            name={winner.uploader.name}
             url={wornBy(town, winner.uploader.id)}
             testId="wheel-winner-name"
           />
         </>
       )}
-      <button
-        type="button"
-        className="gb-wheel-spin"
-        data-testid="event-done"
-        onClick={onDone}
-      >
-        DONE
-      </button>
+      <div className="gb-event-buttons">
+        <button
+          type="button"
+          className="gb-wheel-spin"
+          data-testid="event-done"
+          onClick={onDone}
+        >
+          DONE
+        </button>
+        {/* The archive opens on its newest revealed day, which is the one that just
+            played, so nothing has to be threaded through to say so. */}
+        {winner !== undefined && (
+          <button
+            type="button"
+            className="gb-wheel-spin"
+            data-testid="event-results"
+            onClick={onResults}
+          >
+            VIEW RESULTS
+          </button>
+        )}
+      </div>
     </>
   );
 }
@@ -75,10 +91,12 @@ export function WheelScreen({
   event,
   town,
   onDone,
+  onResults,
 }: {
   event: EventState;
   town: CrowdPlayer[];
   onDone: () => void;
+  onResults: () => void;
 }) {
   const { user } = useAuth();
   const { spin: turnWheel } = useEvent();
@@ -92,6 +110,11 @@ export function WheelScreen({
   const prize =
     event.prizeIndex === null ? undefined : event.segments[event.prizeIndex];
   const mine = user !== null && event.winnerUserId === user.id;
+  // Out of the TOWN, never off `EventState`: `/api/event` is one of the two public
+  // reads, so a name on it would put content through the walking-is-public boundary.
+  // Signed out `town` is empty, which is the right answer — the wheel and no name.
+  const turning =
+    event.winnerUserId === null ? null : playerIn(town, event.winnerUserId);
 
   // Keyed off what is on screen rather than a schedule, so a screen that joined
   // mid-spin makes exactly the noises the rest of the spin still has in it. The tick
@@ -127,7 +150,15 @@ export function WheelScreen({
   }
 
   if (landed && prize !== undefined) {
-    return <LastPage event={event} town={town} prize={prize} onDone={onDone} />;
+    return (
+      <LastPage
+        event={event}
+        town={town}
+        prize={prize}
+        onDone={onDone}
+        onResults={onResults}
+      />
+    );
   }
 
   return (
@@ -138,6 +169,13 @@ export function WheelScreen({
             somebody else is how a room ends up looking for a control it has. */}
         {mine ? "SPIN FOR YOUR PRIZE" : "THE WINNER IS SPINNING"}
       </p>
+      {turning !== null && (
+        <NamedCharacter
+          name={turning.name}
+          url={turning.url}
+          testId="wheel-turn-name"
+        />
+      )}
       <div
         className="gb-wheel"
         data-testid="wheel"

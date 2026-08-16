@@ -3,14 +3,11 @@ import { SPAWN } from "../shared/map";
 import { gameStateSchema } from "../shared/state";
 import {
   apiSignIn,
-  apiUpload,
   expect,
-  operate,
+  landTheWheel,
   pressStart,
-  readEvent,
   test,
   USERS,
-  walkPodiumToWheel,
 } from "./fixtures";
 
 const LOOP_TIMEOUT_MS = 240_000;
@@ -25,23 +22,6 @@ async function watcher(
   await page.goto("/");
   await pressStart(page);
   return page;
-}
-
-async function landTheWheel(page: Page): Promise<string> {
-  await apiUpload(page, "tester");
-  await apiSignIn(page, "tester");
-  await page.goto("/");
-  await pressStart(page);
-  await operate(page, "Start event", "Start it");
-  await walkPodiumToWheel(page);
-  await page.getByTestId("wheel-spin").click();
-  await expect
-    .poll(async () => (await readEvent(page)).prizeIndex)
-    .not.toBeNull();
-  const spun = await readEvent(page);
-  const prize = spun.segments[spun.prizeIndex ?? 0];
-  if (prize === undefined) throw new Error("the wheel landed on nothing");
-  return prize;
 }
 
 test("the last page names the winner, shows their snap, and lets you leave", async ({
@@ -118,9 +98,38 @@ test("an anonymous walker reads the prize but not the snap behind it", async ({
   );
   await expect(anonymous.getByTestId("wheel-winner-photo")).toBeHidden();
   await expect(anonymous.getByTestId("wheel-winner-name")).toBeHidden();
+  await expect(anonymous.getByTestId("event-results")).toBeHidden();
   expect((await anonymous.request.get("/api/days/1/results")).status()).toBe(
     401,
   );
 
   await stranger.close();
+});
+
+test("View results opens the archive on the day that just played, and the landing leaves it open", async ({
+  page,
+}) => {
+  test.setTimeout(LOOP_TIMEOUT_MS);
+  await landTheWheel(page);
+
+  await page.getByTestId("event-results").click();
+  const archive = page.getByTestId("archive");
+  await expect(archive.getByRole("heading", { name: "Archive" })).toBeVisible();
+  // Newest-first, and the day that just played is the newest revealed one — so the
+  // archive is already on it with nothing threaded through to say so.
+  const cards = archive.getByTestId("archive-card");
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText("Day 1");
+  await expect(page.getByTestId("event-overlay")).toBeHidden();
+
+  // The landing is a phase change like any other, and it must not take the results
+  // away from the reader who asked for them.
+  await expect(page.getByTestId("game-day")).toHaveText("DAY 2", {
+    timeout: 60_000,
+  });
+  await expect(archive.getByRole("heading", { name: "Archive" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(archive).toBeHidden();
+  await expect(page.getByRole("img", { name: "Overworld" })).toBeVisible();
 });

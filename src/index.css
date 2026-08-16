@@ -494,6 +494,13 @@
   justify-content: center;
   gap: 1.6cqw;
 }
+.gb-event-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6cqw;
+}
 
 .gb-beast-stage {
   position: relative;

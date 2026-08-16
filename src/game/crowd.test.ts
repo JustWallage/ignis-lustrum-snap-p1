@@ -3,6 +3,7 @@ import {
   CROWD_FIGURE_W,
   crowdLayout,
   crowdOf,
+  playerIn,
   wornBy,
   type CrowdPlayer,
   type CrowdSpot,
@@ -121,6 +122,14 @@ describe("crowdOf", () => {
     const order = (seed: number) =>
       crowdOf(town(TOWN), seed).map((member) => member.name);
     expect(order(1)).not.toEqual(order(2));
+  });
+});
+
+describe("playerIn", () => {
+  it("finds that player, and nobody for a stranger", () => {
+    const roster = town(4);
+    expect(playerIn(roster, 2)?.name).toBe("friend-2");
+    expect(playerIn(roster, 99)).toBeNull();
   });
 });
 
