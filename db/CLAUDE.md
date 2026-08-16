@@ -8,8 +8,10 @@ deploys a schema without the column while everything stays green.
   two racing requests both pass through: `photos_user_day_idx` (one submission per user per day, the
   route 409s on the violation), `photo_scores_photo_idx` (one verdict, so `scorePhoto` is an upsert),
   `prize_awards.day` (one award, so a repeated landing rolls its batch back), `bowser_days.day` (a
-  day is marked once, so marking it twice is the same marked day rather than a refusal), the two on
-  `votes`, and `avatar_generations (user_id, day)` bumped by an UPSERT that returns the new value.
+  day is marked once, so marking it twice is the same marked day rather than a refusal),
+  `rigged_days.day` (a day has ONE rigged prize, so rigging it again REPLACES rather than adds), the
+  two on `votes`, and `avatar_generations (user_id, day)` bumped by an UPSERT that returns the new
+  value.
 - `game_state` is one row pinned to `id = 1`, and it, `SEED_PRIZES` and the two `settings` rows are
   seeded by their MIGRATION rather than `scripts/seed.mjs`, so every environment with the schema has a
   wheel that can already spin and caps already in force. Migrations cannot import TypeScript, so the
@@ -61,5 +63,11 @@ deploys a schema without the column while everything stays green.
   the wall clock and **nothing expires it**, so winding the console's clock back over one replays it
   as a Bowser day. The Bowser set is seeded by NOBODY and ships empty on purpose — no second copy of
   any labels for `worker/prizes.test.ts` to hold together.
+- **`rigged_days` is the second day-keyed admin table and behaves like the first**: an integer day
+  with no relation to the wall clock, nothing expires it, so winding the clock back over a rigged day
+  replays that landing exactly as it replays a Bowser mark. `prize_id` is **not** a foreign key —
+  D1 enforces them, and the prize manager's Delete must not fail on a rigged row — so a rig can
+  outlive its prize, which the DO reads as no rig at all. It names a ROW and never an index, for the
+  same reason `prize_awards.prize_label` is a copy: prizes are renamed, reordered and retired.
 - `game_state.phase` is plain text parsed through `gamePhaseSchema` on the way out. The DB does not
   decide what a phase is, and `RealtimeDO` is its only writer.

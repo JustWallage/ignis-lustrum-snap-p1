@@ -118,8 +118,8 @@ prizesRoutes.delete("/:id", async (c) => {
   if ((await findPrize(db, id)) === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  // Nothing hangs off a prize row: the wheel snapshots its segments and an award
-  // copies its label, so a deleted prize cannot orphan a past result.
+  // Nothing REFERENCES a prize row, `rigged_days.prize_id` included, so this cannot
+  // fail: the wheel snapshots its segments and an award copies its label.
   await db.delete(prizes).where(eq(prizes.id, id));
   await broadcast(c.env, { type: "prizes_changed" });
   return c.json({ ok: true });

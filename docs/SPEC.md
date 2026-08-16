@@ -19,7 +19,9 @@ play continues.
   player sitting on the button, the shared one stops fourteen polite players adding up to a surprise.
 - **A jury failure never blocks an upload.** The alternative is a player whose photo will not go in
   because a third party is down.
-- **The event runs itself** — no phase but the wheel waits for anybody to press anything.
+- **The event runs itself** — no phase but the wheel waits for anybody to press anything. The one
+  thing an operator may decide in advance is which prize a given day's wheel lands on: it is set per
+  day in the console, it changes nothing a player sees or hears, and a day nobody rigged still rolls.
 - **The reveal parades worst-first**, so the last snap shown is the winner's.
 - **Below `MIN_ENABLED_PRIZES` the START button refuses**, with the reason: an event that could not be
   finished is worse than one that never began, and the admin is standing right there to be told. Three

@@ -11,6 +11,7 @@ import {
   prizeAwards,
   prizes,
   retiredPhotos,
+  riggedDays,
   users,
   votes,
 } from "../../db/schema";
@@ -57,6 +58,7 @@ testResetRoute.post("/", async (c) => {
     // A marked day stays marked forever, which across one shared database means every
     // test after the one that marked day 1 would open its event on a Bowser day.
     db.delete(bowserDays),
+    db.delete(riggedDays),
     db.delete(prizes),
     db.insert(prizes).values(
       SEED_PRIZES.map((label, index) => ({

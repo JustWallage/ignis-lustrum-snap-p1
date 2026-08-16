@@ -8,6 +8,7 @@ import { gameStateSchema } from "../../shared/state";
 import { app } from "../index";
 import {
   aBowserWheel,
+  addPrize,
   aWheel,
   BOWSER_PRIZES,
   currentDay,
@@ -16,9 +17,12 @@ import {
   IDLE_EVENT,
   markBowserDay,
   openSocket,
+  playUntil,
   postSpin,
+  prizeList,
   readEvent,
   resetWorld,
+  rigDay,
   runEventAlarm,
   setDay,
   signIn,
@@ -40,6 +44,29 @@ async function afterTheBeast<T>(
   } finally {
     vi.useRealTimers();
   }
+}
+
+function landedOn(event: EventState): string {
+  const label = event.segments[event.prizeIndex ?? -1];
+  if (label === undefined) throw new Error("the wheel landed on no segment");
+  return label;
+}
+
+async function patchPrize(
+  cookie: string,
+  id: number,
+  body: object,
+): Promise<void> {
+  const res = await app.request(
+    `/api/prizes/${String(id)}`,
+    {
+      method: "PATCH",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    env,
+  );
+  expect(res.status).toBe(200);
 }
 
 function prizeIdsOf(body: unknown): number[] {
@@ -271,6 +298,155 @@ describe("a Bowser day", () => {
     const { wheel } = await aWheel();
     expect(wheel.bowser).toBe(false);
     expect(wheel.segments).toEqual([...SEED_PRIZES]);
+  });
+});
+
+describe("a rigged landing", () => {
+  it("lands on the prize the operator picked, day after day", async () => {
+    const admin = await signIn("tester");
+    for (const label of ["A fifth", "A sixth", "A seventh", "An eighth"]) {
+      expect((await addPrize(admin, label, "ordinary")).status).toBe(201);
+    }
+    const prizes = await prizeList(admin);
+    // A long wheel and three days on purpose: on the four seeded segments alone a build
+    // that ignored the rig lands on all three by luck once in sixty-four runs, and eight
+    // segments push that to once in five hundred.
+    const picked = [prizes[7], prizes[2], prizes[5]].filter(
+      (prize) => prize !== undefined,
+    );
+    expect(picked).toHaveLength(3);
+    for (const [index, prize] of picked.entries()) {
+      expect((await rigDay(admin, index + 1, prize.id)).status).toBe(200);
+    }
+
+    for (const [index, prize] of picked.entries()) {
+      const { winnerCookie } = await aWheel();
+      expect((await postSpin(winnerCookie)).status).toBe(200);
+      expect(landedOn(await readEvent())).toBe(prize.label);
+      expect(await runEventAlarm()).toBe(true);
+      expect((await storedAward(index + 1))?.prize_label).toBe(prize.label);
+    }
+    expect(await currentDay()).toBe(4);
+  });
+
+  it("follows a rename and a reorder, because it names a row and not a place", async () => {
+    const admin = await signIn("tester");
+    const prizes = await prizeList(admin);
+    const target = prizes[0];
+    if (target === undefined) throw new Error("the seeded wheel is empty");
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+
+    const renamed = "Bier wordt alsnog voor je gehaald";
+    await patchPrize(admin, target.id, { label: renamed });
+    await patchPrize(admin, target.id, { sortOrder: prizes.length });
+
+    const { winnerCookie, wheel } = await aWheel();
+    expect(wheel.segments[wheel.segments.length - 1]).toBe(renamed);
+    expect((await postSpin(winnerCookie)).status).toBe(200);
+
+    const spun = await readEvent();
+    expect(spun.prizeIndex).toBe(spun.segments.length - 1);
+    expect(landedOn(spun)).toBe(renamed);
+  });
+
+  it("rolls when the rigged prize has been turned off", async () => {
+    const admin = await signIn("tester");
+    const prizes = await prizeList(admin);
+    const target = prizes[0];
+    if (target === undefined) throw new Error("the seeded wheel is empty");
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+    await patchPrize(admin, target.id, { enabled: false });
+
+    const { winnerCookie, wheel } = await aWheel();
+    expect(wheel.segments).not.toContain(target.label);
+    expect((await postSpin(winnerCookie)).status).toBe(200);
+    expect(wheel.segments).toContain(landedOn(await readEvent()));
+  });
+
+  it("rolls the Bowser wheel on a day marked after it was rigged", async () => {
+    const admin = await signIn("tester");
+    const target = (await prizeList(admin))[0];
+    if (target === undefined) throw new Error("the seeded wheel is empty");
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+
+    const { wheel, winnerCookie } = await aBowserWheel();
+    expect(wheel.segments).toEqual(BOWSER_PRIZES);
+    await afterTheBeast(wheel, async () => {
+      expect((await postSpin(winnerCookie)).status).toBe(200);
+    });
+    expect(BOWSER_PRIZES).toContain(landedOn(await readEvent()));
+  });
+
+  it("rolls the ordinary wheel when the rig names the other set's prize", async () => {
+    const admin = await signIn("tester");
+    for (const label of BOWSER_PRIZES) {
+      expect((await addPrize(admin, label, "bowser")).status).toBe(201);
+    }
+    const beastly = (await prizeList(admin, "bowser"))[0];
+    if (beastly === undefined) throw new Error("the Bowser list is empty");
+    expect((await rigDay(admin, 1, beastly.id)).status).toBe(200);
+
+    const { winnerCookie, wheel } = await aWheel();
+    expect(wheel.segments).toEqual([...SEED_PRIZES]);
+    expect((await postSpin(winnerCookie)).status).toBe(200);
+    expect(SEED_PRIZES).toContain(landedOn(await readEvent()));
+  });
+
+  it("replays on a day the operator wound the clock back over", async () => {
+    const admin = await signIn("tester");
+    const target = (await prizeList(admin))[1];
+    if (target === undefined) throw new Error("the seeded wheel is short");
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+
+    const { winnerCookie } = await aWheel();
+    expect((await postSpin(winnerCookie)).status).toBe(200);
+    expect(await runEventAlarm()).toBe(true);
+    expect((await storedAward(1))?.prize_label).toBe(target.label);
+    expect(await currentDay()).toBe(2);
+
+    const wound = await app.request(
+      "/api/admin/day",
+      {
+        method: "POST",
+        headers: { Cookie: admin, "Content-Type": "application/json" },
+        body: JSON.stringify({ day: 1 }),
+      },
+      env,
+    );
+    expect(wound.status).toBe(200);
+    expect(await storedAward(1)).toBeNull();
+
+    expect((await eventAction(admin, "start")).status).toBe(200);
+    await playUntil("wheel");
+    expect((await postSpin(winnerCookie)).status).toBe(200);
+    expect(await runEventAlarm()).toBe(true);
+    expect((await storedAward(1))?.prize_label).toBe(target.label);
+  });
+
+  it("says nothing to anybody: no frame, and nothing on the event", async () => {
+    const admin = await signIn("tester");
+    const target = (await prizeList(admin))[0];
+    if (target === undefined) throw new Error("the seeded wheel is empty");
+
+    const watching = await openSocket();
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+    const cleared = await app.request(
+      "/api/admin/rig/1",
+      { method: "DELETE", headers: { Cookie: admin } },
+      env,
+    );
+    expect(cleared.status).toBe(200);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(watching.seen()).toEqual([]);
+
+    expect((await rigDay(admin, 1, target.id)).status).toBe(200);
+    await aWheel();
+    const res = await app.request("/api/event", {}, env);
+    expect(res.status).toBe(200);
+    const raw = z.record(z.string(), z.unknown()).parse(await res.json());
+    expect(Object.keys(raw).sort()).toEqual(
+      [...Object.keys(IDLE_EVENT), "day"].sort(),
+    );
   });
 });
 

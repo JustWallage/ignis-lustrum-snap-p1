@@ -56,6 +56,7 @@ const EVENT_SPECS = [
   "live-event.spec.ts",
   "live-loop.spec.ts",
   "podium.spec.ts",
+  "rig.spec.ts",
   "wheel.spec.ts",
 ].map((spec) => `**/${spec}`);
 

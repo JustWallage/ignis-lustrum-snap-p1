@@ -27,6 +27,7 @@ import { adminBowserRoutes } from "./admin-bowser";
 import { adminClockRoutes } from "./admin-clock";
 import { adminImagesRoutes } from "./admin-images";
 import { adminDayRoutes, adminPhotoRoutes } from "./admin-retire";
+import { adminRigRoutes } from "./admin-rig";
 
 export const adminRoutes = new Hono<AppEnv>();
 
@@ -39,6 +40,7 @@ adminRoutes.use("*", async (c, next) => {
 });
 
 adminRoutes.route("/bowser", adminBowserRoutes);
+adminRoutes.route("/rig", adminRigRoutes);
 adminRoutes.route("/day", adminClockRoutes);
 adminRoutes.route("/days", adminDayRoutes);
 adminRoutes.route("/photos", adminPhotoRoutes);

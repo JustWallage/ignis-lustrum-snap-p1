@@ -1,28 +1,15 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { bowserDaysSchema } from "@shared/api";
 import { ConfirmButton } from "@/admin/ConfirmButton";
+import { useOpsWrite } from "@/admin/useOpsWrite";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 
 const PATH = "/api/admin/bowser";
 
 export function BowserPanel() {
   const list = useCachedFetch(PATH, bowserDaysSchema);
-  const { mutate } = list;
+  const { busy, write } = useOpsWrite(PATH, list.mutate);
   const [day, setDay] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const write = useCallback(
-    async (init: RequestInit, path = PATH) => {
-      setBusy(true);
-      try {
-        await fetch(path, init);
-        mutate();
-      } finally {
-        setBusy(false);
-      }
-    },
-    [mutate],
-  );
 
   const asked = Number(day);
   const legal = day.trim() !== "" && Number.isInteger(asked) && asked > 0;
