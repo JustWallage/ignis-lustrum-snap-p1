@@ -53,6 +53,7 @@ const shards =
 // nothing runs, and the pipeline stays green while it does so.
 const EVENT_SPECS = [
   "bowser.spec.ts",
+  "event-dialogue.spec.ts",
   "live-event.spec.ts",
   "live-loop.spec.ts",
   "podium.spec.ts",

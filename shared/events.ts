@@ -283,3 +283,13 @@ export function nextDeadline(event: EventState): number | null {
 export function isEventRunning(event: EventState | undefined): boolean {
   return event !== undefined && event.phase !== "submission";
 }
+
+export function eventStageKey(event: EventState | undefined): string | null {
+  if (event === undefined || event.phase === "submission") return null;
+  return [
+    event.phase,
+    event.podiumRank,
+    event.podiumNextAt,
+    event.prizeIndex,
+  ].join(":");
+}

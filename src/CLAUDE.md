@@ -7,14 +7,21 @@
   screen that never holds it has no context and so hears no voice either — the honest limit, which
   the button's own accessible name states rather than leaving silent.
 - START is a round trip to the splash and nothing else: not the session, not the tile, not the clock.
-- A live event covers the map and takes the buttons, with TWO per-player exceptions: **Done** on the
-  wheel's last page unfreezes walking for that screen, and the **push-to-talk grille** is live
-  throughout — it sits on the face below the LCD the overlay covers, and touches no phase, route or
-  clock.
+- A live event covers the map and takes the buttons, with TWO per-player exceptions: **leaving the
+  last page** unfreezes walking for that screen — **Done** onto the map, **View results** into the
+  archive, which needs no day threaded to it because it already opens on the newest revealed one —
+  and the **push-to-talk grille** is live throughout, since it sits on the face below the LCD the
+  overlay covers and touches no phase, route or clock.
   Safe, because uploading and voting are `submission`-only and both routes 409 anyway.
   `EventOverlay` renders BEFORE the dialogue box so the SELECT menu still opens on top —
   **Abort event** lives there, and so does **Spin the wheel**, offered to the frozen host of an
   unspun wheel as the way past a winner who never presses.
+- **`SURVIVES_EVENT` decides what an event may leave open**, a total `Record` over `Dialog["kind"]`
+  so a new kind cannot exist without the decision. Every transition (`eventStageKey`) closes what it
+  says no, and `dialog` is DERIVED through it, so a box that outlived one is invisible and inert
+  rather than painted over the opaque overlay — an NPC conversation open when the countdown lands
+  used to run on under it and, because SELECT is dead while a dialog is up, took Abort event away
+  from the host. What the menu raises must say yes: the host's confirmation is that same box.
 - `interactableAt` + `OPENS` (a total `Record`) are why a seventh interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or

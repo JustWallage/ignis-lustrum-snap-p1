@@ -124,6 +124,13 @@ export function crowdOf(town: CrowdPlayer[], seed: number): CrowdMember[] {
   });
 }
 
+export function playerIn(
+  town: CrowdPlayer[],
+  userId: number,
+): CrowdPlayer | null {
+  return town.find((one) => one.id === userId) ?? null;
+}
+
 export function wornBy(town: CrowdPlayer[], userId: number): string | null {
-  return town.find((one) => one.id === userId)?.url ?? null;
+  return playerIn(town, userId)?.url ?? null;
 }

@@ -47,11 +47,13 @@ export function EventOverlay({
   town,
   onHostNext,
   onDone,
+  onResults,
 }: {
   event: EventState;
   town: CrowdPlayer[];
   onHostNext: () => void;
   onDone: () => void;
+  onResults: () => void;
 }) {
   if (event.phase === "submission") return null;
   return (
@@ -79,7 +81,12 @@ export function EventOverlay({
         />
       )}
       {event.phase === "wheel" && (
-        <WheelScreen event={event} town={town} onDone={onDone} />
+        <WheelScreen
+          event={event}
+          town={town}
+          onDone={onDone}
+          onResults={onResults}
+        />
       )}
       <p className="gb-event-day">DAY {event.day}</p>
     </div>

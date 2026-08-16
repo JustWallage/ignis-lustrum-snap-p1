@@ -4,6 +4,7 @@ import {
   BEAST_MS,
   countdownEvent,
   countdownSeconds,
+  eventStageKey,
   eventStateSchema,
   firstPodiumRank,
   HOST_IDLE_MS,
@@ -591,5 +592,39 @@ describe("isEventRunning", () => {
 
   it("treats a state it has not got yet as nothing running", () => {
     expect(isEventRunning(undefined)).toBe(false);
+  });
+});
+
+describe("eventStageKey", () => {
+  const NOW = 1_700_000_000_000;
+  const reveal = stateFrom(
+    revealEvent(
+      NOW,
+      { photoIds: [1, 2, 3], winnerPhotoId: 1, winnerUserId: 2 },
+      HOST,
+    ),
+  );
+
+  it("is nothing at all outside an event", () => {
+    expect(eventStageKey(undefined)).toBeNull();
+    expect(eventStageKey(stateFrom(idleEvent()))).toBeNull();
+  });
+
+  it("holds still while the same stage re-renders", () => {
+    expect(eventStageKey(reveal)).toBe(
+      eventStageKey({ ...reveal, stageEndsAt: NOW + 1 }),
+    );
+  });
+
+  it("moves for every stage the DO publishes through the reveal and the wheel", () => {
+    const podium = stateFrom(podiumEvent(reveal, PODIUM_DEPTH, NOW));
+    const building = stateFrom(podiumAdvanceEvent(podium, NOW));
+    const second = stateFrom(podiumEvent(podium, PODIUM_DEPTH - 1, NOW));
+    const wheel = stateFrom(wheelEvent(reveal, ["a", "b"], NOW, false));
+    const spun = stateFrom(spunEvent(wheel, NOW, 1));
+    const keys = [reveal, podium, building, second, wheel, spun].map(
+      eventStageKey,
+    );
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

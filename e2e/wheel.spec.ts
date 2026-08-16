@@ -188,7 +188,7 @@ test("the host turns it from the menu when the winner never does", async ({
   );
 });
 
-test("the winner is the only one told to press anything", async ({
+test("the winner is the only one told to press anything, and everybody is told who they are", async ({
   page,
   browser,
 }) => {
@@ -198,6 +198,9 @@ test("the winner is the only one told to press anything", async ({
   await apiSignIn(friend, "rival");
   await friend.goto("/");
   await friend.getByTestId("start-button").click();
+  const stranger = await browser.newContext();
+  const anonymous = await stranger.newPage();
+  await anonymous.goto("/");
 
   await aWheel(page);
 
@@ -212,5 +215,21 @@ test("the winner is the only one told to press anything", async ({
   );
   await expect(friend.getByTestId("wheel-spin")).toBeHidden();
 
+  for (const screen of [page, friend]) {
+    await expect(screen.getByTestId("wheel-turn-name")).toHaveText("TESTER");
+    await expect(screen.getByTestId("crowd-character")).toHaveAttribute(
+      "data-player",
+      "tester",
+    );
+  }
+
+  await expect(anonymous.getByTestId("wheel")).toBeVisible();
+  await expect(anonymous.getByTestId("wheel-turn-name")).toBeHidden();
+  // The name is the town's, never the event's: `/api/event` is one of the two reads
+  // anybody may make without a cookie, so a name on it would be the leak.
+  const wire = await anonymous.request.get("/api/event");
+  expect((await wire.text()).toLowerCase()).not.toContain("tester");
+
+  await stranger.close();
   await context.close();
 });
