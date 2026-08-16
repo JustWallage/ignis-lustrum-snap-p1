@@ -263,12 +263,9 @@ test("a rank slot reads free, held by this snap, or spent on another", async ({
   await expect(rankButton(page, 2)).toHaveAttribute("data-slot", "free");
   const taken = await backgroundOf(page, 1);
 
-  // The attribute alone would still pass with every rule deleted: three states have to
-  // be three LOOKS, and spent-elsewhere must not borrow the one that reads as dead.
   expect(new Set([free, held, taken]).size).toBe(3);
   await expect(rankButton(page, 1)).toBeEnabled();
 
-  // Which is the decision this ticket names: pressing a spent slot moves that rank here.
   await rankCurrent(page, 1);
   await expect(page.getByTestId("viewer-rank")).toHaveText("1ST");
   await expect(rankButton(page, 1)).toHaveAttribute("data-slot", "held");
@@ -324,11 +321,8 @@ test("the NPC says what skipping the day costs, and so does the ballot", async (
   await expect(text).toContainText(/top three/i);
   await expect(text).not.toContainText("50%");
 
-  // TWO pages, counted by pressing exactly once: what to do, then what skipping costs.
-  // This NPC is read before every vote of every day, so a third page is a paragraph
-  // fourteen people have already read thirteen times. ▼ is `hasMorePages` — page
-  // revealed, another behind it — and waiting on it is what makes the press below turn
-  // the page rather than finish the typewriter.
+  // ▼ is `hasMorePages`: page fully typed, another behind it. Waiting on it is what
+  // makes the press below turn the page rather than finish the typewriter.
   await expect(page.locator(".gb-textbox-more")).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(text).toContainText("50%");
@@ -389,7 +383,6 @@ test("tapping the photograph pages the ballot and ranks nothing", async ({
     .evaluate((arrow) => getComputedStyle(arrow).backgroundColor);
   expect(plate).toMatch(/^rgba\(.+, 0\.\d+\)$/);
 
-  // Decoration on a live zone: the tap it advertises is a tap it must not swallow.
   await page.getByTestId("viewer-arrow-on").click();
   await expect(title(2)).toBeVisible();
   await page.getByTestId("viewer-arrow-back").click();

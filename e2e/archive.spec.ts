@@ -237,8 +237,6 @@ test("‹ ›, the arrow keys and the two tap zones all page the filtered feed",
   const on = await boxOf(page, "viewer-tap-on");
   expect(on.x).toBeGreaterThan(back.x);
 
-  // The viewer is shared, so the arrows land here by construction — and a spec on the
-  // ballot only would not notice the day this surface stopped rendering them.
   const backArrow = await boxOf(page, "viewer-arrow-back");
   const onArrow = await boxOf(page, "viewer-arrow-on");
   expect(encloses(photo, backArrow)).toBe(true);

@@ -1108,8 +1108,8 @@ button.gb-pill-cap:disabled {
   border-style: dashed;
 }
 
-/* It is a child of the tap zone, not a layer over one: that is what keeps the arrow from
-   eating the tap it advertises, so nothing here may take it out of the flow. */
+/* The arrow is a CHILD of the tap-zone button, not a layer over it — a sibling laid
+   across the photograph would take the tap it advertises. Style it, never move it out. */
 .gb-viewer-arrow {
   padding: 0.35rem 0.4rem;
   border-radius: 4px;
