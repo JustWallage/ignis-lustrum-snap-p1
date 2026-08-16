@@ -30,6 +30,20 @@ describe("the neighbour's prompt", () => {
     }
   });
 
+  it("keeps his medals out of the opening he leads with", () => {
+    const prompt = systemPrompt(NAMES);
+    expect(prompt).toMatch(/iglympics/i);
+    expect(prompt).toMatch(/never as your opening/i);
+    expect(prompt).toMatch(/do not steer the conversation onto any of that/i);
+  });
+
+  it("points him at what the player said, with a theory about it", () => {
+    const prompt = systemPrompt(NAMES);
+    expect(prompt).toMatch(/take what the player has just said/i);
+    expect(prompt).toMatch(/rather than changing the subject/i);
+    expect(prompt).toMatch(/conspiracy theorist/i);
+  });
+
   it("tells him to wait until the player brings somebody up", () => {
     const prompt = systemPrompt(NAMES);
     expect(prompt).toMatch(/only when the player brings that person up/i);

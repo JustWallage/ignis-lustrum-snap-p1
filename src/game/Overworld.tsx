@@ -127,6 +127,21 @@ type Dialog =
    * question is asked — the dialogue box lives under the modal layer. */
   | { kind: "confirm-delete"; id: number; back: "view" | "archive" };
 
+interface Figure {
+  img: HTMLCanvasElement;
+  x: number;
+  y: number;
+  label: readonly string[] | null;
+}
+
+function drawFigure(ctx: CanvasRenderingContext2D, figure: Figure): void {
+  const top = figure.y + TILE - PLAYER_H;
+  ctx.drawImage(figure.img, figure.x, top);
+  if (figure.label !== null) {
+    drawBubble(ctx, figure.label, figure.x + PLAYER_W / 2, top);
+  }
+}
+
 const MENU_PAGES = [""];
 
 const SIGN_OUT_PAGE =
@@ -969,10 +984,12 @@ export function Overworld() {
         }
       }
 
-      // Painter's order: lower on the screen is drawn on top. The sort is stable and
-      // the local player is last, so on a shared row they walk in front.
+      // Painter's order: lower on the screen is drawn on top. The sort is stable, and
+      // the local player is NOT in it — being last in a `y` sort only wins a shared
+      // row, and with fourteen people out anybody standing lower covered you, name
+      // bubble and all. One exception for one sprite: everybody else keeps the order.
       const centered = (px: number) => px + (TILE - PLAYER_W) / 2;
-      const people = [
+      const townsfolk = [
         {
           img: npcSprite(juryRef.current.sprite),
           x: centered(JURY.x * TILE),
@@ -1009,24 +1026,8 @@ export function Overworld() {
             label: speechFor(friend.speech, now) ?? [nameLabel(friend.name)],
           };
         }),
-        {
-          // The local player's own sprite comes off `useMyAvatar`, not the roster: the
-          // server does not fan a sprite change back to the socket that caused it.
-          img: (avatarRef.current ?? playerSprites())[facingRef.current][
-            local.walking ? 1 : 0
-          ],
-          x: centered(local.px),
-          y: local.py,
-          label: speechFor(speechRef.current, now),
-        },
       ].sort((a, b) => a.y - b.y);
-      for (const person of people) {
-        const top = person.y + TILE - PLAYER_H;
-        ctx.drawImage(person.img, person.x, top);
-        if (person.label !== null) {
-          drawBubble(ctx, person.label, person.x + PLAYER_W / 2, top);
-        }
-      }
+      for (const person of townsfolk) drawFigure(ctx, person);
 
       const submissions = submissionsRef.current;
       if (submissions !== null) {
@@ -1037,6 +1038,17 @@ export function Overworld() {
           VOTING.y * TILE + TILE - PLAYER_H,
         );
       }
+
+      drawFigure(ctx, {
+        // The local player's own sprite comes off `useMyAvatar`, not the roster: the
+        // server does not fan a sprite change back to the socket that caused it.
+        img: (avatarRef.current ?? playerSprites())[facingRef.current][
+          local.walking ? 1 : 0
+        ],
+        x: centered(local.px),
+        y: local.py,
+        label: speechFor(speechRef.current, now),
+      });
     },
     [roster],
   );
