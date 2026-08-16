@@ -15,8 +15,8 @@ import {
 
 const RIG_TIMEOUT_MS = 180_000;
 
-/** The LAST segment, so a landing that ignored the rig and kept the drum's first face
- * would read as a pass. */
+/** The LAST segment: index 0 is the face the drum already rests on before any landing,
+ * so a rig to the first prize is the one a build that never moved could match. */
 async function lastPrize(page: Page): Promise<Prize> {
   const listed = await page.request.get("/api/prizes");
   const { prizes } = prizeListSchema.parse(await listed.json());
@@ -85,8 +85,6 @@ test("a rigged day rolls and decelerates as ever, and stops on the prize the ope
   if (spunAt === null) throw new Error("the wheel was not spun");
   expect(spun.segments[spun.prizeIndex ?? -1]).toBe(prize.label);
 
-  // The drum still takes its time getting there: a rig decides the landing, never the
-  // roll, so the prize page is no closer at 60% than an unrigged one's.
   await page.clock.setFixedTime(spunAt + WHEEL_SPIN_MS * 0.6);
   await expect(page.getByTestId("wheel")).toBeVisible();
   await expect(page.getByTestId("wheel-prize")).toBeHidden();

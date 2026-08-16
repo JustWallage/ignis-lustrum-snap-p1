@@ -17,9 +17,9 @@ export async function enabledPrizeLabels(
   return rows.map((row) => row.label);
 }
 
-/** The join is the whole filter: it asks for no `enabled` and no `prize_set`, because
- * the caller matches this against tonight's segments, which already encode both. Adding
- * either here would be the landing rule written a second time, free to disagree. */
+/** Filtered by neither `enabled` nor `prize_set` on purpose: the caller matches this
+ * against tonight's segments, which already encode both, and a filter here would be the
+ * landing rule written a second time and free to disagree with itself. */
 export async function riggedLabel(db: Db, day: number): Promise<string | null> {
   const rows = await db
     .select({ label: prizes.label })

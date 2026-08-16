@@ -308,8 +308,9 @@ describe("a rigged landing", () => {
       expect((await addPrize(admin, label, "ordinary")).status).toBe(201);
     }
     const prizes = await prizeList(admin);
-    // A long wheel and three days on purpose: on the four seeded segments alone, a
-    // build that ignored the rig entirely would land on all three by luck once a run.
+    // A long wheel and three days on purpose: on the four seeded segments alone a build
+    // that ignored the rig lands on all three by luck once in sixty-four runs, and eight
+    // segments push that to once in five hundred.
     const picked = [prizes[7], prizes[2], prizes[5]].filter(
       (prize) => prize !== undefined,
     );
@@ -415,7 +416,6 @@ describe("a rigged landing", () => {
     expect(wound.status).toBe(200);
     expect(await storedAward(1)).toBeNull();
 
-    // Day one's snaps and ballots were never dropped, so the event replays on them.
     expect((await eventAction(admin, "start")).status).toBe(200);
     await playUntil("wheel");
     expect((await postSpin(winnerCookie)).status).toBe(200);

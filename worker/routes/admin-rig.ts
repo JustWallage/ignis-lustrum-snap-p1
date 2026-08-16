@@ -10,8 +10,6 @@ export const adminRigRoutes = new Hono<AppEnv>();
 
 const NOT_A_DAY = "A day is a whole number, 1 or more";
 
-/** Inner-joined to `prizes`, so a rig whose prize row was deleted lists as no rig —
- * the same answer the landing gives it. */
 async function riggedDayList(db: Db) {
   const rows = await db
     .select({

@@ -118,9 +118,8 @@ prizesRoutes.delete("/:id", async (c) => {
   if ((await findPrize(db, id)) === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  // Nothing REFERENCES a prize row, so this cannot fail: the wheel snapshots its
-  // segments, an award copies its label, and a rig names an id without a foreign key —
-  // one that names this row simply stops being an instruction.
+  // Nothing REFERENCES a prize row, `rigged_days.prize_id` included, so this cannot
+  // fail: the wheel snapshots its segments and an award copies its label.
   await db.delete(prizes).where(eq(prizes.id, id));
   await broadcast(c.env, { type: "prizes_changed" });
   return c.json({ ok: true });

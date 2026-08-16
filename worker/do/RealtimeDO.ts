@@ -206,9 +206,6 @@ export class RealtimeDO extends DurableObject<Bindings> {
     });
   }
 
-  /** ONE rule for a rigged prize that was retired, deleted, reordered, renamed after
-   * the draft, or left in the set a flipped Bowser mark no longer uses: if it is not
-   * among tonight's segments it is not an instruction, and the day rolls. */
   private async landing(event: EventState): Promise<number> {
     const rigged = await riggedLabel(getDb(this.env), event.day);
     const found = rigged === null ? -1 : event.segments.indexOf(rigged);

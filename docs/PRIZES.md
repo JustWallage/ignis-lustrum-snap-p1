@@ -16,8 +16,6 @@ and one router, one editor and one ordering serve both. Which set a day uses is 
   broadcast nowhere, and **if that prize is not among tonight's segments the day lands at random** —
   the one rule covering a retired, deleted or wrong-set prize alike. A rename or a reorder needs no
   rule: naming a row is what follows both.
-- **Nothing expires a rig**, so winding the console's clock back over a rigged day replays it —
-  `bowser_days` behaves the same way, and the two cannot disagree about what winding back means.
 - Below `MIN_ENABLED_PRIZES` the wheel cannot spin and START refuses with the reason — checking **the
   set the day will actually use**, and naming which one is short.
 - **`GET /api/prizes` is the ordinary set** — for an absent, empty or unreadable `?set=`, so its
