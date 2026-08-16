@@ -6,7 +6,7 @@ import {
   dayResultsSchema,
   prizeListSchema,
 } from "../../shared/api";
-import { HALF_WEIGHT } from "../../shared/scoring";
+import { FLOOR, HALF_WEIGHT, NO_VOTE_MULTIPLIER } from "../../shared/scoring";
 import { app } from "../index";
 import {
   getJson,
@@ -21,6 +21,8 @@ import {
 } from "../test-helpers";
 
 beforeEach(resetWorld);
+
+const MEDIAN_HALF = 30;
 
 describe("day results", () => {
   const RESULTS = "/api/days/1/results";
@@ -63,9 +65,11 @@ describe("day results", () => {
     const mine = await signIn();
     const theirs = await signIn("rival");
     const voter = await signIn("voter");
+    const judge = await signIn("judge");
     const first = await uploadPhotoId(mine);
     const second = await uploadPhotoId(theirs);
-    expect((await putVotes(voter, [second, first])).status).toBe(200);
+    expect((await putVotes(voter, [first, second])).status).toBe(200);
+    expect((await putVotes(judge, [first])).status).toBe(200);
     expect((await putVotes(mine, [second])).status).toBe(200);
     expect((await setPhase(voter, "reveal")).status).toBe(200);
 
@@ -75,19 +79,21 @@ describe("day results", () => {
     expect(ranked.map((one) => one.rank)).toEqual([1, 2]);
     expect(ranked.map((one) => one.noVotePenalty)).toEqual([false, true]);
     expect(ranked.map((one) => one.photoId)).toEqual([first, second]);
-    expect(ranked.map((one) => one.peerPoints)).toEqual([2, 6]);
+    expect(ranked.map((one) => one.peerPoints)).toEqual([6, 5]);
     expect(ranked.map((one) => one.url)).toEqual([
       `/api/photos/${first}/image`,
       `/api/photos/${second}/image`,
     ]);
 
     const [winner, loser] = ranked;
-    expect(winner?.aiNorm).toBe(HALF_WEIGHT);
-    expect(loser?.aiNorm).toBe(HALF_WEIGHT);
-    expect(winner?.peerNorm).toBeCloseTo(HALF_WEIGHT / 3);
-    expect(loser?.peerNorm).toBe(HALF_WEIGHT);
-    expect(winner?.total).toBeCloseTo(HALF_WEIGHT + HALF_WEIGHT / 3);
-    expect(loser?.total).toBe(HALF_WEIGHT);
+    expect(winner?.aiNorm).toBeCloseTo(MEDIAN_HALF);
+    expect(loser?.aiNorm).toBe(winner?.aiNorm);
+    expect(winner?.peerNorm).toBe(HALF_WEIGHT);
+    expect(loser?.peerNorm).toBeCloseTo(FLOOR * HALF_WEIGHT);
+    expect(winner?.total).toBeCloseTo(HALF_WEIGHT + MEDIAN_HALF);
+    expect(loser?.total).toBeCloseTo(
+      (FLOOR * HALF_WEIGHT + MEDIAN_HALF) * NO_VOTE_MULTIPLIER,
+    );
     expect(winner?.critique).toContain("jury");
     expect(winner?.bonus).toBe(false);
     expect(winner?.juryCaption).toBeNull();
@@ -210,7 +216,8 @@ describe("the archive", () => {
       expect(winner?.photoId).toBe(first);
       expect(winner?.uploader.name).toBe("tester");
       expect(winner?.aiNorm).toBe(HALF_WEIGHT);
-      expect(winner?.peerNorm).toBe(0);
+      expect(winner?.peerNorm).toBe(HALF_WEIGHT);
+      expect(winner?.total).toBe(HALF_WEIGHT * 2 * NO_VOTE_MULTIPLIER);
       expect(winner?.critique).toContain("jury");
       expect(winner?.url).toBe(`/api/photos/${first}/image`);
       expect(dayTwo?.results[0]?.uploader.name).toBe("rival");

@@ -6,8 +6,10 @@ repeat them, and where a ticket disagrees with it, this wins and the ticket gets
 A 14-day photo contest played on a Game Boy. There is no end: after day 14 the jury schedule wraps and
 play continues.
 
-- **Curving both halves of the score** is the only way peer votes and an AI score carry equal weight.
-  Normalising against a theoretical maximum leaves the AI dominating in practice.
+- **Both halves of the score are a POSITION in the day's field**, which is the only way peer votes and
+  an AI score carry equal weight. Normalising against a theoretical maximum leaves the AI dominating
+  in practice, and normalising against the day's best value leaves a snap nobody voted for on nothing
+  however good it was — a position keeps it in the game and lets the jury's favourite win the day.
 - **Photos are anonymous until their day is revealed** — that is the game, not a privacy feature. The
   counterpart is that walking is public: an anonymous visitor sees the town and everybody in it.
 - **Players pass straight through each other**, so nobody can body-block the door or the jury. Names

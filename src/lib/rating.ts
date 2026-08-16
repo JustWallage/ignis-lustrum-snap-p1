@@ -9,10 +9,9 @@ export function ratingText(aiScore: number | null): string {
   return `${String(aiScore)}/${String(AI_SCORE_MAX)}`;
 }
 
-/**
- * The curved half, LABELLED as curved: the day's best always lands on exactly
- * `HALF_WEIGHT`, so printing it under a bare "AI" is the whole of #97.
- */
+/** The number is a POSITION in the day's field, not a curve — CURVED is the player's
+ * word and stays, so nothing here follows `shared/scoring.ts` when the arithmetic
+ * changes name. */
 export function curvedText(aiNorm: number): string {
   return `CURVED ${String(Math.round(aiNorm))}`;
 }

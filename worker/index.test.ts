@@ -20,7 +20,7 @@ import {
 } from "../shared/api";
 import { eventStateSchema } from "../shared/events";
 import { juryForDay } from "../shared/juries";
-import { HALF_WEIGHT } from "../shared/scoring";
+import { FLOOR, HALF_WEIGHT, NO_VOTE_MULTIPLIER } from "../shared/scoring";
 import { gameStateSchema } from "../shared/state";
 import {
   wsEventSchema,
@@ -47,7 +47,14 @@ const PASSWORDS: Record<string, string> = {
   tester: "test-password-123",
   rival: "rival-password-123",
   voter: "voter-password-123",
+  judge: "judge-password-123",
 };
+
+// Nothing here stubs a Gemini reply and the pool declares no key, so every verdict is
+// the fallback 5/`failed`: no snap has a jury position of its own and the whole field
+// shares the median, which pays 30 of the 50 on any field of two or more. A developer's
+// own `.env` DOES reach this pool, so a real key scores these snaps for real.
+const MEDIAN_HALF = 30;
 
 async function signIn(name = "tester"): Promise<string> {
   await app.request("/api/seed", { method: "POST" }, env);
@@ -1068,9 +1075,11 @@ describe("day results", () => {
     const mine = await signIn();
     const theirs = await signIn("rival");
     const voter = await signIn("voter");
+    const judge = await signIn("judge");
     const first = await uploadPhotoId(mine);
     const second = await uploadPhotoId(theirs);
-    expect((await putVotes(voter, [second, first])).status).toBe(200);
+    expect((await putVotes(voter, [first, second])).status).toBe(200);
+    expect((await putVotes(judge, [first])).status).toBe(200);
     expect((await putVotes(mine, [second])).status).toBe(200);
     expect((await setPhase(voter, "reveal")).status).toBe(200);
 
@@ -1080,19 +1089,21 @@ describe("day results", () => {
     expect(ranked.map((one) => one.rank)).toEqual([1, 2]);
     expect(ranked.map((one) => one.noVotePenalty)).toEqual([false, true]);
     expect(ranked.map((one) => one.photoId)).toEqual([first, second]);
-    expect(ranked.map((one) => one.peerPoints)).toEqual([2, 6]);
+    expect(ranked.map((one) => one.peerPoints)).toEqual([6, 5]);
     expect(ranked.map((one) => one.url)).toEqual([
       `/api/photos/${first}/image`,
       `/api/photos/${second}/image`,
     ]);
 
     const [winner, loser] = ranked;
-    expect(winner?.aiNorm).toBe(HALF_WEIGHT);
-    expect(loser?.aiNorm).toBe(HALF_WEIGHT);
-    expect(winner?.peerNorm).toBeCloseTo(HALF_WEIGHT / 3);
-    expect(loser?.peerNorm).toBe(HALF_WEIGHT);
-    expect(winner?.total).toBeCloseTo(HALF_WEIGHT + HALF_WEIGHT / 3);
-    expect(loser?.total).toBe(HALF_WEIGHT);
+    expect(winner?.aiNorm).toBeCloseTo(MEDIAN_HALF);
+    expect(loser?.aiNorm).toBe(winner?.aiNorm);
+    expect(winner?.peerNorm).toBe(HALF_WEIGHT);
+    expect(loser?.peerNorm).toBeCloseTo(FLOOR * HALF_WEIGHT);
+    expect(winner?.total).toBeCloseTo(HALF_WEIGHT + MEDIAN_HALF);
+    expect(loser?.total).toBeCloseTo(
+      (FLOOR * HALF_WEIGHT + MEDIAN_HALF) * NO_VOTE_MULTIPLIER,
+    );
     expect(winner?.critique).toContain("jury");
     expect(winner?.bonus).toBe(false);
   });

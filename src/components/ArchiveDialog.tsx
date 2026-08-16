@@ -364,10 +364,10 @@ function Card({
           <p className="arc-figures" data-testid="archive-figures">
             <span>Rank #{result.rank}</span>
             <span className="ink-peer">Peer {points(result.peerNorm)}</span>
-            {/* The curved AI half, named as the curve. It used to be printed here
-                as "AI 43" — 0..HALF_WEIGHT under a label that reads like a score
-                out of ten, which is the readout #97 is about. The rating is on the
-                meta line above; this is what the day's curve made of it. */}
+            {/* The jury half, named so it cannot be read as a rating. It used to be
+                printed here as "AI 43" — a position in the day's field under a label
+                that reads like a score out of ten, which is the readout #97 is about.
+                The rating is on the meta line above. */}
             <span className="ink-jury">{curvedText(result.aiNorm)}</span>
             {result.bonus && <span>Bonus for {jury.bonusItem}</span>}
             {result.noVotePenalty && <span>No vote ×0.5</span>}

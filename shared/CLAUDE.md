@@ -5,13 +5,25 @@ Everything both sides read. Change a schema here first.
 - **Nothing outside `scoring.ts` does the arithmetic.** `scoreDay` ranks one day; `rankStandings`
   only ADDS those totals. Re-deriving at the table's level is how the standings and archive start
   disagreeing, and every constant is named here.
-- **Both halves are curved against the day's BEST value**, never a theoretical maximum — the only way
-  peer votes (0–39) and an AI score (1–10) carry equal weight.
-- `aiScore: 0` means "no evaluation row", not zero, so it contributes nothing; on the wire an absence
-  is an absence and nothing may render 0/10. `aiNorm` is the day's CURVE, never a rating —
-  `curve(best, best)` is exactly `HALF_WEIGHT`, so the best AI score always reads 50, and printing
-  that under a bare "AI" is the whole of #97.
-- The ×0.5 no-vote penalty applies AFTER the bonus. Ties break three keys deep, so a day has exactly
+- **Both halves are a POSITION in the day's field**, never a value curved against the day's best and
+  never a theoretical maximum — the only way peer votes (0–39) and an AI score (1–10) carry equal
+  weight, and what lets a snap nobody voted for still win the day. `share` is ONE function both
+  halves call: last place keeps `FLOOR`, and a field of one takes the full share rather than dividing
+  by zero — so a solo day totals 100, the one day size where the halves cannot disagree. **A tied
+  group takes the AVERAGE of the positions it occupies** (`(p + q) / 2`), on both halves: the worst
+  position instead inflates the day's rank sum past `n(n+1)/2` and lands the overshoot on the players
+  the ballot knows least about. The peer half is the one that SUMS to `n(n+1)/2`; the bullet below is
+  why the AI half does not have to.
+- `aiScore: 0` means "no evaluation row", not zero; on the wire an absence is an absence and nothing
+  may render 0/10. **`ai_status = 'failed'` is the same absence wearing a 5** — the fallback every
+  failure stores — so neither is ranked among the real scores, and both **share the field's MEDIAN
+  position**: a fallback 5 would otherwise beat every honest 4, and an absent row would sink to last
+  because a third party was down. That median is the DELIBERATE exception to the tie-average above —
+  an unscored group takes the middle, not the positions it occupies — and it is why only the peer
+  half sums to `n(n+1)/2`. `aiNorm` is that POSITION, never a rating — first place is exactly
+  `HALF_WEIGHT`, and printing it under a bare "AI" is the whole of #97.
+- The ×0.5 no-vote penalty applies AFTER the bonus. Ties break three keys deep — total, then AI
+  position, then `createdAt`, which stays because the AI order is NOT strict — so a day has exactly
   one winner and ranks run 1..n.
 - **Every event moment is an absolute epoch-ms target**, so a screen renders its own progress by
   asking its own clock where that moment is: two screens cannot drift and a late join is not behind.
