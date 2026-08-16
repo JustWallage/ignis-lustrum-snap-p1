@@ -27,8 +27,8 @@ export async function resultsForDays(
       uploaderName: users.name,
       createdAt: photos.createdAt,
       // Left-joined: the AI pass writes a row even when Gemini fails, so a missing
-      // one means the evaluation never landed and that snap scores nothing from the
-      // AI half rather than borrowing a number.
+      // one means the evaluation never landed. `aiStatus` travels with it because
+      // the fallback 5 a failure stores is not a position anybody earned.
       aiScore: photoScores.aiScore,
       aiStatus: photoScores.aiStatus,
       critique: photoScores.critique,
@@ -40,7 +40,7 @@ export async function resultsForDays(
     .leftJoin(photoScores, eq(photoScores.photoId, photos.id))
     .where(inArray(photos.day, wanted));
 
-  // One read answers both questions the curve asks: what each snap was ranked, and
+  // One read answers both questions the peer half asks: what each snap was ranked, and
   // who cast a ballot at all (the ×0.5 penalty). Voters are grouped per day and
   // ranks are not, because a photo id belongs to exactly one day already.
   const ballots = await db
@@ -77,6 +77,7 @@ export async function resultsForDays(
       photoId: row.photoId,
       ranksReceived: ranksReceived.get(row.photoId) ?? [],
       aiScore: row.aiScore ?? 0,
+      aiStatus: row.aiStatus,
       bonusDetected: row.bonusDetected ?? false,
       uploaderVoted: voted.has(row.uploaderId),
       createdAt: row.createdAt.getTime(),

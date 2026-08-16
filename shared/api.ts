@@ -77,9 +77,9 @@ export const dayResultSchema = z.object({
   rank: z.int().positive(),
   total: z.number(),
   peerNorm: z.number(),
-  /** 0..HALF_WEIGHT, and the day's best always curves to exactly HALF_WEIGHT — so
-   * printing it under a bare "AI" reads as a broken rating (#97). `aiScore` is the
-   * rating. */
+  /** FLOOR*HALF_WEIGHT..HALF_WEIGHT: the snap's POSITION in the day's jury order, where
+   * first place takes exactly HALF_WEIGHT — so printing it under a bare "AI" reads as a
+   * broken rating (#97). `aiScore` is the rating. */
   aiNorm: z.number(),
   peerPoints: z.int().nonnegative(),
   aiScore: aiRatingSchema,

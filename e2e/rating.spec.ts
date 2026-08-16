@@ -17,18 +17,20 @@ import {
   walkToShelf,
 } from "./fixtures";
 
-// `aiScore` is the rating (1-10); `aiNorm` is the day's CURVED half (0-50, top value
-// always exactly HALF_WEIGHT), which is what used to be printed under a bare "AI".
+// `aiScore` is the rating (1-10); `aiNorm` is the snap's POSITION in the day's jury
+// order (10-50, first place exactly HALF_WEIGHT), which is what used to be printed
+// under a bare "AI". The player-facing word for it is still CURVED.
 //
-// With no GEMINI_API_KEY every verdict here is the fallback — score 5, `failed` — so the
-// rating reads 5/10 while the curve reads 50: exactly the pair that was
+// With no GEMINI_API_KEY every verdict here is the fallback — score 5, `failed` — so no
+// snap has a jury position of its own and the whole field shares the median, which pays
+// 30 whatever the field size. The rating still reads 5/10: exactly the pair that was
 // indistinguishable. A real answer changes the numerator and nothing else.
 
 const EVENT_TIMEOUT_MS = 240_000;
 
 const FALLBACK_RATING = "5/10";
 
-const CURVED = `CURVED ${String(HALF_WEIGHT)}`;
+const CURVED = "CURVED 30";
 
 async function aDay(
   page: Page,

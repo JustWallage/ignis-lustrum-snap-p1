@@ -10,8 +10,9 @@ export function ratingText(aiScore: number | null): string {
 }
 
 /**
- * The curved half, LABELLED as curved: the day's best always lands on exactly
- * `HALF_WEIGHT`, so printing it under a bare "AI" is the whole of #97.
+ * The jury half, LABELLED so it cannot be read as a rating: it is a POSITION in the
+ * day's field, where first place lands on exactly `HALF_WEIGHT`, and printing it under
+ * a bare "AI" is the whole of #97. The player-facing word stays CURVED.
  */
 export function curvedText(aiNorm: number): string {
   return `CURVED ${String(Math.round(aiNorm))}`;
