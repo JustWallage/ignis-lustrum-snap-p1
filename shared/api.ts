@@ -127,9 +127,20 @@ export const retirementSchema = z.object({
   retired: z.int().nonnegative(),
 });
 
+/** Which snap has been described, and how it went. NOT a field on `photoSchema`: that
+ * is the player-facing shape, and this one is served to the operator's console alone.
+ * An id with no entry is a snap nobody has described yet, which is a third state and
+ * not a failure. */
+export const photoDescriptionSchema = z.object({
+  photoId: z.int(),
+  status: aiStatusSchema,
+});
+export type PhotoDescription = z.infer<typeof photoDescriptionSchema>;
+
 export const dayPhotosSchema = z.object({
   day: z.int().positive(),
   photos: z.array(photoSchema),
+  descriptions: z.array(photoDescriptionSchema),
 });
 
 const bucketObjectSchema = z.object({

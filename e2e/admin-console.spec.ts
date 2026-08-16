@@ -160,6 +160,35 @@ test("the clock reads what the day holds back, and the console names nobody", as
   await expect(panel.getByTestId("ops-clock")).toContainText("1 in");
 });
 
+test("the console says which snaps are described, and describes one again", async ({
+  page,
+}) => {
+  const id = await apiUpload(page, "rival");
+  await apiSignIn(page);
+
+  // The description is written in `waitUntil`, so it lands AFTER the 201 — and the
+  // panel fetches its day once. No Playwright environment has a GEMINI_API_KEY, so
+  // what the upload's own pass stored is the failure, which is the state that must
+  // never read as "nobody has described it yet".
+  const described = async () => {
+    const listed = await page.request.get("/api/admin/days/1/photos");
+    return dayPhotosSchema.parse(await listed.json()).descriptions;
+  };
+  await expect.poll(described).toEqual([{ photoId: id, status: "failed" }]);
+
+  const panel = await openConsole(page, "Snaps");
+  const state = panel.getByTestId(`ops-described-${String(id)}`);
+  await expect(state).toHaveText("Description failed");
+
+  await panel.getByTestId(`ops-describe-${String(id)}`).click();
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    `Snap #${String(id)} — Description failed`,
+  );
+  await expect(state).toHaveText("Description failed");
+  // Still ONE row: the console's button is the upload's own pass, upserting.
+  expect(await described()).toEqual([{ photoId: id, status: "failed" }]);
+});
+
 test("retiring a snap frees the day and leaves the picture in the bucket", async ({
   page,
 }) => {

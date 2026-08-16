@@ -41,7 +41,7 @@ import {
   GEMINI_MODEL,
 } from "./lib/gemini";
 import { readSocketState } from "./lib/presence";
-import { IDLE_EVENT } from "./test-helpers";
+import { geminiCallAsking, IDLE_EVENT } from "./test-helpers";
 
 const PASSWORDS: Record<string, string> = {
   tester: "test-password-123",
@@ -888,7 +888,11 @@ describe("the AI jury", () => {
       bonus_reason: VERDICT.bonusReason,
       ai_status: "ok",
     });
-    expect(fetched).toHaveBeenCalledTimes(1);
+    // Throws unless exactly ONE of the upload's two calls was the jury's: the
+    // description beside it is the other, and neither may be asked twice.
+    expect(
+      geminiCallAsking(fetched.mock.calls, /judging one entry/).url,
+    ).toContain(GEMINI_MODEL);
   });
 
   it("asks the one model id, in the day's jury's voice, about the day's photo", async () => {

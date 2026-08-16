@@ -348,7 +348,11 @@ describe("avatar generation", () => {
       expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT);
     }
     expect(await storedAvatar()).toBeNull();
-    expect(fetched).toHaveBeenCalledTimes(1);
+    // The upload's own two calls, the verdict and the description, and nothing else:
+    // COUNTING them would now pass whichever of the three had reached for a key.
+    expect(
+      fetched.mock.calls.filter(([url]) => url.includes(GEMINI_IMAGE_MODEL)),
+    ).toEqual([]);
   });
 
   it("goes dark on both sides when neither key is set", async () => {

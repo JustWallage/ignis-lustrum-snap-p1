@@ -16,6 +16,7 @@ import { getDb, type Db } from "../lib/db";
 import { isDayRevealed, readGameState } from "../lib/game-state";
 import { deleteImage, newSnapKey, putImage, readImage } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
+import { describePhoto } from "../lib/photo-description";
 import { photoAggregates, purgePhoto } from "../lib/photo-rows";
 import { scorePhoto } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
@@ -71,7 +72,7 @@ async function writeSubmission(
     return inserted[0];
   }
   // One hole per statement `purgePhoto` returns, then the insert's rows.
-  const [, , , , , inserted] = await db.batch([
+  const [, , , , , , inserted] = await db.batch([
     ...purgePhoto(db, replacing.id),
     db.insert(photos).values(values).returning(),
   ]);
@@ -153,14 +154,15 @@ photosRoutes.post("/", async (c) => {
   await pushGameState(c.env, await readGameState(db));
   // NEVER on the upload's critical path: a slow model must not be something the
   // uploader waits for, and a broken one must not be something they see.
-  c.executionCtx.waitUntil(
-    scorePhoto(c.env, {
-      id: row.id,
-      day,
-      data: bytesToBase64(bytes),
-      contentType: file.type,
-    }),
-  );
+  const image = {
+    id: row.id,
+    data: bytesToBase64(bytes),
+    contentType: file.type,
+  };
+  c.executionCtx.waitUntil(scorePhoto(c.env, { ...image, day }));
+  // Beside the verdict rather than after it: the description knows no jury and no
+  // theme, so neither call is waiting on anything the other learns.
+  c.executionCtx.waitUntil(describePhoto(c.env, image));
   return c.json(
     toPhoto(
       {
