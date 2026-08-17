@@ -1,4 +1,5 @@
-import { rampFor, TILE_RAMPS, type Ramp } from "@/game/palette";
+import type { JuryPalette } from "@shared/juries";
+import { themedRampFor, TILE_RAMPS, type Ramp } from "@/game/palette";
 
 export const TILE = 16;
 
@@ -303,7 +304,7 @@ function paint(ctx: Ctx, tile: string, frame: 0 | 1, ramp: Ramp) {
   } else blit(ctx, GRASS_ROWS, ramp);
 }
 
-function buildAtlas(frame: 0 | 1): HTMLCanvasElement {
+function buildAtlas(frame: 0 | 1, palette: JuryPalette): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = TILE * ORDER.length;
   canvas.height = TILE;
@@ -315,19 +316,26 @@ function buildAtlas(frame: 0 | 1): HTMLCanvasElement {
     ctx.beginPath();
     ctx.rect(0, 0, TILE, TILE);
     ctx.clip();
-    paint(ctx, tile, frame, rampFor(tile));
+    paint(ctx, tile, frame, themedRampFor(tile, palette));
     ctx.restore();
   });
   return canvas;
 }
 
-const atlases = new Map<0 | 1, HTMLCanvasElement>();
+const atlases = new Map<string, HTMLCanvasElement>();
 
-export function tileAtlas(frame: 0 | 1): HTMLCanvasElement {
-  const cached = atlases.get(frame);
+/** Keyed by the palette as well as the frame: memoised on the frame alone, the town wore
+ * whichever jury was up when the tab opened for the rest of the session, however many
+ * times the day moved under it. */
+export function tileAtlas(
+  frame: 0 | 1,
+  palette: JuryPalette,
+): HTMLCanvasElement {
+  const key = `${palette}:${frame}`;
+  const cached = atlases.get(key);
   if (cached !== undefined) return cached;
-  const built = buildAtlas(frame);
-  atlases.set(frame, built);
+  const built = buildAtlas(frame, palette);
+  atlases.set(key, built);
   return built;
 }
 
