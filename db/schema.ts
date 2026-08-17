@@ -120,13 +120,8 @@ export const dayRankings = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     day: integer("day").notNull(),
-    // Claimed by an UPSERT that bumps it, so two re-ranks racing over one day get two
-    // different numbers and the higher one wins. It is not a foreign key to anything:
-    // a day is an integer with no row of its own.
     runStamp: integer("run_stamp").notNull(),
     status: text("status", { enum: ["ok", "failed"] }).notNull(),
-    // Null until a run FINISHES, which is what tells "never ranked" from "ranked and
-    // the model choked": a claim that never comes back leaves `failed` with no time.
     ranAt: integer("ran_at", { mode: "timestamp" }),
   },
   (t) => [uniqueIndex("day_rankings_day_idx").on(t.day)],

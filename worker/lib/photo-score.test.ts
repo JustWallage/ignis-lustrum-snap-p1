@@ -90,8 +90,6 @@ describe("the AI jury", () => {
     const [url, init] = ranked[ranked.length - 1] ?? ["", {}];
     const prompt = promptOf(init);
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
-    // No picture reaches this call at all: the description is the only record of the
-    // photograph it judges.
     expect(z.string().parse(init.body)).not.toContain("inlineData");
     expect(prompt).toContain(`Entry ${String(first)}:`);
     expect(prompt).toContain(`Entry ${String(second)}:`);
@@ -108,8 +106,6 @@ describe("the AI jury", () => {
 
     const ranked = fetched.mock.calls.filter(([, init]) => isRanking(init));
     expect(ranked).toHaveLength(2);
-    // The first ranking saw a field of one, the second a field of two: a partial day's
-    // order is not a prefix of the full day's, so both rows come from the second.
     expect(await storedDayScores(1)).toEqual([rankedScore(0), rankedScore(1)]);
     expect((await storedRanking(1))?.run_stamp).toBe(2);
   });
@@ -162,9 +158,7 @@ describe("the AI jury", () => {
     const { mine, first, second } = await aDescribedDay();
 
     // Run A is handed the SAME field of two and is overtaken while it writes: run B
-    // claims the day mid-call, so A must stop where it is. Two orders interleaving row
-    // by row is how a day ends up with two snaps on one score, which is the one tie
-    // nothing downstream can break.
+    // claims the day mid-call, so A must stop where it is.
     let overtake = async (): Promise<void> => {
       overtake = () => Promise.resolve();
       stubGeminiDay();
@@ -229,8 +223,6 @@ describe("the AI jury", () => {
     stubGeminiDay();
     const described = await uploadPhotoId(mine, { bindings: withGeminiKey() });
 
-    // The description breaks for the second snap only, so the day is ranked around it
-    // rather than judging it blind.
     stubGemini((_url, init) =>
       isRanking(init)
         ? rankingOf([{ photoId: described, score: 8.2 }])

@@ -21,10 +21,7 @@ export const meSchema = z.object({
 const aiStatusSchema = z.enum(["ok", "failed"]);
 
 /** Never zero: `DayEntry.aiScore` uses 0 for "no evaluation", and 0/10 would read
- * as a photograph the jury hated. On the wire, absence.
- *
- * NOT an integer: the jury ranks a whole day at once and the score IS that order, so
- * 8.4 and 8.1 are two places that both READ `8/10` through `src/lib/rating.ts`. */
+ * as a photograph the jury hated. On the wire, absence. */
 const aiRatingSchema = z.number().positive().nullable();
 
 export const photoSchema = z.object({

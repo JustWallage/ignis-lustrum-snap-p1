@@ -539,8 +539,6 @@ export function geminiReply(text: string): Response {
   });
 }
 
-/** The bench's shape: ONE photograph, one score, no ids. Nothing else asks Gemini for
- * a verdict about a single picture any more. */
 export const VERDICT = {
   score: 9,
   critique: "The light is doing all the work, and it is working.",
@@ -674,8 +672,6 @@ export async function storedScore(photoId: number) {
   return row === null ? null : storedScoreSchema.parse(row);
 }
 
-/** The day's scores in the order the jury put them, highest first: what a test about
- * distinctness or about an overtaken run has to read. */
 export async function storedDayScores(day: number): Promise<number[]> {
   const rows = await env.DB.prepare(
     "SELECT ai_score FROM photo_scores JOIN photos ON photos.id = photo_scores.photo_id WHERE photos.day = ? ORDER BY ai_score DESC",
@@ -773,8 +769,6 @@ export const geminiRequestSchema = z.object({
   generationConfig: z.object({ responseMimeType: z.string() }),
 });
 
-/** The console's own re-rank, which is the only surface that asks for a day's verdicts
- * outside an upload. Runs with the jury's key, since no test pool has one. */
 export async function postRank(cookie: string, day: number): Promise<Response> {
   return app.request(
     `/api/admin/days/${String(day)}/rank`,

@@ -97,8 +97,6 @@ test("the archive is a full-screen photo feed, and the jury signs every card", a
   await expect(cards.first()).toContainText("Day 1");
 
   await filterBy(page, "archive-people", "tester");
-  // The jury's response IS the card's title now: there is no separate gallery label
-  // for it to sit under.
   await expect(page.getByTestId("archive-critique")).toContainText(/jury/i);
   await expect(page.getByTestId("archive-jury")).toContainText(
     juryForDay(1).name,

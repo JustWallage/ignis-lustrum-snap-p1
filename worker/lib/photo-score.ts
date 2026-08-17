@@ -166,6 +166,17 @@ export async function rankDay(
   env: Bindings,
   day: number,
 ): Promise<"ok" | "failed" | "overtaken"> {
+  try {
+    return await rank(env, day);
+  } catch {
+    return "failed";
+  }
+}
+
+async function rank(
+  env: Bindings,
+  day: number,
+): Promise<"ok" | "failed" | "overtaken"> {
   const db = getDb(env);
   const snaps = await snapsOfDay(db, day);
   if (snaps.length === 0) return "ok";

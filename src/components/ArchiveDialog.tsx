@@ -332,9 +332,6 @@ function Card({
         <span className="arc-rank">#{result.rank}</span>
       </button>
       <div className="arc-body">
-        {/* The jury's response IS the photograph's title: it takes the line the
-            gallery label used to have rather than sitting behind the `<details>`
-            with the arithmetic. Null for a snap the jury never reached. */}
         {result.critique !== null && (
           <p className="arc-critique" data-testid="archive-critique">
             {result.critique}

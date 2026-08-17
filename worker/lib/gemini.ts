@@ -109,8 +109,6 @@ function instructions(jury: Jury): string {
   ].join("\n");
 }
 
-/** The parts are the CALLER's, because one of the four calls has no picture behind it:
- * the day's ranking reads descriptions and sends text alone. */
 async function generateContent(
   apiKey: string,
   model: string,
@@ -254,8 +252,8 @@ function rankingInstructions(
     `Bonus check — answer this about each entry: ${jury.bonusPrompt}`,
     BONUS_FIELDS,
     CRITIQUE_SHAPE,
-    // The players are Dutch and this is the jury talking to them. It says critique
-    // because it is the only field of the four a player ever reads.
+    // The players are Dutch and this is the jury talking to them. Only the critique:
+    // `bonusReason` reaches nobody but the operator's bench, and a score has no language.
     "Write every critique in Dutch.",
     ...snaps.map(
       (snap) => `Entry ${String(snap.photoId)}:\n${snap.description}`,

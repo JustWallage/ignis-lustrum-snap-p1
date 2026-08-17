@@ -28,8 +28,6 @@ function describedText(status: PhotoDescription["status"] | undefined): string {
   return status === "ok" ? "Described" : "Description failed";
 }
 
-/** Both readings in one line, because "every snap is described but the day has never
- * been ranked" is the state that otherwise goes unnoticed until a reveal. */
 function rankedText(ranking: DayRanking | undefined): string {
   if (ranking === undefined) return "Reading the day…";
   const when =

@@ -52,8 +52,9 @@ testResetRoute.post("/", async (c) => {
     db.delete(photoScores),
     db.delete(photoDescriptions),
     db.delete(photos),
-    // The run stamp only ever goes UP, so a leftover row makes the next test's first
-    // ranking claim a number the day it is ranking never had.
+    // `failed` and `ran_at` are read straight off this row, not off `photo_scores`, so a
+    // leftover makes a reset day report the last test's run — and the stamp only goes UP,
+    // so the next first ranking claims a number that day never had.
     db.delete(dayRankings),
     // Names an r2 key too, and no foreign key drags it out with the photo — so without
     // this the sweep below deletes the objects out from under rows the next test still

@@ -98,7 +98,9 @@
   drifted (#97), and it is also the only thing that ROUNDS — the stored score carries decimals
   because it is the day's order, so two snaps reading `8/10` are not a tie underneath. `useChampion`
   reads the same results query the archive and reveal read, so the plinth cannot disagree with the
-  scoreboard.
+  scoreboard. **The jury's critique IS the photograph's title** — there is no gallery label beside
+  it — so the card, the open photograph and the podium all print that one field and none of them
+  decides between two.
 - **A peer figure is green and a jury figure blue, everywhere either prints** — `.ink-peer` /
   `.ink-jury` over `--ink-peer` / `--ink-jury`, whose value is per BACKGROUND (the event's dark
   screen, then every light surface) because no single green clears both `#202830` and `#fff`. The

@@ -126,8 +126,6 @@ describe("the day's jury batch", () => {
     const refused = await postRank(cookie, 1);
     expect(refused.status).toBe(409);
     expect(apiErrorSchema.parse(await refused.json()).error).toMatch(/event/i);
-    // The reveal reads these rows page by page, so the parade must see what it started
-    // with: still the fallback the keyless upload wrote.
     expect(await storedDayScores(1)).toEqual([5]);
   });
 
