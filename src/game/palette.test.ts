@@ -154,7 +154,7 @@ describe("themedRampFor", () => {
     }
   });
 
-  it("leaves the darkest shade, which every tile is outlined in, nearly where it was", () => {
+  it("leaves the darkest shade, where a tile spends it on outline, nearly where it was", () => {
     for (const palette of PALETTES) {
       const drift = distance(
         themedRampFor("T", palette).darkest,

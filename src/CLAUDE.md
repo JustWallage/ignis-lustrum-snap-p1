@@ -68,10 +68,11 @@
   parses — and `PALETTE_TINTS` beside `TILE_RAMPS` is a total `Record` over it, so a jury without
   colours is a type error rather than a silent default. It is a TINT MIXED INTO the ramps, never a
   second set of them: the art, the map, the collision and every sprite are untouched, and the
-  darkest slot barely moves because that is the outline every tile is read by. **`tileAtlas` is
-  keyed by the palette as well as the animation frame** — memoised on the frame alone, the town kept
-  whichever jury was up when the tab opened, however many times the day moved under it
-  (`e2e/town-palette.spec.ts`).
+  darkest slot barely moves because that is the outline most tiles are read by (flowers spend it on
+  petals). The splash's ground strip comes off the same atlas and follows the day with it; its sky
+  and title ink do not. **`tileAtlas` is keyed by the palette as well as the animation frame** —
+  memoised on the frame alone, the town kept whichever jury was up when the tab opened, however many
+  times the day moved under it (`e2e/town-palette.spec.ts`).
 - `footstepCue` is a total `Record<WalkableTile, CueName>`, so a new walkable tile is a type error
   until it has a sound. TWO gait counters, local and remote, or a friend's steps make your own walk
   stutter. `remoteStep` is silent for the roster frame, a first sighting, and the keep-alive repeat —
