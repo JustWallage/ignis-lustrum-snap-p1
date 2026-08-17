@@ -95,8 +95,6 @@ export function BenchPanel() {
         <dl className="ops-figures" data-testid="ops-bench-verdict">
           <dt>{verdict.jury}</dt>
           <dd>{`${verdict.theme} · ${ratingText(verdict.score)}`}</dd>
-          <dt>Caption</dt>
-          <dd>{verdict.caption}</dd>
           <dt>Critique</dt>
           <dd>{verdict.critique}</dd>
           <dt>Bonus</dt>

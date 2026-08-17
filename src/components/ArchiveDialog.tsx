@@ -228,9 +228,9 @@ function ArchiveViewer({
       onClose={onClose}
       note={
         <div className="shrink-0 space-y-1">
-          {result.juryCaption !== null && (
-            <p className="text-xs" data-testid="viewer-caption">
-              {result.juryCaption}
+          {result.critique !== null && (
+            <p className="text-xs" data-testid="viewer-critique">
+              {result.critique}
             </p>
           )}
           <p className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-widest">
@@ -332,12 +332,9 @@ function Card({
         <span className="arc-rank">#{result.rank}</span>
       </button>
       <div className="arc-body">
-        {/* Null for a snap whose evaluation failed — the jury's line about a
-            photograph is theirs or nobody's, so the card shows none rather than
-            inventing one. */}
-        {result.juryCaption !== null && (
-          <p className="arc-caption" data-testid="archive-caption">
-            {result.juryCaption}
+        {result.critique !== null && (
+          <p className="arc-critique" data-testid="archive-critique">
+            {result.critique}
           </p>
         )}
         <p className="arc-meta">
@@ -372,11 +369,6 @@ function Card({
             {result.bonus && <span>Bonus for {jury.bonusItem}</span>}
             {result.noVotePenalty && <span>No vote ×0.5</span>}
           </p>
-          {result.critique !== null && (
-            <p className="arc-critique" data-testid="archive-critique">
-              {result.critique}
-            </p>
-          )}
         </details>
       </div>
     </li>

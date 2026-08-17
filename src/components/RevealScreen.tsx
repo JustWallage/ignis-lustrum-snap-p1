@@ -88,11 +88,6 @@ function PodiumCard({
         url={wornBy(town, result.uploader.id)}
         testId="podium-name"
       />
-      {result.juryCaption !== null && (
-        <p className="gb-reveal-caption" data-testid="podium-caption">
-          “{result.juryCaption}”
-        </p>
-      )}
       <JuryRating result={result} />
       {result.critique !== null && (
         <p className="gb-reveal-critique" data-testid="podium-critique">

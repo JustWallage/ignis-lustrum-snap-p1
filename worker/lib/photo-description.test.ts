@@ -13,6 +13,8 @@ import {
 import { JURIES } from "../../shared/juries";
 import { app } from "../index";
 import {
+  DESCRIBED,
+  DESCRIBING,
   descriptionRowCount,
   geminiCallAsking,
   geminiReply,
@@ -29,20 +31,6 @@ import {
 import { GEMINI_MODEL } from "./gemini";
 
 beforeEach(resetWorld);
-
-const DESCRIBED = {
-  subject: "A man in a yellow raincoat holding a dripping umbrella.",
-  objects: "An umbrella, a bicycle, two crates of apples, a folded newspaper.",
-  readableText: '"MARKT" on the awning, "7" chalked on a crate.',
-  setting: "An open-air market street, wet cobbles, late afternoon.",
-  composition: "Eye level, subject a third from the left, stalls receding.",
-  light: "Flat overcast light from above, no hard shadows, even exposure.",
-  technical: "Sharp on the coat, slight motion blur on the bicycle wheel.",
-  colour: "Muted greys and browns with the coat as the one saturated note.",
-  oddities: "A second umbrella lies unopened in a puddle.",
-};
-
-const DESCRIBING = /Describe this photograph/;
 
 async function describeAgain(cookie: string, id: number, bindings: object) {
   return app.request(

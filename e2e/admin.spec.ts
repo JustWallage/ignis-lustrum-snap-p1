@@ -1,4 +1,4 @@
-import { failedEvaluationsSchema } from "../shared/api";
+import { dayPhotosSchema } from "../shared/api";
 import {
   apiSignIn,
   apiSpendQuota,
@@ -12,7 +12,7 @@ import {
   walkToArtist,
 } from "./fixtures";
 
-test("an admin can see the day's broken verdicts and retry them", async ({
+test("an admin can read the day's jury batch and run it again", async ({
   page,
 }) => {
   await apiSignIn(page);
@@ -23,24 +23,27 @@ test("an admin can see the day's broken verdicts and retry them", async ({
   });
   expect(upload.status()).toBe(201);
 
+  // The ranking runs in `waitUntil` behind the description, so it lands after the 201:
+  // poll the API for it rather than the screen.
   await expect
     .poll(async () => {
-      const res = await page.request.get("/api/admin/evaluate");
-      return failedEvaluationsSchema.parse(await res.json()).failed;
+      const res = await page.request.get("/api/admin/days/1/photos");
+      return dayPhotosSchema.parse(await res.json()).ranking.generated;
     })
-    .toBe(1);
+    .toBe(true);
 
-  const panel = await openConsole(page, "Jury retries");
-  const run = panel.getByTestId("ops-retry-run");
-  await expect(panel.getByTestId("ops-retry-count")).toHaveText("1 broken");
+  const panel = await openConsole(page, "Snaps");
+  const state = panel.getByTestId("ops-ranked");
+  // No Playwright environment has a GEMINI_API_KEY, so the day is ranked by the
+  // fallback and the run says so — the readable answer, not a crash.
+  await expect(state).toContainText("Ranked");
+  await expect(state).toContainText(/last run failed/i);
 
-  await run.click();
-  // No Playwright environment has a GEMINI_API_KEY, so the retry breaks it again —
-  // which is the readable answer, not a crash.
-  await expect(panel.getByTestId("ops-retry-note")).toContainText(
-    /broke it a second time/i,
+  await panel.getByTestId("ops-rank-day").click();
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    /Day 1 — Ranked/,
   );
-  await expect(panel.getByTestId("ops-retry-count")).toHaveText("1 broken");
+  await expect(state).toContainText(/last run failed/i);
 });
 
 test("only an admin can read who has spent what of the avatar machine", async ({

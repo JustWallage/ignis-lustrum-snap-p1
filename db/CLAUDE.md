@@ -6,7 +6,9 @@ deploys a schema without the column while everything stays green.
 
 - **Unique indexes are the enforcement, not the routes**, because a read-then-write leaves a window
   two racing requests both pass through: `photos_user_day_idx` (one submission per user per day, the
-  route 409s on the violation), `photo_scores_photo_idx` (one verdict, so `scorePhoto` is an upsert),
+  route 409s on the violation), `photo_scores_photo_idx` (one verdict, so a re-rank REPLACES the day's rows),
+  `day_rankings_day_idx` (one batch state per day, so claiming a run stamp is one upsert two racing
+  re-ranks cannot both win),
   `photo_descriptions_photo_idx` (one description, so the console's retry is an upsert too),
   `prize_awards.day` (one award, so a repeated landing rolls its batch back), `bowser_days.day` (a
   day is marked once, so marking it twice is the same marked day rather than a refusal),
@@ -53,11 +55,24 @@ deploys a schema without the column while everything stays green.
   deleted, which is why nothing sweeps those.
 - `photos.day`'s default exists only so its migration could backfill; every insert stamps it from
   `game_state.day`. `photos` has no `x`/`y` and no `caption`.
-- `photo_scores.ai_score` stores 5 with `ai_status = 'failed'` on failure, because a MISSING row reads
-  as "not evaluated yet" forever.
+- **`photo_scores.ai_score` is a REAL, and within a day those reals are DISTINCT** — the jury ranks
+  the whole day in one call and the score IS that order, so nothing stores a rank beside it and two
+  fields cannot disagree about the same photograph. `src/lib/rating.ts` rounds every readout, which
+  is why 8.4 and 8.1 both print `8/10` while one still stands above the other. The day-level fallback
+  stores 5 with `ai_status = 'failed'` for every snap of the day, because a MISSING row reads as "not
+  ranked yet" forever — that one day is all fives and `scoreDay` gives such a field the median.
+- **`day_rankings` is per-day batch state, not config, which is why it is a table and not
+  `settings`** — that one is integers an admin PATCHes, seeded by migration. `run_stamp` is a
+  monotonic claim (newest run wins, and an overtaken run writes nothing further); `ran_at` is null
+  until a run FINISHES and `status` is written `failed` at CLAIM time, so a run that never comes back
+  reads as a failure rather than leaving the previous success standing. "Generated" and "when it last
+  ran" are derivable from the rows; **"the last run failed" is not** — a failed run deliberately
+  leaves the previous verdicts in place, so nothing in `photo_scores` records that it happened. Like
+  `bowser_days` and `rigged_days` it is keyed by an integer day with no relation to the wall clock,
+  and nothing expires it.
 - **`photo_descriptions` is a FACT about the picture, `photo_scores` a VERDICT about the day** — which
-  is why the text is not two more columns on that table. `scorePhoto` upserts a verdict WHOLESALE
-  (`onConflictDoUpdate({ set: verdict })`), so a description sharing the row is erased by any writer
+  is why the text is not two more columns on that table. A ranking upserts each verdict WHOLESALE
+  (`onConflictDoUpdate({ set: row })`), so a description sharing the row is erased by any writer
   that forgets it, and `ai_status` would have to mean two things at once for a snap described but not
   scored. It carries its own `status` for exactly that reason, stores a failed row with text saying
   so (same absence problem as above), and `photo_descriptions_photo_idx` is what makes the console's

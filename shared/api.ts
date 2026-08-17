@@ -22,7 +22,7 @@ const aiStatusSchema = z.enum(["ok", "failed"]);
 
 /** Never zero: `DayEntry.aiScore` uses 0 for "no evaluation", and 0/10 would read
  * as a photograph the jury hated. On the wire, absence. */
-const aiRatingSchema = z.int().positive().nullable();
+const aiRatingSchema = z.number().positive().nullable();
 
 export const photoSchema = z.object({
   id: z.int(),
@@ -86,7 +86,6 @@ export const dayResultSchema = z.object({
   aiStatus: aiStatusSchema.nullable(),
   bonus: z.boolean(),
   critique: z.string().nullable(),
-  juryCaption: z.string().nullable(),
   noVotePenalty: z.boolean(),
 });
 export type DayResult = z.infer<typeof dayResultSchema>;
@@ -133,10 +132,23 @@ export const photoDescriptionSchema = z.object({
 });
 export type PhotoDescription = z.infer<typeof photoDescriptionSchema>;
 
+/** The day's jury batch, beside the description state rather than on `photoSchema`:
+ * a ranking belongs to the DAY, and "every snap is described but the day has never
+ * been ranked" is the state that otherwise goes unnoticed until a reveal. `failed` is
+ * the one reading nothing in `photo_scores` records — a failed run deliberately leaves
+ * the previous verdicts in place. */
+export const dayRankingSchema = z.object({
+  generated: z.boolean(),
+  ranAt: z.iso.datetime().nullable(),
+  failed: z.boolean(),
+});
+export type DayRanking = z.infer<typeof dayRankingSchema>;
+
 export const dayPhotosSchema = z.object({
   day: z.int().positive(),
   photos: z.array(photoSchema),
   descriptions: z.array(photoDescriptionSchema),
+  ranking: dayRankingSchema,
 });
 
 const bucketObjectSchema = z.object({
@@ -163,19 +175,6 @@ export const bucketSchema = z.object({
   orphaned: bucketGroupSchema.extend({ objects: z.array(bucketObjectSchema) }),
 });
 
-export const failedEvaluationsSchema = z.object({
-  day: z.int().positive(),
-  failed: z.int().nonnegative(),
-});
-
-export const evaluationRetrySchema = z.object({
-  day: z.int().positive(),
-  attempted: z.int().nonnegative(),
-  ok: z.int().nonnegative(),
-  failed: z.int().nonnegative(),
-});
-export type EvaluationRetry = z.infer<typeof evaluationRetrySchema>;
-
 /** The bench's verdict, which belongs to no photo: nothing here is stored, so there
  * is no id and no day to carry. `jury` and `theme` are echoed from `JURIES` rather
  * than from what the bench was asked for. */
@@ -183,7 +182,6 @@ export const juryBenchSchema = z.object({
   jury: z.string(),
   theme: z.string(),
   score: z.int().min(1).max(AI_SCORE_MAX),
-  caption: z.string(),
   critique: z.string(),
   bonusDetected: z.boolean(),
   bonusReason: z.string(),

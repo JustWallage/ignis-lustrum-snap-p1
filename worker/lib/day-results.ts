@@ -32,7 +32,6 @@ export async function resultsForDays(
       aiScore: photoScores.aiScore,
       aiStatus: photoScores.aiStatus,
       critique: photoScores.critique,
-      juryCaption: photoScores.caption,
       bonusDetected: photoScores.bonusDetected,
     })
     .from(photos)
