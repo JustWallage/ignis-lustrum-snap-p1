@@ -1,9 +1,4 @@
-import {
-  JURIES,
-  juryPaletteSchema,
-  jurySpriteSchema,
-  type JurySprite,
-} from "@shared/juries";
+import { JURIES, jurySpriteSchema, type JurySprite } from "@shared/juries";
 import { MAP_ROWS } from "@shared/map";
 import { describe, expect, it } from "vitest";
 import {
@@ -12,7 +7,6 @@ import {
   type Ramp,
   rampFor,
   type SpriteRamp,
-  themedRampFor,
   TILE_RAMPS,
 } from "./palette";
 
@@ -20,21 +14,9 @@ const PLACED = [...new Set(MAP_ROWS.join("").split(""))].sort();
 
 const HEX = /^#[0-9a-f]{6}$/;
 
-const SLOTS = ["lightest", "light", "dark", "darkest"] as const;
-
 // Listed rather than `Object.values`, which widens an interface to `any[]`.
 function shades(ramp: Ramp): string[] {
   return [ramp.lightest, ramp.light, ramp.dark, ramp.darkest];
-}
-
-function distance(a: string, b: string): number {
-  return Math.hypot(
-    ...[1, 3, 5].map(
-      (at) =>
-        Number.parseInt(a.slice(at, at + 2), 16) -
-        Number.parseInt(b.slice(at, at + 2), 16),
-    ),
-  );
 }
 
 function parts(ramp: SpriteRamp): string[] {
@@ -118,56 +100,6 @@ describe("rampFor", () => {
   it("falls back to grass off the legend, matching tileAt's own fallback", () => {
     expect(rampFor("?")).toBe(TILE_RAMPS["."]);
     expect(rampFor("")).toBe(TILE_RAMPS["."]);
-  });
-});
-
-describe("themedRampFor", () => {
-  const PALETTES = juryPaletteSchema.options;
-
-  it("gives every palette four opaque hex colours for every tile", () => {
-    for (const palette of PALETTES) {
-      for (const tile of Object.keys(TILE_RAMPS)) {
-        const ramp = themedRampFor(tile, palette);
-        for (const colour of shades(ramp)) {
-          expect(colour, `${palette} "${tile}"`).toMatch(HEX);
-        }
-        expect(new Set(shades(ramp)).size, `${palette} "${tile}"`).toBe(4);
-      }
-    }
-  });
-
-  it("paints the same tile differently under every palette", () => {
-    const grass = PALETTES.map((palette) =>
-      shades(themedRampFor(".", palette)).join(","),
-    );
-    expect(new Set(grass).size).toBe(PALETTES.length);
-  });
-
-  it("tints the art rather than replacing it: water still reads as water", () => {
-    for (const palette of PALETTES) {
-      for (const slot of SLOTS) {
-        const themed = themedRampFor("W", palette)[slot];
-        expect(distance(themed, rampFor("W")[slot]), palette).toBeLessThan(
-          distance(themed, rampFor("R")[slot]),
-        );
-      }
-    }
-  });
-
-  it("leaves the darkest shade, where a tile spends it on outline, nearly where it was", () => {
-    for (const palette of PALETTES) {
-      const drift = distance(
-        themedRampFor("T", palette).darkest,
-        rampFor("T").darkest,
-      );
-      expect(drift, palette).toBeLessThan(24);
-    }
-  });
-
-  it("falls back to grass off the legend, exactly as the untinted ramp does", () => {
-    for (const palette of PALETTES) {
-      expect(themedRampFor("?", palette)).toEqual(themedRampFor(".", palette));
-    }
   });
 });
 

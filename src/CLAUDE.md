@@ -63,16 +63,23 @@
   arranged per SHOWING and held in a ref, because `drawSplash` runs every frame and a crowd shuffled
   inside it is a strobe. Nobody stands beside a parade snap: photographs are anonymous until their
   day is out.
-- **The day's jury colours the town, and only the town.** A jury carries a `palette` — a small enum
-  on the entry, since the hex belongs to `game/palette.ts` and not to a boundary module the worker
-  parses — and `PALETTE_TINTS` beside `TILE_RAMPS` is a total `Record` over it, so a jury without
-  colours is a type error rather than a silent default. It is a TINT MIXED INTO the ramps, never a
-  second set of them: the art, the map, the collision and every sprite are untouched, and the
-  darkest slot barely moves because that is the outline most tiles are read by (flowers spend it on
-  petals). The splash's ground strip comes off the same atlas and follows the day with it; its sky
-  and title ink do not. **`tileAtlas` is keyed by the palette as well as the animation frame** —
-  memoised on the frame alone, the town kept whichever jury was up when the tab opened, however many
-  times the day moved under it (`e2e/town-palette.spec.ts`).
+- **The day's jury DRESSES the town; it does not repaint it.** A jury carries a `decor` — a small
+  enum on the entry, since the art belongs to `game/decor.ts` and not to a boundary module the
+  worker parses — and `DECOR` is a total `Record` over it, so a jury with nothing to hang is a type
+  error. `TILE_RAMPS` is the same on every day ON PURPOSE (#44 tinted them per jury and the town
+  came out blander, not richer): a theme is PROPS — Christmas conifers, a burning treeline, blossom,
+  a sailboat on the pond — painted over the tile layer from one overlay.
+  **Every prop stands on a tile that is already SOLID** — the tree ring, the roof, the front wall,
+  the door (a transit `stepTarget` walks through, never a tile anybody stands on), the pond — which
+  is why `shared/map.ts`, `stepTarget` and `footstepCue` are untouched and nothing
+  here needs a walkability decision or a footstep sound; `decor.test.ts` refuses a spot anybody can
+  walk on. A themed TREE repaints its tile from the grass up (`.` is that grass, which leaves three
+  slots for the tree), or the round canopy shows around a narrower silhouette. **`decorLayer` is
+  keyed by the theme as well as the animation frame** — keyed by the frame alone the town keeps
+  whichever jury was up when the tab opened (`e2e/town-decor.spec.ts`).
+- **`game/pixels.ts` is the one blitter**, tiles and decoration alike: a mark with no shade is a
+  HOLE, which is what lets a prop sit over tile art — and `.` is not one, it is the lightest slot
+  every tile is filled with, so decoration writes `-` for the pixels it leaves alone.
 - **The right-hand strip of the event overlay belongs to the day's jury** (#45), and
   `.gb-event`'s `padding-right` is what gives it. There is no corner free to tuck a portrait
   into — `.gb-wheel` is `width: 100%`, the scoreboard a full-width `flex: 1`, and a fourteen-strong

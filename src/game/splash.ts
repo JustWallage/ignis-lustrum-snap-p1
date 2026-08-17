@@ -1,4 +1,3 @@
-import type { JuryPalette } from "@shared/juries";
 import type { GameState } from "@shared/state";
 import { CROWD_FIGURE_W, type CrowdMember } from "@/game/crowd";
 import { drawText, GLYPH_H, measureText } from "@/game/font";
@@ -93,13 +92,12 @@ export function drawSplash(
   ctx: CanvasRenderingContext2D,
   now: number,
   crowd: readonly CrowdMember[],
-  palette: JuryPalette,
 ): void {
   const { width, height } = ctx.canvas;
   ctx.fillStyle = SKY;
   ctx.fillRect(0, 0, width, height);
 
-  const atlas = tileAtlas(animFrame(now), palette);
+  const atlas = tileAtlas(animFrame(now));
   const groundTop = height / TILE - GROUND_ROWS.length;
   GROUND_ROWS.forEach((row, ry) => {
     for (let tx = 0; tx < row.length; tx++) {
