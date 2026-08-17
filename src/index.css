@@ -481,9 +481,9 @@
   width: 13cqw;
   image-rendering: pixelated;
 }
-/* 320px is where 13cqw stops covering the art's own 40 pixels, so below it the portrait
-   would be drawn smaller than what it is made of — every phone held upright is above that,
-   and a phone on its side is not. */
+/* Just above the ~308px where 13cqw drops under the art's own 40 pixels, so below this the
+   portrait would be drawn smaller than the thing it is made of — every phone from 375pt up
+   is above it, and a phone on its side is not. */
 @container (min-width: 320px) {
   .gb-event {
     padding-right: 16cqw;
