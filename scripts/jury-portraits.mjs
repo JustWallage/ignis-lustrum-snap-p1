@@ -1,7 +1,3 @@
-// Run this and COMMIT the PNGs: nothing in the build regenerates them, exactly as with
-// `scripts/icons.mjs`. Written at 1x, because CSS scales them with `image-rendering:
-// pixelated` and a second size on disk is a second thing to keep in step.
-//
 // That every jury HAS one is pinned by `src/game/portraits.test.ts`, not here: this file
 // is plain Node ESM and `shared/juries.ts` is TypeScript.
 

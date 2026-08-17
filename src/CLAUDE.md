@@ -65,7 +65,7 @@
   day is out.
 - **The right-hand strip of the event overlay belongs to the day's jury** (#45), and
   `.gb-event`'s `padding-right` is what gives it. There is no corner free to tuck a portrait
-  into — the drum is `width: 100%`, the scoreboard a full-width `flex: 1`, and a fourteen-strong
+  into — `.gb-wheel` is `width: 100%`, the scoreboard a full-width `flex: 1`, and a fourteen-strong
   crowd stands right across the countdown — so the column makes the room and nothing on it has to
   dodge. The padding and the portrait are ONE container query, because a strip nobody stands in is
   a bite out of the screen; below that width the column takes the strip back and the portrait is

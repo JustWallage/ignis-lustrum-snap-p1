@@ -13,9 +13,6 @@ import driesRoelvink from "@/assets/juries/dries-roelvink.png";
 import mariahCarey from "@/assets/juries/mariah-carey.png";
 import douweDelfos from "@/assets/juries/douwe-delfos.png";
 
-/** Keyed by NAME so that `shared/juries.ts` needs nothing added to it, which leaves a
- * rename free to blank a portrait silently — `portraits.test.ts` is what refuses that,
- * and `juryForDay` WRAPS, so a gap recurs every cycle forever rather than once. */
 export const JURY_PORTRAITS: Record<string, string> = {
   "Christopher Columbus": christopherColumbus,
   "Insta Juan": instaJuan,

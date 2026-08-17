@@ -19,10 +19,10 @@ import {
 
 const EVENT_TIMEOUT_MS = 240_000;
 
-/** Every element in the overlay that has ink of its own. LEAVES, because the scoreboard
- * is a full-width `flex: 1` box and the crowd a full-width positioning box: both would
- * report a collision with any corner while drawing nothing in it, and the rows and
- * figures inside them are what a player would actually see covered. */
+/** LEAVES, because the scoreboard is a full-width `flex: 1` box and the crowd a
+ * full-width positioning box: both would report a collision with any corner while
+ * drawing nothing in it, and the rows and figures inside them are what a player would
+ * actually see covered. */
 async function inkInOverlay(page: Page): Promise<{ what: string; box: Box }[]> {
   return page.evaluate(() => {
     const overlay = document.querySelector(".gb-event");
@@ -87,7 +87,6 @@ test("the jury watches every stage of the event and stands on none of it", async
   });
   await expectWatching(page, "the podium");
 
-  // On to the scoreboard, the one stage that fills the overlay's whole width AND height.
   let seenScoreboard = false;
   for (let step = 0; step < 6; step += 1) {
     const before = await readEvent(page);
@@ -162,7 +161,6 @@ test("on a shell too narrow for both, the portrait goes rather than the screen",
   await expect(portrait).toBeVisible();
   const wide = await boxOf(page, "event-overlay");
   const dayWhenWide = await boxAround(page.locator(".gb-event-day"));
-  // Off the overlay's centre: the column has stepped left and left a strip behind.
   expect(dayWhenWide.x + dayWhenWide.width / 2).toBeLessThan(
     wide.x + wide.width / 2 - 1,
   );

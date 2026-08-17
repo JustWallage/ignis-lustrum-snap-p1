@@ -23,7 +23,6 @@ function chunk(type, payload) {
   return Buffer.concat([head, payload, crc]);
 }
 
-/** `palette` is `{ rgb: "#rrggbb", alpha }` entries; `rows` index into it. */
 export function png(rows, palette) {
   const rgba = palette.map((entry) => {
     const [r, g, b] = Buffer.from(entry.rgb.slice(1), "hex");

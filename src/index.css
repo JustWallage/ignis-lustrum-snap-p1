@@ -473,12 +473,6 @@
   color: #98b8a0;
 }
 
-/* The `padding-right` is the whole of "the portrait covers nothing": no corner of this
-   overlay is free at every stage — the drum is `width: 100%`, the scoreboard a
-   full-width `flex: 1`, a fourteen-strong crowd stands across the countdown — and
-   without it three stages are already under the portrait. Both halves are the SAME
-   query, or a narrow screen pays a strip nobody stands in. `min-width` measures the
-   SHELL (`container-type` is on `.gb-shell`), which is the thing that shrinks. */
 .gb-jury-portrait {
   display: none;
   position: absolute;
@@ -502,10 +496,15 @@
   aspect-ratio: 12 / 16;
   image-rendering: pixelated;
 }
+/* Its height follows its own WIDTH, and a fixed `20cqw` is what it cannot be: every
+   figure in here is sized as a fraction of this box's width and lifted by a fraction of
+   its height, so the moment anything narrows the column — the jury's strip did — the
+   figures shrink while the lift does not, and the back row stops standing behind the
+   front one at all. `countdown.spec.ts` is the regression. */
 .gb-crowd {
   position: relative;
   width: 100%;
-  height: 20cqw;
+  aspect-ratio: 3 / 1;
 }
 .gb-crowd .gb-character {
   position: absolute;
