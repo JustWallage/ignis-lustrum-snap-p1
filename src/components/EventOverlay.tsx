@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { countdownSeconds, type EventState } from "@shared/events";
+import { juryForDay } from "@shared/juries";
 import { Crowd } from "@/components/Crowd";
 import type { CrowdPlayer } from "@/game/crowd";
+import { JURY_PORTRAITS } from "@/game/portraits";
 import { RevealScreen } from "@/components/RevealScreen";
 import { WheelScreen } from "@/components/WheelScreen";
 import { useNow } from "@/hooks/useNow";
@@ -42,6 +44,21 @@ function CountdownScreen({
   );
 }
 
+function JuryPortrait({ day }: { day: number }) {
+  const jury = juryForDay(day);
+  const portrait = JURY_PORTRAITS[jury.name];
+  if (portrait === undefined) return null;
+  return (
+    <img
+      className="gb-jury-portrait"
+      src={portrait}
+      alt={`${jury.name} is judging today`}
+      data-testid="jury-portrait"
+      data-jury={jury.name}
+    />
+  );
+}
+
 export function EventOverlay({
   event,
   town,
@@ -62,6 +79,7 @@ export function EventOverlay({
       data-testid="event-overlay"
       data-phase={event.phase}
     >
+      <JuryPortrait day={event.day} />
       {event.phase === "countdown" && (
         <CountdownScreen
           endsAt={event.countdownEndsAt}

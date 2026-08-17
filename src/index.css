@@ -473,6 +473,29 @@
   color: #98b8a0;
 }
 
+/* The `padding-right` is the whole of "the portrait covers nothing": no corner of this
+   overlay is free at every stage — the drum is `width: 100%`, the scoreboard a
+   full-width `flex: 1`, a fourteen-strong crowd stands across the countdown — and
+   without it three stages are already under the portrait. Both halves are the SAME
+   query, or a narrow screen pays a strip nobody stands in. `min-width` measures the
+   SHELL (`container-type` is on `.gb-shell`), which is the thing that shrinks. */
+.gb-jury-portrait {
+  display: none;
+  position: absolute;
+  right: 1.4cqw;
+  bottom: 1.4cqw;
+  width: 17cqw;
+  image-rendering: pixelated;
+}
+@container (min-width: 420px) {
+  .gb-event {
+    padding-right: 20cqw;
+  }
+  .gb-jury-portrait {
+    display: block;
+  }
+}
+
 .gb-character {
   display: block;
   width: 8cqw;

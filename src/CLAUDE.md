@@ -63,6 +63,16 @@
   arranged per SHOWING and held in a ref, because `drawSplash` runs every frame and a crowd shuffled
   inside it is a strobe. Nobody stands beside a parade snap: photographs are anonymous until their
   day is out.
+- **The right-hand strip of the event overlay belongs to the day's jury** (#45), and
+  `.gb-event`'s `padding-right` is what gives it. There is no corner free to tuck a portrait
+  into — the drum is `width: 100%`, the scoreboard a full-width `flex: 1`, and a fourteen-strong
+  crowd stands right across the countdown — so the column makes the room and nothing on it has to
+  dodge. The padding and the portrait are ONE container query, because a strip nobody stands in is
+  a bite out of the screen; below that width the column takes the strip back and the portrait is
+  the half that goes. The picture is authored art keyed on the jury's NAME
+  (`game/portraits.ts`, drawn by `scripts/jury-portraits.mjs`), never `jurySpriteSchema`'s
+  hat/hair/outfit triple, and a plain `<img>`: `keyOutBackground` keys white out of
+  MACHINE-drawn sprites, and art authored with transparency needs none of it.
 - `footstepCue` is a total `Record<WalkableTile, CueName>`, so a new walkable tile is a type error
   until it has a sound. TWO gait counters, local and remote, or a friend's steps make your own walk
   stutter. `remoteStep` is silent for the roster frame, a first sighting, and the keep-alive repeat —
@@ -204,4 +214,5 @@
   UPGRADE time, so signing in through the menu — which reloads nothing — must mean a new socket.
 - `IMAGE_ACCEPT` mirrors the worker's allowlist so a picker cannot offer what the route refuses.
 - App icons are generated from ONE 32x32 grid in `scripts/icons.mjs`; run it and commit the PNGs,
-  because nothing in the build regenerates them.
+  because nothing in the build regenerates them. The jury portraits are drawn and committed the
+  same way, through the same PNG writer (`scripts/png.mjs`).
