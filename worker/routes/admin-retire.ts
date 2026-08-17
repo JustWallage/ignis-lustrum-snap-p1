@@ -138,10 +138,16 @@ adminDayRoutes.get("/:day/photos", async (c) => {
 
 // No `broadcast` on purpose: no verdict is served to any client before its day is
 // revealed, so a re-ranking has nothing to invalidate. Awaited rather than handed to
-// `waitUntil`, because the operator pressed a button and is owed the answer.
+// `waitUntil`, because the operator pressed a button and is owed the answer. It refuses
+// while an event is live for the reason the clock and retirement do: the reveal reads
+// these rows page by page, so a re-rank mid-parade rewrites figures the town has
+// already been shown.
 adminDayRoutes.post("/:day/rank", async (c) => {
   const asked = daySchema.safeParse(c.req.param("day"));
   if (!asked.success) return c.json({ error: "Not found" }, 404);
+  if (isEventRunning(await readEventState(c.env))) {
+    return c.json({ error: EVENT_IS_LIVE }, 409);
+  }
   const db = getDb(c.env);
   await rankDay(c.env, asked.data);
   return c.json(dayRankingSchema.parse(await readDayRanking(db, asked.data)));

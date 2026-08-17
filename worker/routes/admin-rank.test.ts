@@ -7,6 +7,7 @@ import {
 } from "../../shared/api";
 import { app } from "../index";
 import {
+  eventAction,
   postRank,
   RANKED_CRITIQUE,
   rankedScore,
@@ -112,6 +113,21 @@ describe("the day's jury batch", () => {
     expect(await dayState(cookie, 2)).toMatchObject({ failed: false });
     expect(await dayState(cookie, 1)).toMatchObject({ failed: true });
     expect(await storedDayScores(2)).toEqual([rankedScore(0)]);
+    expect(await storedDayScores(1)).toEqual([5]);
+  });
+
+  it("refuses while an event is live, and the day keeps its verdicts", async () => {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie);
+    stubGeminiDay();
+    await describeSnap(cookie, id);
+    expect((await eventAction(cookie, "start")).status).toBe(200);
+
+    const refused = await postRank(cookie, 1);
+    expect(refused.status).toBe(409);
+    expect(apiErrorSchema.parse(await refused.json()).error).toMatch(/event/i);
+    // The reveal reads these rows page by page, so the parade must see what it started
+    // with: still the fallback the keyless upload wrote.
     expect(await storedDayScores(1)).toEqual([5]);
   });
 
