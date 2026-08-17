@@ -324,9 +324,6 @@ function buildAtlas(frame: 0 | 1, palette: JuryPalette): HTMLCanvasElement {
 
 const atlases = new Map<string, HTMLCanvasElement>();
 
-/** Keyed by the palette as well as the frame: memoised on the frame alone, the town wore
- * whichever jury was up when the tab opened for the rest of the session, however many
- * times the day moved under it. */
 export function tileAtlas(
   frame: 0 | 1,
   palette: JuryPalette,

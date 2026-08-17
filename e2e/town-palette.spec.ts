@@ -9,8 +9,6 @@ import {
   test,
 } from "./fixtures";
 
-// Two tiles nobody stands on: the tree column down the map's left edge, and the grass
-// east of the house.
 const TREE = { x: 0, y: 4 };
 const GRASS = { x: 8, y: 2 };
 
@@ -20,12 +18,10 @@ interface TownColours {
 }
 
 /**
- * Both tiles, held still across a whole animation period.
- *
- * This art is identical in the two frames, so a sample that MOVES means one frame's
- * atlas is wearing a different day's colours from the other's — and sampling long
- * enough to force BOTH frames to be built is what makes a cache keyed on the frame
- * alone fail here every run rather than one in two.
+ * Sampled for longer than one 450ms frame flip, which is what forces BOTH atlases to be
+ * built: this art is identical in the two frames, so a sample that MOVES means one frame
+ * is wearing another day's colours — and a cache keyed on the frame alone fails here
+ * every run rather than one in two.
  */
 async function townColours(page: Page): Promise<TownColours> {
   const read = async (): Promise<TownColours> => ({
@@ -46,7 +42,6 @@ test("the town wears the day's colours, and changes them without a reload", asyn
   expect(juryForDay(4).palette).not.toBe(juryForDay(1).palette);
   expect(juryForDay(15).palette).toBe(juryForDay(1).palette);
 
-  // Moving the clock is behind the cookie; walking in and looking at the town is not.
   await apiSignIn(page);
   await page.goto("/");
   await pressStart(page);
@@ -55,14 +50,12 @@ test("the town wears the day's colours, and changes them without a reload", asyn
 
   await setDay(page, 4);
   await expect(page.getByTestId("game-day")).toHaveText("DAY 4");
-  // Polled: the badge resolves a frame before the pixels follow it.
   await expect
     .poll(async () => pixelAt(page, TREE.x, TREE.y))
     .not.toEqual(dayOne.tree);
   const dayFour = await townColours(page);
   expect(dayFour.grass).not.toEqual(dayOne.grass);
 
-  // The atlas built for jury one before day 4 is the one that must come back.
   await setDay(page, 15);
   await expect(page.getByTestId("game-day")).toHaveText("DAY 15");
   await expect

@@ -136,9 +136,8 @@ export function rampFor(tile: string): Ramp {
   return TILE_RAMPS[tile] ?? GRASS;
 }
 
-/** One colour per palette, mixed INTO the ramps above rather than replacing them: a
- * table of its own per palette is fifty-six ramps that drift out of step with the art
- * the first time a tile is redrawn. */
+/** A table of ramps per palette instead of a tint is 112 ramps that drift out of step
+ * with the art the first time a tile is redrawn. */
 const PALETTE_TINTS: Record<JuryPalette, string> = {
   sea: "#2878d8",
   sunset: "#f88030",
@@ -150,8 +149,6 @@ const PALETTE_TINTS: Record<JuryPalette, string> = {
   candy: "#ff70b0",
 };
 
-/** Slight, and slighter the darker the slot: the darkest shade is the outline every
- * tile is read by, and a town whose ink drifts with the day is a different town. */
 const TINT_STRENGTH: Record<keyof Ramp, number> = {
   lightest: 0.2,
   light: 0.18,

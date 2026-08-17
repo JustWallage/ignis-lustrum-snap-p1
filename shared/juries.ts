@@ -9,9 +9,6 @@ export const jurySpriteSchema = z.object({
 });
 export type JurySprite = z.infer<typeof jurySpriteSchema>;
 
-/** NOT `theme`, which is the words the jury says out loud: this is which tint the town's
- * tiles take while they say them. The hex it picks out lives in `src/game/palette.ts` —
- * a boundary module the worker parses carries no art. */
 export const juryPaletteSchema = z.enum([
   "sea",
   "sunset",
