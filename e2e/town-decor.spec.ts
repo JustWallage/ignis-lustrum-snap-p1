@@ -66,12 +66,9 @@ test("the day's jury decorates the town, and redecorates it without a reload", a
   const dayFour = await readTown(page);
   expect(dayFour.south).not.toEqual(dayOne.south);
 
-  // The ground the town is painted on is the SAME ground on every day: a theme is props
-  // it hangs, not a palette anybody has to walk around in.
   expect(dayFour.path).toEqual(dayOne.path);
   expect(dayFour.lawn).toEqual(dayOne.lawn);
 
-  // The overlay built for jury one before day 4 is the one that must come back.
   await setDay(page, 15);
   await expect(page.getByTestId("game-day")).toHaveText("DAY 15");
   await expect

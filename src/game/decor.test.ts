@@ -21,7 +21,7 @@ const HEX = /^#[0-9a-f]{6}$/;
 
 const PEOPLE: Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR];
 
-/** The three trees `e2e/town-decor.spec.ts` reads the canvas at. */
+/** `e2e/town-decor.spec.ts` reads the canvas at two of these. */
 const SIGNATURE: Point[] = [
   { x: 9, y: 4 },
   { x: 0, y: 6 },
@@ -58,9 +58,6 @@ describe("DECOR", () => {
   });
 
   it("never stands a prop where somebody can walk", () => {
-    // The whole reason this is decoration and not terrain: `shared/map.ts`, the
-    // collision, the door's stride and the footstep table are untouched because no
-    // prop is ever on a tile a player can reach.
     for (const { theme, piece } of pieces()) {
       for (const spot of piece.at) {
         const tile = tileAt(spot.x, spot.y);

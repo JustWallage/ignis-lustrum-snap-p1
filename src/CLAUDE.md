@@ -70,7 +70,8 @@
   came out blander, not richer): a theme is PROPS — Christmas conifers, a burning treeline, blossom,
   a sailboat on the pond — painted over the tile layer from one overlay.
   **Every prop stands on a tile that is already SOLID** — the tree ring, the roof, the front wall,
-  the pond — which is why `shared/map.ts`, `stepTarget` and `footstepCue` are untouched and nothing
+  the door (a transit `stepTarget` walks through, never a tile anybody stands on), the pond — which
+  is why `shared/map.ts`, `stepTarget` and `footstepCue` are untouched and nothing
   here needs a walkability decision or a footstep sound; `decor.test.ts` refuses a spot anybody can
   walk on. A themed TREE repaints its tile from the grass up (`.` is that grass, which leaves three
   slots for the tree), or the round canopy shows around a narrower silhouette. **`decorLayer` is

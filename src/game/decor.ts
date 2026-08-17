@@ -6,7 +6,6 @@ import { TILE, TREE_ROWS } from "@/game/tiles";
 
 export interface DecorPiece {
   rows: Rows;
-  /** Frame 1's drawing, for the few things that move. */
   alt?: Rows;
   ramp: Ramp;
   at: readonly Point[];
@@ -14,8 +13,6 @@ export interface DecorPiece {
   dy: number;
 }
 
-/** Every theme dresses these three trees — one on each edge a walker sees — so the town
- * always reads as decorated and never as half-finished on a quiet jury. */
 const CANOPY: readonly Point[] = [
   { x: 9, y: 4 },
   { x: 0, y: 6 },
@@ -159,7 +156,6 @@ const SNOWFALL: Ramp = {
   darkest: "#8898b0",
 };
 
-/** Two baubles in one drawing: `.`/`l` is the red one, `d`/`k` the gold. */
 const BAUBLE: Ramp = {
   lightest: "#f88088",
   light: "#e04038",
@@ -181,8 +177,8 @@ const HOLLY: Ramp = {
   darkest: "#0c3018",
 };
 
-/** `.` is the GRASS a repainted tree stands on, so a themed silhouette covers the round
- * canopy underneath instead of leaving a green halo around it. */
+/** Must stay `palette.ts`'s grass lightest, the colour of the tile a repainted tree
+ * covers: drift the two apart and every themed tree wears a square of the wrong green. */
 const GRASS_UNDER = "#b8e090";
 
 const PINE: Ramp = {
@@ -477,11 +473,6 @@ const SNOW: Rows = [
   "----l-------l---",
 ];
 
-/**
- * A whole tree, not a trinket hung on one: the tile is repainted from its grass up, so
- * the round canopy underneath cannot show around the edges of a narrower silhouette.
- * `.` is therefore the GRASS the tree stands on, which leaves three slots for the tree.
- */
 const CONIFER: Rows = [
   "................",
   ".......k........",
@@ -501,7 +492,6 @@ const CONIFER: Rows = [
   "................",
 ];
 
-/** Placed to land on the conifer's tiers rather than on the grass beside them. */
 const TRIMMING: Rows = [
   "----------------",
   "----------------",
@@ -559,12 +549,10 @@ const BLOCKS: Rows = [
 ];
 
 /**
- * What each jury hangs on the town.
- *
- * A total `Record`, so a jury cannot exist without somebody deciding what its day looks
- * like. Every spot is a tile that is already SOLID — the tree ring, the roof, the front
- * wall, the pond — which is why none of this needs a walkability decision or a footstep
- * sound: `shared/map.ts` is untouched and nobody can stand where a prop does.
+ * Every spot is a tile that is already SOLID — the tree ring, the roof, the front wall,
+ * the door, the pond — which is why none of this needs a walkability decision or a
+ * footstep sound: `shared/map.ts` is untouched and nobody ever stands on a decorated
+ * tile, the door included, since `stepTarget` transits straight through it.
  */
 export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
   voyage: [
@@ -748,9 +736,8 @@ function buildLayer(decor: JuryDecor, frame: 0 | 1): HTMLCanvasElement {
 }
 
 /** One transparent overlay for the whole map, memoised per theme AND per animation
- * frame: fifty-odd props at a `fillRect` a pixel is a frame's budget spent on
- * decoration, and keyed by the frame alone the town would keep whichever jury was up
- * when the tab opened for the rest of the session. */
+ * frame: a Christmas day repaints eight whole tiles a pixel at a time, some 2,600
+ * `fillRect`s that would otherwise be spent again on every frame. */
 export function decorLayer(decor: JuryDecor, frame: 0 | 1): HTMLCanvasElement {
   const key = `${decor}:${frame}`;
   const cached = layers.get(key);
