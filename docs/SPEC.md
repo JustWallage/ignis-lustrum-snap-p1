@@ -29,7 +29,10 @@ play continues.
   finished is worse than one that never began, and the admin is standing right there to be told. Three
   phases later, on an alarm, there is no request left to answer.
 - **Game Boy Color screen, DMG shell.** Per-tile 4-colour ramps over the existing DMG art is how the
-  real hardware colourised DMG games, and far smaller than repainting every sprite.
+  real hardware colourised DMG games, and far smaller than repainting every sprite. **The day's jury
+  tints those ramps**, so a Voyage day and a Kerst day are walked in different light — slightly, out
+  of art that already exists, and never as new props: the town is the thing fourteen people
+  recognise.
 - **Sound is synthesised, no assets** — the channels the hardware had. Footsteps are per surface,
   because the ground telling you what it is made of is most of what makes a town feel walked in.
   The squelch around a transmission is two more of those, and mute is for them and not for voice: a

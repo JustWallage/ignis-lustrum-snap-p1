@@ -1014,12 +1014,12 @@ export function Overworld() {
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, now: number) => {
       if (splashRef.current) {
-        drawSplash(ctx, now, crowdRef.current);
+        drawSplash(ctx, now, crowdRef.current, juryRef.current.palette);
         return;
       }
       const local = poseAt(posRef.current, stepRef.current, now);
 
-      const atlas = tileAtlas(animFrame(now));
+      const atlas = tileAtlas(animFrame(now), juryRef.current.palette);
       for (let ty = 0; ty < MAP_H; ty++) {
         for (let tx = 0; tx < MAP_W; tx++) {
           drawTile(ctx, atlas, tileAt(tx, ty), tx, ty);
