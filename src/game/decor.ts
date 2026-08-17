@@ -1,6 +1,6 @@
 import type { JuryDecor } from "@shared/juries";
 import { MAP_H, MAP_W, type Point } from "@shared/map";
-import type { Ramp } from "@/game/palette";
+import { type Ramp, rampFor } from "@/game/palette";
 import { blit, type Rows } from "@/game/pixels";
 import { TILE, TREE_ROWS } from "@/game/tiles";
 
@@ -13,7 +13,7 @@ export interface DecorPiece {
   dy: number;
 }
 
-const CANOPY: readonly Point[] = [
+const SIGNATURE_TREES: readonly Point[] = [
   { x: 9, y: 4 },
   { x: 0, y: 6 },
   { x: 5, y: 8 },
@@ -36,13 +36,10 @@ const TREES_FOOT: readonly Point[] = [
 ];
 
 const ROOF: readonly Point[] = [
-  { x: 1, y: 0 },
-  { x: 3, y: 0 },
-];
-
-const ROOFLINE: readonly Point[] = [
   { x: 0, y: 0 },
+  { x: 1, y: 0 },
   { x: 2, y: 0 },
+  { x: 3, y: 0 },
   { x: 4, y: 0 },
 ];
 
@@ -177,9 +174,7 @@ const HOLLY: Ramp = {
   darkest: "#0c3018",
 };
 
-/** Must stay `palette.ts`'s grass lightest, the colour of the tile a repainted tree
- * covers: drift the two apart and every themed tree wears a square of the wrong green. */
-const GRASS_UNDER = "#b8e090";
+const GRASS_UNDER = rampFor("T").lightest;
 
 const PINE: Ramp = {
   lightest: GRASS_UNDER,
@@ -556,17 +551,41 @@ const BLOCKS: Rows = [
  */
 export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
   voyage: [
-    { rows: FLAG, ramp: SAIL, at: [...CANOPY, ...TREES_TOP], dx: 5, dy: 0 },
+    {
+      rows: FLAG,
+      ramp: SAIL,
+      at: [...SIGNATURE_TREES, ...TREES_TOP],
+      dx: 5,
+      dy: 0,
+    },
     { rows: BOAT, ramp: SAIL, at: POND, dx: 2, dy: 6 },
-    { rows: BUNTING, ramp: SAIL, at: [...ROOF, ...ROOFLINE], dx: 0, dy: 1 },
+    { rows: BUNTING, ramp: SAIL, at: ROOF, dx: 0, dy: 1 },
   ],
   hearts: [
-    { rows: HEART, ramp: LOVE, at: [...CANOPY, ...TREES_TOP], dx: 4, dy: 1 },
-    { rows: HEART, ramp: LOVE, at: [...CANOPY, ...TREES_SIDE], dx: 9, dy: 8 },
+    {
+      rows: HEART,
+      ramp: LOVE,
+      at: [...SIGNATURE_TREES, ...TREES_TOP],
+      dx: 4,
+      dy: 1,
+    },
+    {
+      rows: HEART,
+      ramp: LOVE,
+      at: [...SIGNATURE_TREES, ...TREES_SIDE],
+      dx: 9,
+      dy: 8,
+    },
     { rows: POLAROID, ramp: FILM, at: WALLS, dx: 2, dy: 3 },
   ],
   kitchen: [
-    { rows: PAN, ramp: STEEL, at: [...CANOPY, ...TREES_SIDE], dx: 3, dy: 4 },
+    {
+      rows: PAN,
+      ramp: STEEL,
+      at: [...SIGNATURE_TREES, ...TREES_SIDE],
+      dx: 3,
+      dy: 4,
+    },
     { rows: PLATE, ramp: STEEL, at: WALLS, dx: 5, dy: 6 },
     { rows: PLATE, ramp: STEEL, at: TREES_FOOT, dx: 2, dy: 10 },
   ],
@@ -574,7 +593,7 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: TREE_ROWS,
       ramp: CHARRED,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 0,
       dy: 0,
     },
@@ -582,7 +601,7 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
       rows: FLAME,
       alt: FLAME_ALT,
       ramp: FIRE,
-      at: [...CANOPY, ...TREES_TOP],
+      at: [...SIGNATURE_TREES, ...TREES_TOP],
       dx: 5,
       dy: 0,
     },
@@ -594,15 +613,15 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
       dx: 1,
       dy: 5,
     },
-    { rows: EMBER, ramp: FIRE, at: ROOFLINE, dx: 6, dy: 6 },
+    { rows: EMBER, ramp: FIRE, at: ROOF, dx: 6, dy: 6 },
   ],
   cans: [
-    { rows: CAN, ramp: TIN, at: CANOPY, dx: 4, dy: 4 },
+    { rows: CAN, ramp: TIN, at: SIGNATURE_TREES, dx: 4, dy: 4 },
     { rows: CAN, ramp: TIN, at: [...TREES_FOOT, ...TREES_SIDE], dx: 2, dy: 5 },
-    { rows: CAN, ramp: TIN, at: POND, dx: 5, dy: 6 },
+    { rows: CAN, ramp: TIN, at: POND, dx: 5, dy: 5 },
   ],
   boulders: [
-    { rows: BOULDER, ramp: STONE, at: CANOPY, dx: 2, dy: 8 },
+    { rows: BOULDER, ramp: STONE, at: SIGNATURE_TREES, dx: 2, dy: 8 },
     {
       rows: BOULDER,
       ramp: STONE,
@@ -616,16 +635,16 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: TREE_ROWS,
       ramp: BLOSSOM_TREE,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 0,
       dy: 0,
     },
     { rows: BLOSSOM, ramp: PINK, at: TREES_FOOT, dx: 0, dy: 0 },
-    { rows: BUNTING, ramp: PINK, at: [...ROOF, ...ROOFLINE], dx: 0, dy: 1 },
+    { rows: BUNTING, ramp: PINK, at: ROOF, dx: 0, dy: 1 },
     { rows: HEART, ramp: PINK, at: WALLS, dx: 5, dy: 5 },
   ],
   workshop: [
-    { rows: PLANK, ramp: TIMBER, at: CANOPY, dx: 1, dy: 9 },
+    { rows: PLANK, ramp: TIMBER, at: SIGNATURE_TREES, dx: 1, dy: 9 },
     {
       rows: PLANK,
       ramp: TIMBER,
@@ -639,7 +658,7 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: HANGING_PLATE,
       ramp: DELFT,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 5,
       dy: 4,
     },
@@ -649,19 +668,31 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: CONFETTI,
       ramp: CANVAS,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_FOOT],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_FOOT],
       dx: 0,
       dy: 0,
     },
     { rows: EASEL, ramp: CANVAS, at: WALLS, dx: 2, dy: 3 },
   ],
   oranje: [
-    { rows: CROWN, ramp: ORANJE, at: [...CANOPY, ...TREES_TOP], dx: 4, dy: 2 },
-    { rows: BUNTING, ramp: ORANJE, at: [...ROOF, ...ROOFLINE], dx: 0, dy: 1 },
+    {
+      rows: CROWN,
+      ramp: ORANJE,
+      at: [...SIGNATURE_TREES, ...TREES_TOP],
+      dx: 4,
+      dy: 2,
+    },
+    { rows: BUNTING, ramp: ORANJE, at: ROOF, dx: 0, dy: 1 },
     { rows: GLASS, ramp: ORANJE, at: WALLS, dx: 5, dy: 5 },
   ],
   beach: [
-    { rows: BALL, ramp: SEASIDE, at: [...CANOPY, ...TREES_FOOT], dx: 5, dy: 9 },
+    {
+      rows: BALL,
+      ramp: SEASIDE,
+      at: [...SIGNATURE_TREES, ...TREES_FOOT],
+      dx: 5,
+      dy: 9,
+    },
     { rows: PARASOL, ramp: SEASIDE, at: POND, dx: 2, dy: 3 },
     { rows: BALL, ramp: SEASIDE, at: TREES_SIDE, dx: 2, dy: 4 },
   ],
@@ -669,14 +700,14 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: CONIFER,
       ramp: PINE,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 0,
       dy: 0,
     },
     {
       rows: TRIMMING,
       ramp: BAUBLE,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 0,
       dy: 0,
     },
@@ -684,16 +715,16 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
       rows: STAR,
       alt: STAR_ALT,
       ramp: GOLD,
-      at: [...CANOPY, ...TREES_TOP, ...TREES_SIDE],
+      at: [...SIGNATURE_TREES, ...TREES_TOP, ...TREES_SIDE],
       dx: 4,
       dy: 0,
     },
     { rows: BAUBLES, ramp: BAUBLE, at: TREES_FOOT, dx: 0, dy: 0 },
-    { rows: SNOW, ramp: SNOWFALL, at: [...ROOF, ...ROOFLINE], dx: 0, dy: 0 },
+    { rows: SNOW, ramp: SNOWFALL, at: ROOF, dx: 0, dy: 0 },
     { rows: WREATH, ramp: HOLLY, at: DOOR, dx: 3, dy: 4 },
   ],
   toys: [
-    { rows: BALLOON, ramp: LOVE, at: CANOPY, dx: 4, dy: 1 },
+    { rows: BALLOON, ramp: LOVE, at: SIGNATURE_TREES, dx: 4, dy: 1 },
     {
       rows: BALLOON,
       ramp: TOY_BLUE,
@@ -704,7 +735,7 @@ export const DECOR: Record<JuryDecor, readonly DecorPiece[]> = {
     {
       rows: BLOCKS,
       ramp: TOY_BLUE,
-      at: [...CANOPY, ...TREES_FOOT],
+      at: [...SIGNATURE_TREES, ...TREES_FOOT],
       dx: 3,
       dy: 9,
     },
@@ -736,7 +767,7 @@ function buildLayer(decor: JuryDecor, frame: 0 | 1): HTMLCanvasElement {
 }
 
 /** One transparent overlay for the whole map, memoised per theme AND per animation
- * frame: a Christmas day repaints eight whole tiles a pixel at a time, some 2,600
+ * frame: a Christmas day repaints eight whole tiles a pixel at a time, some 2,700
  * `fillRect`s that would otherwise be spent again on every frame. */
 export function decorLayer(decor: JuryDecor, frame: 0 | 1): HTMLCanvasElement {
   const key = `${decor}:${frame}`;

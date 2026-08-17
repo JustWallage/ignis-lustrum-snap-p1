@@ -42,6 +42,7 @@ import { useEvent, type EventAction } from "@/context/EventContext";
 import type { Standing } from "@/context/WebSocketContext";
 import { drawBubble } from "@/game/badge";
 import { crowdOf, type CrowdMember } from "@/game/crowd";
+import { decorLayer } from "@/game/decor";
 import { KEY_DIRS, isCancelKey, isConfirmKey, isSelectKey } from "@/game/keys";
 import { MENU_ITEMS, visibleItems, type MenuItemId } from "@/game/menu";
 import {
@@ -75,7 +76,6 @@ import {
   strideTo,
   type Stride,
 } from "@/game/stride";
-import { decorLayer } from "@/game/decor";
 import { animFrame, drawTile, TILE, tileAtlas } from "@/game/tiles";
 import { useAvatarDraw } from "@/hooks/useAvatarDraw";
 import { useChampion } from "@/hooks/useChampion";

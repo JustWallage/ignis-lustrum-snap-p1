@@ -3,8 +3,6 @@ import {
   ARTIST,
   isWalkableTile,
   JURY,
-  MAP_H,
-  MAP_W,
   NEIGHBOUR,
   type Point,
   tileAt,
@@ -77,18 +75,16 @@ describe("DECOR", () => {
     }
   });
 
-  it("keeps every prop inside the screen", () => {
+  // Anchors being solid only keeps a prop off walkable ground if its PIXELS stay in the
+  // tile as well: a drawing taller than its offset allows spills onto the tile below.
+  it("keeps every prop inside the tile it is hung on", () => {
     for (const { theme, piece } of pieces()) {
       for (const rows of drawings(piece)) {
         const width = rows[0]?.length ?? 0;
-        for (const spot of piece.at) {
-          const left = spot.x * TILE + piece.dx;
-          const top = spot.y * TILE + piece.dy;
-          expect(left, theme).toBeGreaterThanOrEqual(0);
-          expect(top, theme).toBeGreaterThanOrEqual(0);
-          expect(left + width, theme).toBeLessThanOrEqual(MAP_W * TILE);
-          expect(top + rows.length, theme).toBeLessThanOrEqual(MAP_H * TILE);
-        }
+        expect(piece.dx, theme).toBeGreaterThanOrEqual(0);
+        expect(piece.dy, theme).toBeGreaterThanOrEqual(0);
+        expect(piece.dx + width, theme).toBeLessThanOrEqual(TILE);
+        expect(piece.dy + rows.length, theme).toBeLessThanOrEqual(TILE);
       }
     }
   });
