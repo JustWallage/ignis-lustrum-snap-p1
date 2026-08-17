@@ -2,9 +2,9 @@
 // nearest-neighbour scale of it, and the palette is the app's own. Run
 // `node scripts/icons.mjs` and commit the PNGs — nothing in the build regenerates them.
 
-import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { png } from "./png.mjs";
 
 const OUT = path.resolve(import.meta.dirname, "..", "public");
 
@@ -94,61 +94,6 @@ function raster(size, scale, background) {
   return rows;
 }
 
-const CRC_TABLE = Array.from({ length: 256 }, (_unused, n) => {
-  let c = n;
-  for (let bit = 0; bit < 8; bit++) {
-    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  }
-  return c >>> 0;
-});
-
-function crc32(bytes) {
-  let c = 0xffffffff;
-  for (const byte of bytes) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-function chunk(type, payload) {
-  const head = Buffer.alloc(8);
-  head.writeUInt32BE(payload.length, 0);
-  head.write(type, 4, "ascii");
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), payload])), 0);
-  return Buffer.concat([head, payload, crc]);
-}
-
-const RGBA = PALETTE.map((entry) => {
-  const [r, g, b] = Buffer.from(entry.rgb.slice(1), "hex");
-  return [r, g, b, entry.alpha];
-});
-
-function png(rows) {
-  const size = rows.length;
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(size, 0);
-  header.writeUInt32BE(size, 4);
-  header[8] = 8; // bit depth
-  // Colour type 6 (RGBA), not 3 (palette+tRNS): the indexed encoding was the last
-  // artefact-level difference from the reference PWA that demonstrably installs.
-  header[9] = 6;
-  const raw = Buffer.alloc(size * (1 + size * 4));
-  let at = 0;
-  for (const row of rows) {
-    raw[at] = 0;
-    at += 1;
-    for (const index of row) {
-      raw.set(RGBA[index], at);
-      at += 4;
-    }
-  }
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk("IHDR", header),
-    chunk("IDAT", deflateSync(raw, { level: 9 })),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
-}
-
 for (const row of ART) {
   if (row.length !== ART_SIZE) {
     throw new Error(`the art is ${ART_SIZE} tall but a row is ${row.length}`);
@@ -166,7 +111,7 @@ for (const {
       `${name} would scale the art by ${scale}, which smudges it`,
     );
   }
-  const bytes = png(raster(size, scale, background));
+  const bytes = png(raster(size, scale, background), PALETTE);
   writeFileSync(path.join(OUT, name), bytes);
   process.stdout.write(
     `${name}: ${size}x${size}, ${scale}x the art, ${(bytes.length / 1024).toFixed(1)} KB\n`,

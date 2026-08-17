@@ -473,16 +473,41 @@
   color: #98b8a0;
 }
 
+.gb-jury-portrait {
+  display: none;
+  position: absolute;
+  right: 1.4cqw;
+  bottom: 1.4cqw;
+  width: 13cqw;
+  image-rendering: pixelated;
+}
+/* Just above the ~308px where 13cqw drops under the art's own 40 pixels, so below this the
+   portrait would be drawn smaller than the thing it is made of — every phone from 375pt up
+   is above it, and a phone on its side is not. */
+@container (min-width: 320px) {
+  .gb-event {
+    padding-right: 16cqw;
+  }
+  .gb-jury-portrait {
+    display: block;
+  }
+}
+
 .gb-character {
   display: block;
   width: 8cqw;
   aspect-ratio: 12 / 16;
   image-rendering: pixelated;
 }
+/* Its height follows its own WIDTH, and a fixed `20cqw` is what it cannot be: every
+   figure in here is sized as a fraction of this box's width and lifted by a fraction of
+   its height, so the moment anything narrows the column — the jury's strip did — the
+   figures shrink while the lift does not, and the back row stops standing behind the
+   front one at all. `countdown.spec.ts` is the regression. */
 .gb-crowd {
   position: relative;
   width: 100%;
-  height: 20cqw;
+  aspect-ratio: 3 / 1;
 }
 .gb-crowd .gb-character {
   position: absolute;
@@ -506,6 +531,20 @@
   position: relative;
   width: 100%;
   height: 22cqw;
+}
+/* The beast takes the jury's strip back to walk across, and this has to sit AFTER the rule
+   above or that `width: 100%` wins on order and only the margin lands. It enters at `115%`
+   of THIS box while `.gb-beast` is sized in `cqw`, so over a stage narrowed to the column
+   the overshoot no longer clears the beast's own half-width and the entrance begins on
+   screen. The width grows and the margin gives the growth back, which keeps this a flex
+   item of the column's width — a bare negative margin only slides a `100%` box sideways
+   under `align-items: center`. It crosses in FRONT of the portrait, which is the right way
+   round for something walking past. */
+@container (min-width: 320px) {
+  .gb-beast-stage {
+    width: calc(100% + 14cqw);
+    margin-right: -14cqw;
+  }
 }
 .gb-beast-stage .gb-character,
 .gb-beast {

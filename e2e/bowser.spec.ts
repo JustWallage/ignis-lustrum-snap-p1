@@ -4,6 +4,8 @@ import { BEAST_MS, WHEEL_SPIN_MS } from "../shared/events";
 import {
   apiSignIn,
   apiUpload,
+  boxAround,
+  boxOf,
   expect,
   openConsole,
   operate,
@@ -140,6 +142,14 @@ test("a marked day ends in the beast and a red wheel carrying the Bowser prizes"
   const beast = page.getByTestId("beast");
   await expect(beast).toBeVisible();
   await expect(beast.getByTestId("beast-figure")).toBeVisible();
+  // The stage keeps the WHOLE panel, the jury's strip included. The beast walks in from
+  // `115%` of this box while its own width is `cqw`, so a stage narrowed to the column
+  // starts the entrance already on screen — visible, which is all the line above asks.
+  const panel = await boxOf(page, "event-overlay");
+  const stage = await boxAround(beast);
+  expect(stage.width, "the beast has the whole panel to cross").toBeGreaterThan(
+    panel.width * 0.9,
+  );
   await expect(beast.getByTestId("crowd-character")).toBeVisible();
   await expect(page.getByTestId("wheel")).toBeHidden();
 

@@ -54,6 +54,7 @@ const shards =
 const EVENT_SPECS = [
   "bowser.spec.ts",
   "event-dialogue.spec.ts",
+  "jury-portrait.spec.ts",
   "live-event.spec.ts",
   "live-loop.spec.ts",
   "podium.spec.ts",
