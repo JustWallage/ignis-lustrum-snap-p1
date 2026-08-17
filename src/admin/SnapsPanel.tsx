@@ -1,18 +1,23 @@
 import { useState } from "react";
 import {
   dayPhotosSchema,
+  dayRankingSchema,
   photoDescriptionSchema,
   retirementSchema,
+  type DayRanking,
   type PhotoDescription,
 } from "@shared/api";
 import type { GameState } from "@shared/state";
 import { ConfirmButton } from "@/admin/ConfirmButton";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { readApiError } from "@/lib/api";
+import { ratingText } from "@/lib/rating";
 
 const REFUSED = "Nothing was retired.";
 
 const DESCRIBE_REFUSED = "Nothing was described.";
+
+const RANK_REFUSED = "The jury was not asked.";
 
 function retiredText(retired: number, day: number): string {
   return `${String(retired)} snap${retired === 1 ? "" : "s"} retired out of day ${String(day)}. The pictures are still in the bucket.`;
@@ -21,6 +26,16 @@ function retiredText(retired: number, day: number): string {
 function describedText(status: PhotoDescription["status"] | undefined): string {
   if (status === undefined) return "Not described";
   return status === "ok" ? "Described" : "Description failed";
+}
+
+function rankedText(ranking: DayRanking | undefined): string {
+  if (ranking === undefined) return "Reading the day…";
+  const when =
+    ranking.ranAt === null
+      ? "never run"
+      : `last run ${new Date(ranking.ranAt).toLocaleString()}`;
+  const how = ranking.failed ? "the last run failed" : "the last run was fine";
+  return `${ranking.generated ? "Ranked" : "Not ranked"} — ${when}, ${how}.`;
 }
 
 export function SnapsPanel({
@@ -82,6 +97,18 @@ export function SnapsPanel({
     mutate();
   };
 
+  const rank = async () => {
+    const body = await press(
+      `/api/admin/days/${String(shown)}/rank`,
+      RANK_REFUSED,
+    );
+    if (body === null) return;
+    setNote(
+      `Day ${String(shown)} — ${rankedText(dayRankingSchema.parse(body))}`,
+    );
+    mutate();
+  };
+
   const photos = list.data?.photos ?? [];
   const described = new Map(
     (list.data?.descriptions ?? []).map((row) => [row.photoId, row.status]),
@@ -118,6 +145,23 @@ export function SnapsPanel({
           }}
         />
       </div>
+      <div className="ops-row">
+        <p className="ops-readout" data-testid="ops-ranked">
+          {rankedText(list.data?.ranking)}
+        </p>
+        <button
+          type="button"
+          className="ops-btn"
+          data-testid="ops-rank-day"
+          aria-busy={busy}
+          disabled={busy || photos.length === 0}
+          onClick={() => {
+            void rank();
+          }}
+        >
+          Rank the day again
+        </button>
+      </div>
       {note !== null && (
         <p className="ops-note" data-testid="ops-snaps-note">
           {note}
@@ -143,7 +187,7 @@ export function SnapsPanel({
                 <span>#{photo.id}</span>
                 {photo.uploader !== null && <span>{photo.uploader.name}</span>}
                 {photo.aiScore !== null && (
-                  <span>{`Jury ${String(photo.aiScore)}`}</span>
+                  <span>{`Jury ${ratingText(photo.aiScore)}`}</span>
                 )}
                 <span data-testid={`ops-described-${String(photo.id)}`}>
                   {describedText(described.get(photo.id))}

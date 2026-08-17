@@ -91,14 +91,12 @@ describe("the jury bench", () => {
       jury: jury.name,
       theme: jury.theme,
       score: VERDICT.score,
-      caption: VERDICT.caption,
       critique: VERDICT.critique,
       bonusDetected: VERDICT.bonusDetected,
       bonusReason: VERDICT.bonusReason,
     });
     expect(verdict.score).toBeGreaterThanOrEqual(1);
     expect(verdict.score).toBeLessThanOrEqual(AI_SCORE_MAX);
-    expect(verdict.caption.length).toBeGreaterThan(0);
     expect(fetched).toHaveBeenCalledTimes(1);
   });
 

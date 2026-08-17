@@ -74,7 +74,6 @@ export interface DayResultRow {
   uploaderId: number;
   uploaderName: string;
   critique: string | null;
-  juryCaption: string | null;
   aiScore: number | null;
   aiStatus: "ok" | "failed" | null;
 }
@@ -93,7 +92,6 @@ export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
     aiStatus: row.aiStatus,
     bonus: scored.bonus,
     critique: row.critique,
-    juryCaption: row.juryCaption,
     noVotePenalty: scored.penalised,
   });
 }

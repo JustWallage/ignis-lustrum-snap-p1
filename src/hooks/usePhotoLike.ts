@@ -10,8 +10,8 @@ export interface PhotoLike {
 }
 
 /**
- * The heart's own state, fetched per photograph. `/api/days` carries the caption and
- * the verdict but no `likeCount`/`likedByMe`, and widening the day's results with two
+ * The heart's own state, fetched per photograph. `/api/days` carries the verdict but
+ * no `likeCount`/`likedByMe`, and widening the day's results with two
  * fields the scoreboard has no business carrying would put them on every card — so the
  * one open photograph asks for itself, which is what `SnapDialog` already did.
  */

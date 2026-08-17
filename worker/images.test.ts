@@ -1,21 +1,21 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { evaluationRetrySchema } from "../shared/api";
+import { photoDescriptionSchema } from "../shared/api";
 import { app } from "./index";
 import { listImages } from "./lib/images";
 import {
+  DESCRIBED,
   geminiReply,
   geminiRequestSchema,
   PHOTO_BASE64,
   PHOTO_BYTES,
-  postRetry,
   resetWorld,
   signIn,
   stubGemini,
   uploadPhoto,
   uploadPhotoId,
-  VERDICT,
+  withGeminiKey,
 } from "./test-helpers";
 
 beforeEach(resetWorld);
@@ -131,19 +131,20 @@ describe("image bytes in the bucket", () => {
     expect(await snapKeyOf(id)).not.toBe("");
   });
 
-  it("hands the jury the bytes out of the bucket on a retry", async () => {
+  it("hands the describer the bytes out of the bucket on a retry", async () => {
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie);
 
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const res = await postRetry(
-      cookie,
-      `/api/admin/photos/${String(id)}/evaluate`,
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const res = await app.request(
+      `/api/admin/photos/${String(id)}/describe`,
+      { method: "POST", headers: { Cookie: cookie } },
+      withGeminiKey(),
     );
     expect(res.status).toBe(200);
-    expect(evaluationRetrySchema.parse(await res.json())).toMatchObject({
-      attempted: 1,
-      ok: 1,
+    expect(photoDescriptionSchema.parse(await res.json())).toEqual({
+      photoId: id,
+      status: "ok",
     });
 
     const call = fetched.mock.calls[0];
@@ -157,23 +158,19 @@ describe("image bytes in the bucket", () => {
     expect(sent).toEqual([{ mimeType: "image/png", data: PHOTO_BASE64 }]);
   });
 
-  it("scores nothing for a row whose object has gone", async () => {
+  it("reads nothing off a row whose object has gone", async () => {
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie);
     await env.IMAGES.delete(await snapKeyOf(id));
 
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const res = await postRetry(
-      cookie,
-      `/api/admin/photos/${String(id)}/evaluate`,
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const res = await app.request(
+      `/api/admin/photos/${String(id)}/describe`,
+      { method: "POST", headers: { Cookie: cookie } },
+      withGeminiKey(),
     );
 
-    expect(res.status).toBe(200);
-    expect(evaluationRetrySchema.parse(await res.json())).toMatchObject({
-      attempted: 1,
-      ok: 0,
-      failed: 1,
-    });
+    expect(res.status).toBe(404);
     expect(fetched).not.toHaveBeenCalled();
   });
 

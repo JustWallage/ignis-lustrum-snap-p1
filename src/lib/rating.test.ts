@@ -17,6 +17,12 @@ describe("ratingText", () => {
     expect(ratingText(AI_SCORE_MAX)).not.toContain(String(HALF_WEIGHT));
   });
 
+  it("rounds, so two scores a place apart can read the same", () => {
+    expect(ratingText(8.4)).toBe(`8/${String(AI_SCORE_MAX)}`);
+    expect(ratingText(8.1)).toBe(ratingText(8.4));
+    expect(ratingText(7.6)).toBe(`8/${String(AI_SCORE_MAX)}`);
+  });
+
   it("says a snap was not scored rather than scoring it nought", () => {
     expect(ratingText(null)).toBe("NOT SCORED");
     expect(ratingText(null)).not.toContain("0");

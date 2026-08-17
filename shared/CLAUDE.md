@@ -15,9 +15,12 @@ Everything both sides read. Change a schema here first.
   the ballot knows least about. The peer half is the one that SUMS to `n(n+1)/2`; the bullet below is
   why the AI half does not have to.
 - `aiScore: 0` means "no evaluation row", not zero; on the wire an absence is an absence and nothing
-  may render 0/10. **`ai_status = 'failed'` is the same absence wearing a 5** — the fallback every
-  failure stores — so neither is ranked among the real scores, and both **share the field's MEDIAN
-  position**: a fallback 5 would otherwise beat every honest 4, and an absent row would sink to last
+  may render 0/10. **The score is a REAL and the day's scores are distinct**, because the jury ranks
+  the whole field in one call and that order IS the score — so `aiScore` is a rating and a place at
+  once, and `src/lib/rating.ts` is the only thing that rounds it. **`ai_status = 'failed'` is the
+  same absence wearing a 5** — the fallback a broken day stores for every snap in it, the one case
+  where the scores are not distinct — so neither is ranked among the real scores, and both **share
+  the field's MEDIAN position**: a fallback 5 would otherwise beat every honest 4, and an absent row would sink to last
   because a third party was down. That median is the DELIBERATE exception to the tie-average above —
   an unscored group takes the middle, not the positions it occupies — and it is why only the peer
   half sums to `n(n+1)/2`. `aiNorm` is that POSITION, never a rating — first place is exactly

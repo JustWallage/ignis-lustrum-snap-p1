@@ -63,6 +63,16 @@
   arranged per SHOWING and held in a ref, because `drawSplash` runs every frame and a crowd shuffled
   inside it is a strobe. Nobody stands beside a parade snap: photographs are anonymous until their
   day is out.
+- **The day's jury colours the town, and only the town.** A jury carries a `palette` — a small enum
+  on the entry, since the hex belongs to `game/palette.ts` and not to a boundary module the worker
+  parses — and `PALETTE_TINTS` beside `TILE_RAMPS` is a total `Record` over it, so a jury without
+  colours is a type error rather than a silent default. It is a TINT MIXED INTO the ramps, never a
+  second set of them: the art, the map, the collision and every sprite are untouched, and the
+  darkest slot barely moves because that is the outline most tiles are read by (flowers spend it on
+  petals). The splash's ground strip comes off the same atlas and follows the day with it; its sky
+  and title ink do not. **`tileAtlas` is keyed by the palette as well as the animation frame** —
+  memoised on the frame alone, the town kept whichever jury was up when the tab opened, however many
+  times the day moved under it (`e2e/town-palette.spec.ts`).
 - **The right-hand strip of the event overlay belongs to the day's jury** (#45), and
   `.gb-event`'s `padding-right` is what gives it. There is no corner free to tuck a portrait
   into — `.gb-wheel` is `width: 100%`, the scoreboard a full-width `flex: 1`, and a fourteen-strong
@@ -107,10 +117,14 @@
 - The ballot has **no confirm and no Save button** — every tap is one tap from undone, debounce-saved
   through the idempotent PUT, and the readout reads the route's refusal rather than swallowing it.
   `tapRank` is the only rank decision and always returns a contiguous 1..n.
-- `lib/rating.ts` is the ONE place the jury's rating is worded: every surface printing it reads it
-  from there, and independently written "AI n/10" strings are how it drifted (#97). `useChampion`
+- `lib/rating.ts` is the ONE place the jury's rating is worded, the operator's console included:
+  every surface printing it reads it from there, independently written "AI n/10" strings are how it
+  drifted (#97), and it is also the only thing that ROUNDS — the stored score carries decimals
+  because it is the day's order, so two snaps reading `8/10` are not a tie underneath. `useChampion`
   reads the same results query the archive and reveal read, so the plinth cannot disagree with the
-  scoreboard.
+  scoreboard. **The jury's critique IS the photograph's title** — there is no gallery label beside
+  it — so the card, the open photograph and the podium all print that one field and none of them
+  decides between two.
 - **A peer figure is green and a jury figure blue, everywhere either prints** — `.ink-peer` /
   `.ink-jury` over `--ink-peer` / `--ink-jury`, whose value is per BACKGROUND (the event's dark
   screen, then every light surface) because no single green clears both `#202830` and `#fff`. The

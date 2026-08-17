@@ -27,8 +27,6 @@ const MEDIAN_HALF = 30;
 describe("day results", () => {
   const RESULTS = "/api/days/1/results";
 
-  const JURY_CAPTION = "Study In Fluorescent Regret";
-
   async function results(cookie: string) {
     return dayResultsSchema.parse(await getJson(RESULTS, cookie));
   }
@@ -96,23 +94,11 @@ describe("day results", () => {
     );
     expect(winner?.critique).toContain("jury");
     expect(winner?.bonus).toBe(false);
-    expect(winner?.juryCaption).toBeNull();
-    expect(loser?.juryCaption).toBeNull();
   });
 
-  it("serves the jury's caption, and only once the day is revealed", async () => {
+  it("serves the jury's line, and only once the day is revealed", async () => {
     const cookie = await signIn();
-    const id = await uploadPhotoId(cookie);
-    const written = await app.request(
-      "/api/test/caption",
-      {
-        method: "POST",
-        headers: { Cookie: cookie, "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: id, caption: JURY_CAPTION }),
-      },
-      env,
-    );
-    expect(written.status).toBe(200);
+    await uploadPhotoId(cookie);
 
     const early = await app.request(
       RESULTS,
@@ -120,26 +106,12 @@ describe("day results", () => {
       env,
     );
     expect(early.status).toBe(403);
-    expect(await early.text()).not.toContain(JURY_CAPTION);
+    expect(await early.text()).not.toContain("critique");
 
     expect((await setPhase(cookie, "reveal")).status).toBe(200);
     const { results: ranked } = await results(cookie);
-    expect(ranked[0]?.juryCaption).toBe(JURY_CAPTION);
     expect(ranked[0]?.critique).toContain("jury");
-  });
-
-  it("404s a caption for a snap that does not exist", async () => {
-    const cookie = await signIn();
-    const res = await app.request(
-      "/api/test/caption",
-      {
-        method: "POST",
-        headers: { Cookie: cookie, "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: 9999, caption: JURY_CAPTION }),
-      },
-      env,
-    );
-    expect(res.status).toBe(404);
+    expect(ranked[0]?.aiScore).toBe(5);
   });
 
   it("keeps a finished day revealed without needing a phase", async () => {

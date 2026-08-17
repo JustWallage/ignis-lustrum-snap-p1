@@ -12,7 +12,6 @@ const TEST_ROUTES = [
   "/api/test/phase",
   "/api/test/day",
   "/api/test/avatar",
-  "/api/test/caption",
   "/api/test/quota",
 ];
 
