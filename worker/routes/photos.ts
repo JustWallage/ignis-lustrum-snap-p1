@@ -8,7 +8,7 @@ import {
   type PhotoRow,
 } from "../../db/schema";
 import { mySubmissionSchema } from "../../shared/api";
-import type { AppEnv } from "../env";
+import type { AppEnv, Bindings } from "../env";
 import { isAdmin } from "../lib/auth";
 import { broadcast, pushGameState } from "../lib/broadcast";
 import { bytesToBase64 } from "../lib/bytes";
@@ -18,7 +18,7 @@ import { deleteImage, newSnapKey, putImage, readImage } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
 import { describePhoto } from "../lib/photo-description";
 import { photoAggregates, purgePhoto } from "../lib/photo-rows";
-import { scorePhoto } from "../lib/photo-score";
+import { rankDay } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
 
 export const photosRoutes = new Hono<AppEnv>();
@@ -98,6 +98,17 @@ async function likeState(
   };
 }
 
+/** The snap gone mid-description is the one case that ranks nothing: its row is going
+ * with it, and whatever replaces it brings its own upload. */
+async function describeThenRank(
+  env: Bindings,
+  image: { id: number; data: string; contentType: string },
+  day: number,
+): Promise<void> {
+  if ((await describePhoto(env, image)) === "gone") return;
+  await rankDay(env, day);
+}
+
 photosRoutes.post("/", async (c) => {
   const user = c.get("user");
   const form = await c.req.formData();
@@ -153,14 +164,15 @@ photosRoutes.post("/", async (c) => {
   await broadcast(c.env, { type: "photo_created", id: row.id });
   await pushGameState(c.env, await readGameState(db));
   // NEVER on the upload's critical path: a slow model must not be something the
-  // uploader waits for, and a broken one must not be something they see.
+  // uploader waits for, and a broken one must not be something they see. The ranking
+  // is CHAINED behind the description rather than beside it — it reads the day's
+  // descriptions, so starting it first would rank a day this snap is not yet in.
   const image = {
     id: row.id,
     data: bytesToBase64(bytes),
     contentType: file.type,
   };
-  c.executionCtx.waitUntil(scorePhoto(c.env, { ...image, day }));
-  c.executionCtx.waitUntil(describePhoto(c.env, image));
+  c.executionCtx.waitUntil(describeThenRank(c.env, image, day));
   return c.json(
     toPhoto(
       {

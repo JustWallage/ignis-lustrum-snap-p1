@@ -31,8 +31,10 @@ is the gate before a PR.
   the suite drifts. Every test starts seeded, reset and **anonymous**, because walking must work
   without a session.
 - `/api/test/*` exists because no test environment has either Gemini key or an `AI` binding, so a player
-  wearing a sprite, a jury caption, an out-of-ink quota and a revealed day you can still walk around in
-  are all otherwise unreachable. Everything else about those routes is real.
+  wearing a sprite, an out-of-ink quota and a revealed day you can still walk around in are all
+  otherwise unreachable. Everything else about those routes is real. **A verdict is NOT among them**:
+  the day's ranking has a keyless fallback that writes a row per snap, so every reveal here reads
+  `5/10` and the machine-broke line without a route to seed one.
 - **A DOM assertion resolves one frame BEFORE the pixels follow it** — the badge can read DAY 15 while
   the canvas holds day 4's judge. Sample after the next painted frame. `spriteFingerprint` reads a
   sprite's CENTRE column, because two judges can share a centre colour and the column never falls

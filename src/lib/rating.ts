@@ -4,9 +4,13 @@ import { AI_SCORE_MAX } from "@shared/scoring";
 // here, and independently written "AI n/10" strings are how the readout drifted in the
 // first place (#97). Nothing here computes anything.
 
+// The score carries decimals because it IS the day's order, and this is the one place
+// that hides them: 8.4 and 8.1 both read 8/10 while one still stands strictly above the
+// other. A tie in what a player READS is intended; the order underneath it is not one.
+
 export function ratingText(aiScore: number | null): string {
   if (aiScore === null) return "NOT SCORED";
-  return `${String(aiScore)}/${String(AI_SCORE_MAX)}`;
+  return `${String(Math.round(aiScore))}/${String(AI_SCORE_MAX)}`;
 }
 
 /** The number is a POSITION in the day's field, not a curve — CURVED is the player's

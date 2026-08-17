@@ -21,7 +21,6 @@ import { prizesRoutes } from "./routes/prizes";
 import { SPRITE_PATH, spriteRoutes, spriteUrl } from "./routes/sprites";
 import { stateRoute } from "./routes/state";
 import { testAvatarRoute } from "./routes/test-avatar";
-import { testCaptionRoute } from "./routes/test-caption";
 import { testDayRoute } from "./routes/test-day";
 import { testPhaseRoute } from "./routes/test-phase";
 import { testQuotaRoute } from "./routes/test-quota";
@@ -100,7 +99,6 @@ app.route("/api/test/reset", testResetRoute);
 app.route("/api/test/phase", testPhaseRoute);
 app.route("/api/test/day", testDayRoute);
 app.route("/api/test/avatar", testAvatarRoute);
-app.route("/api/test/caption", testCaptionRoute);
 app.route("/api/test/quota", testQuotaRoute);
 
 export default {

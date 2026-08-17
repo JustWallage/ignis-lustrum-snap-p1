@@ -7,7 +7,11 @@ import {
   retiredPhotos,
   type PhotoRow,
 } from "../../db/schema";
-import { dayPhotosSchema, retirementSchema } from "../../shared/api";
+import {
+  dayPhotosSchema,
+  dayRankingSchema,
+  retirementSchema,
+} from "../../shared/api";
 import { isEventRunning } from "../../shared/events";
 import type { AppEnv, Bindings } from "../env";
 import { broadcast, pushGameState } from "../lib/broadcast";
@@ -15,6 +19,7 @@ import { getDb, type Db } from "../lib/db";
 import { readEventState } from "../lib/event";
 import { isDayRevealed, readGameState } from "../lib/game-state";
 import { photoAggregates, purgePhoto } from "../lib/photo-rows";
+import { rankDay, readDayRanking } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
 import { EVENT_IS_LIVE } from "./admin-clock";
 
@@ -126,6 +131,18 @@ adminDayRoutes.get("/:day/photos", async (c) => {
         }),
       ),
       descriptions: described,
+      ranking: await readDayRanking(db, day),
     }),
   );
+});
+
+// No `broadcast` on purpose: no verdict is served to any client before its day is
+// revealed, so a re-ranking has nothing to invalidate. Awaited rather than handed to
+// `waitUntil`, because the operator pressed a button and is owed the answer.
+adminDayRoutes.post("/:day/rank", async (c) => {
+  const asked = daySchema.safeParse(c.req.param("day"));
+  if (!asked.success) return c.json({ error: "Not found" }, 404);
+  const db = getDb(c.env);
+  await rankDay(c.env, asked.data);
+  return c.json(dayRankingSchema.parse(await readDayRanking(db, asked.data)));
 });

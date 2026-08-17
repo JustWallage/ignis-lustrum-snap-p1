@@ -318,23 +318,17 @@ test("a podium photo opens full screen, and a host advance closes it", async ({
   await friend.context().close();
 });
 
-test("the podium shows the no-vote penalty, and the jury's caption", async ({
+test("the podium shows the no-vote penalty, and the jury's line", async ({
   page,
 }) => {
   test.setTimeout(PODIUM_TIMEOUT_MS);
-  const mine = await apiUpload(page, "tester");
+  await apiUpload(page, "tester");
   const theirs = await apiUpload(page, "rival");
   await apiSignIn(page, "tester");
   const voted = await page.request.put("/api/votes", {
     data: { photoIds: [theirs] },
   });
   expect(voted.ok()).toBeTruthy();
-
-  const caption = "Study In Fluorescent Regret";
-  const captioned = await page.request.post("/api/test/caption", {
-    data: { photoId: mine, caption },
-  });
-  expect(captioned.ok()).toBeTruthy();
 
   await page.goto("/");
   await pressStart(page);
@@ -350,7 +344,7 @@ test("the podium shows the no-vote penalty, and the jury's caption", async ({
   await reachPodium(page, "1ST");
   await expect(page.getByTestId("podium-name")).toHaveText("TESTER");
   await expect(page.getByTestId("podium-penalty")).toBeHidden();
-  await expect(page.getByTestId("podium-caption")).toContainText(caption);
+  await expect(page.getByTestId("podium-critique")).toContainText(/jury/i);
 
   await reachPhase(page, "reveal");
 });

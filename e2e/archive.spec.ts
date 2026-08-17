@@ -52,18 +52,12 @@ async function noSidewaysScroll(page: Page): Promise<void> {
 test("the archive is a full-screen photo feed, and the jury signs every card", async ({
   page,
 }) => {
-  const mine = await apiUpload(page, "tester");
+  await apiUpload(page, "tester");
   await apiUpload(page, "rival");
   await setDay(page, 2);
   await apiUpload(page, "tester");
   await setDay(page, 3);
   await apiSignIn(page, "tester");
-
-  const caption = "Still Life With Fluorescent Regret";
-  const captioned = await page.request.post("/api/test/caption", {
-    data: { photoId: mine, caption },
-  });
-  expect(captioned.ok()).toBeTruthy();
 
   await page.setViewportSize(PHONE);
   await page.goto("/");
@@ -103,7 +97,9 @@ test("the archive is a full-screen photo feed, and the jury signs every card", a
   await expect(cards.first()).toContainText("Day 1");
 
   await filterBy(page, "archive-people", "tester");
-  await expect(page.getByTestId("archive-caption")).toHaveText(caption);
+  // The jury's response IS the card's title now: there is no separate gallery label
+  // for it to sit under.
+  await expect(page.getByTestId("archive-critique")).toContainText(/jury/i);
   await expect(page.getByTestId("archive-jury")).toContainText(
     juryForDay(1).name,
   );
@@ -116,22 +112,15 @@ test("the archive is a full-screen photo feed, and the jury signs every card", a
     .click();
   await expect(figures).toContainText("Peer");
   await expect(figures).toContainText(/curved/i);
-  await expect(page.getByTestId("archive-critique")).toContainText(/jury/i);
 });
 
 test("a card opens one big photograph over the archive, with the jury's line on it", async ({
   page,
 }) => {
-  const mine = await apiUpload(page, "tester");
+  await apiUpload(page, "tester");
   await apiUpload(page, "rival");
   await setDay(page, 2);
   await apiSignIn(page, "tester");
-
-  const caption = "Two Chairs And A Long Wait";
-  const captioned = await page.request.post("/api/test/caption", {
-    data: { photoId: mine, caption },
-  });
-  expect(captioned.ok()).toBeTruthy();
 
   await page.setViewportSize(PHONE);
   await page.goto("/");
@@ -143,7 +132,7 @@ test("a card opens one big photograph over the archive, with the jury's line on 
   await page.getByTestId("archive-photo").click();
   await expect(viewerTitle(page, 1, 1)).toBeVisible();
 
-  await expect(page.getByTestId("viewer-caption")).toHaveText(caption);
+  await expect(page.getByTestId("viewer-critique")).toContainText(/jury/i);
   await expect(page.getByTestId("viewer-who")).toHaveText("tester");
   const rating = page.getByTestId("viewer-rating");
   await expect(rating).toContainText("5/10");
@@ -173,26 +162,6 @@ test("a card opens one big photograph over the archive, with the jury's line on 
   await page.keyboard.press("Escape");
   await expect(viewerTitle(page, 1, 1)).toBeHidden();
   await expect(page.getByTestId("archive-results")).toBeVisible();
-});
-
-test("a snap the jury never wrote about shows no caption at all", async ({
-  page,
-}) => {
-  await apiUpload(page, "rival");
-  await setDay(page, 2);
-  await apiSignIn(page, "tester");
-
-  await page.goto("/");
-  await pressStart(page);
-  await walkToShelf(page);
-  await openArchive(page);
-
-  await page.getByTestId("archive-photo").click();
-  await expect(viewerTitle(page, 1, 1)).toBeVisible();
-  // Positive first: the viewer IS the one on screen and it DID reach the verdict, so
-  // the missing caption is the jury never writing one rather than an unfilled screen.
-  await expect(page.getByTestId("viewer-rating")).toContainText("5/10");
-  await expect(page.getByTestId("viewer-caption")).toHaveCount(0);
 });
 
 test("‹ ›, the arrow keys and the two tap zones all page the filtered feed", async ({

@@ -1,17 +1,15 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { avatarGenerations, photoScores, photos, users } from "../../db/schema";
+import { avatarGenerations, photos, users } from "../../db/schema";
 import {
   avatarCapsSchema,
   avatarCountsSchema,
-  evaluationRetrySchema,
-  failedEvaluationsSchema,
   juryBenchSchema,
   photoDescriptionSchema,
 } from "../../shared/api";
 import { JURIES, type Jury } from "../../shared/juries";
-import type { AppEnv, Bindings } from "../env";
+import type { AppEnv } from "../env";
 import { isAdmin } from "../lib/auth";
 import { avatarTotals } from "../lib/avatar";
 import { readAvatarCaps, writeAvatarCapsStatement } from "../lib/avatar-caps";
@@ -23,7 +21,6 @@ import { avatarSpend, requestEvaluation } from "../lib/gemini";
 import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
 import { describePhoto } from "../lib/photo-description";
-import { scorePhoto } from "../lib/photo-score";
 import { rateLimiter } from "../lib/rate-limit";
 import { adminBowserRoutes } from "./admin-bowser";
 import { adminClockRoutes } from "./admin-clock";
@@ -55,80 +52,19 @@ async function askedDay(db: Db, query: string | undefined): Promise<number> {
   return parsed.success ? parsed.data : (await readGameState(db)).day;
 }
 
-const SCORED_COLUMNS = {
-  id: photos.id,
-  day: photos.day,
-  r2Key: photos.r2Key,
-  contentType: photos.contentType,
-} as const;
-
 async function pickPhoto(db: Db, id: string | undefined) {
   const rows = await db
-    .select(SCORED_COLUMNS)
+    .select({
+      id: photos.id,
+      day: photos.day,
+      r2Key: photos.r2Key,
+      contentType: photos.contentType,
+    })
     .from(photos)
     .where(eq(photos.id, Number(id)))
     .limit(1);
   return rows[0];
 }
-
-/** The join is what makes "failed" a verdict saying Gemini choked rather than a snap
- * still in `waitUntil`. */
-function isFailedOn(day: number) {
-  return and(eq(photos.day, day), eq(photoScores.aiStatus, "failed"));
-}
-
-/** Sequential on purpose: fourteen multimodal calls at once earns a rate limit.
- * A row whose object has gone is SKIPPED rather than re-scored: the jury would
- * otherwise be handed an empty image and still write a verdict over it. */
-async function retry(
-  env: Bindings,
-  rows: {
-    id: number;
-    day: number;
-    r2Key: string | null;
-    contentType: string;
-  }[],
-): Promise<{ attempted: number; ok: number; failed: number }> {
-  let ok = 0;
-  for (const row of rows) {
-    const bytes = await readImage(env, row.r2Key);
-    if (bytes === null) continue;
-    const scored = await scorePhoto(env, {
-      ...row,
-      data: bytesToBase64(bytes),
-    });
-    if (scored === "ok") ok += 1;
-  }
-  return { attempted: rows.length, ok, failed: rows.length - ok };
-}
-
-adminRoutes.get("/evaluate", async (c) => {
-  const db = getDb(c.env);
-  const day = await askedDay(db, c.req.query("day"));
-  const counted = await db
-    .select({ value: count() })
-    .from(photos)
-    .innerJoin(photoScores, eq(photoScores.photoId, photos.id))
-    .where(isFailedOn(day));
-  return c.json(
-    failedEvaluationsSchema.parse({ day, failed: counted[0]?.value ?? 0 }),
-  );
-});
-
-// No `broadcast` on purpose: an unrevealed verdict is served to no client, so
-// there is nothing for a retry to invalidate.
-adminRoutes.post("/evaluate", async (c) => {
-  const db = getDb(c.env);
-  const day = await askedDay(db, c.req.query("day"));
-  const rows = await db
-    .select(SCORED_COLUMNS)
-    .from(photos)
-    .innerJoin(photoScores, eq(photoScores.photoId, photos.id))
-    .where(isFailedOn(day));
-  return c.json(
-    evaluationRetrySchema.parse({ day, ...(await retry(c.env, rows)) }),
-  );
-});
 
 adminRoutes.get("/avatars", async (c) => {
   const db = getDb(c.env);
@@ -277,17 +213,4 @@ adminRoutes.post("/photos/:id/describe", async (c) => {
     return c.json({ error: "Not found" }, 404);
   }
   return c.json(photoDescriptionSchema.parse({ photoId: photo.id, status }));
-});
-
-adminRoutes.post("/photos/:id/evaluate", async (c) => {
-  const photo = await pickPhoto(getDb(c.env), c.req.param("id"));
-  if (photo === undefined) {
-    return c.json({ error: "Not found" }, 404);
-  }
-  return c.json(
-    evaluationRetrySchema.parse({
-      day: photo.day,
-      ...(await retry(c.env, [photo])),
-    }),
-  );
 });

@@ -5,176 +5,253 @@ import {
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { photoSchema } from "../../shared/api";
+import { dayRankingSchema, photoSchema } from "../../shared/api";
 import { juryForDay } from "../../shared/juries";
 import { app } from "../index";
 import {
-  geminiCallAsking,
+  DESCRIBED,
+  geminiDayReply,
   geminiReply,
-  geminiRequestSchema,
-  PHOTO_BYTES,
   photoForm,
+  postRank,
+  promptOf,
+  RANKED_BONUS,
+  RANKED_CRITIQUE,
+  RANKING,
+  rankedScore,
   resetWorld,
   scoreRowCount,
+  setDay,
   signIn,
+  storedDayScores,
+  storedRanking,
   storedScore,
   stubGemini,
+  stubGeminiDay,
   uploadPhoto,
   uploadPhotoId,
-  VERDICT,
   withGeminiKey,
   withoutGeminiKey,
 } from "../test-helpers";
-import { bytesToBase64 } from "./bytes";
 import { GEMINI_MODEL } from "./gemini";
 
 beforeEach(resetWorld);
 
-const JURY_ASKED = /judging one entry/;
+/** Two snaps on one day, both described and both ranked — the smallest field an order
+ * exists in at all. The second upload re-ranks the day the first one was alone on. */
+async function aDescribedDay() {
+  const mine = await signIn();
+  const theirs = await signIn("rival");
+  const fetched = stubGeminiDay();
+  const first = await uploadPhotoId(mine, { bindings: withGeminiKey() });
+  const second = await uploadPhotoId(theirs, { bindings: withGeminiKey() });
+  return { mine, first, second, fetched };
+}
+
+/** A ranking reply the test wrote itself, for the cases the well-formed stub cannot
+ * produce: a tie, a gap, an id nobody sent, an older run's order. */
+function rankingOf(verdicts: readonly { photoId: number; score: number }[]) {
+  return geminiReply(
+    JSON.stringify({
+      verdicts: verdicts.map((one) => ({
+        ...one,
+        critique: "Iets anders, in het Nederlands.",
+        bonusDetected: false,
+        bonusReason: "",
+      })),
+    }),
+  );
+}
+
+function isRanking(init: RequestInit): boolean {
+  return RANKING.test(z.string().parse(init.body));
+}
 
 describe("the AI jury", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("stores an ok verdict from a well-formed reply", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const cookie = await signIn();
-    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+  it("ranks the whole day in one text-only call, keyed by photo id", async () => {
+    const { first, second, fetched } = await aDescribedDay();
 
-    expect(await storedScore(id)).toEqual({
-      ai_score: 9,
-      critique: VERDICT.critique,
-      caption: VERDICT.caption,
+    expect(await storedScore(first)).toEqual({
+      ai_score: rankedScore(0),
+      critique: RANKED_CRITIQUE,
       bonus_detected: 1,
-      bonus_reason: VERDICT.bonusReason,
+      bonus_reason: RANKED_BONUS,
       ai_status: "ok",
     });
-    expect(geminiCallAsking(fetched.mock.calls, JURY_ASKED).url).toContain(
-      GEMINI_MODEL,
-    );
-  });
+    expect(await storedDayScores(1)).toEqual([rankedScore(0), rankedScore(1)]);
 
-  it("asks for the caption as a title, and not as a second critique", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const cookie = await signIn();
-    await uploadPhotoId(cookie, { bindings: withGeminiKey() });
-
-    const { prompt } = geminiCallAsking(fetched.mock.calls, JURY_ASKED);
-    expect(prompt).toMatch(/caption is a TITLE/);
-    expect(prompt).toMatch(/not reuse any wording from the critique/i);
-  });
-
-  it("asks the one model id, in the day's jury's voice, about the day's photo", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const cookie = await signIn();
-    await uploadPhotoId(cookie, { bindings: withGeminiKey() });
-
-    const { url, init } = geminiCallAsking(fetched.mock.calls, JURY_ASKED);
+    // The LAST ranking call: the first upload was ranked alone, this one is the field
+    // of two.
+    const ranked = fetched.mock.calls.filter(([, init]) => isRanking(init));
+    const [url, init] = ranked[ranked.length - 1] ?? ["", {}];
+    const prompt = promptOf(init);
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
-    expect(z.record(z.string(), z.string()).parse(init.headers)).toMatchObject({
-      "x-goog-api-key": "test-key",
-    });
-
-    const body = geminiRequestSchema.parse(
-      JSON.parse(z.string().parse(init.body)),
-    );
-    expect(body.generationConfig.responseMimeType).toBe("application/json");
-
-    const parts = body.contents[0]?.parts ?? [];
-    const prompt = parts.map((part) => part.text ?? "").join("");
+    // No picture reaches this call at all: the description is the only record of the
+    // photograph it judges.
+    expect(z.string().parse(init.body)).not.toContain("inlineData");
+    expect(prompt).toContain(`Entry ${String(first)}:`);
+    expect(prompt).toContain(`Entry ${String(second)}:`);
+    expect(prompt).toContain(DESCRIBED.subject);
     const jury = juryForDay(1);
     expect(prompt).toContain(jury.theme);
     expect(prompt).toContain(jury.critiquePersona);
     expect(prompt).toContain(jury.bonusPrompt);
-    expect(parts.map((part) => part.inlineData)).toContainEqual({
-      mimeType: "image/png",
-      data: bytesToBase64(PHOTO_BYTES),
-    });
+    expect(prompt).toMatch(/critique in Dutch/i);
   });
 
-  const BROKEN: [string, () => Promise<Response> | Response][] = [
-    ["a 500", () => new Response("upstream is down", { status: 500 })],
+  it("re-ranks the whole field rather than scoring the snap that arrived", async () => {
+    const { fetched } = await aDescribedDay();
+
+    const ranked = fetched.mock.calls.filter(([, init]) => isRanking(init));
+    expect(ranked).toHaveLength(2);
+    // The first ranking saw a field of one, the second a field of two: a partial day's
+    // order is not a prefix of the full day's, so both rows come from the second.
+    expect(await storedDayScores(1)).toEqual([rankedScore(0), rankedScore(1)]);
+    expect((await storedRanking(1))?.run_stamp).toBe(2);
+  });
+
+  const REFUSED: [
+    string,
+    (ids: number[]) => { photoId: number; score: number }[],
+  ][] = [
+    ["a repeated score", (ids) => ids.map((id) => ({ photoId: id, score: 7 }))],
     [
-      "a timeout",
-      // Exactly what the request's AbortSignal.timeout rejects with once it
-      // fires; sitting through the real 30 seconds would prove nothing more.
-      () =>
-        Promise.reject(
-          new DOMException("The operation timed out.", "TimeoutError"),
-        ),
+      "a missing photo id",
+      (ids) => ids.slice(1).map((id) => ({ photoId: id, score: 7 })),
     ],
-    ["malformed JSON", () => geminiReply("{ score: nine, critique")],
     [
-      "a reply that is not the envelope we expect",
-      () => Response.json({ promptFeedback: { blockReason: "SAFETY" } }),
+      "an id that was never sent",
+      (ids) => ids.map((id, at) => ({ photoId: id + 900, score: 9 - at })),
     ],
   ];
 
-  it.each(BROKEN)("falls back to a failed row on %s", async (_case, reply) => {
-    stubGemini(reply);
-    const cookie = await signIn();
-    const res = await uploadPhoto(cookie, { bindings: withGeminiKey() });
+  it.each(REFUSED)(
+    "refuses a ranking with %s and leaves the day as it was",
+    async (_case, build) => {
+      const { mine, first, second } = await aDescribedDay();
+      const before = await storedDayScores(1);
 
-    expect(res.status).toBe(201);
-    const id = photoSchema.parse(await res.json()).id;
-    const score = await storedScore(id);
-    expect(score).toMatchObject({
-      ai_score: 5,
-      bonus_detected: 0,
-      ai_status: "failed",
-      caption: null,
-    });
-    expect(score?.critique).toMatch(/broke it/i);
+      stubGemini(() => rankingOf(build([first, second])));
+      const again = await postRank(mine, 1);
+
+      expect(again.status).toBe(200);
+      expect(dayRankingSchema.parse(await again.json())).toMatchObject({
+        generated: true,
+        failed: true,
+      });
+      expect(await storedDayScores(1)).toEqual(before);
+    },
+  );
+
+  it("keeps the previous verdicts when the call itself breaks", async () => {
+    const { mine } = await aDescribedDay();
+    const before = await storedDayScores(1);
+
+    stubGemini(() => new Response("upstream is down", { status: 500 }));
+    expect((await postRank(mine, 1)).status).toBe(200);
+
+    expect(await storedDayScores(1)).toEqual(before);
+    expect((await storedRanking(1))?.status).toBe("failed");
   });
 
-  it("treats a missing GEMINI_API_KEY as a failed call, not a crash", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const cookie = await signIn();
-    const res = await uploadPhoto(cookie, { bindings: withoutGeminiKey() });
+  it("writes nothing further once a newer run has claimed the day", async () => {
+    const { mine, first, second } = await aDescribedDay();
 
-    expect(res.status).toBe(201);
-    const id = photoSchema.parse(await res.json()).id;
-    expect(await storedScore(id)).toMatchObject({
-      ai_score: 5,
-      ai_status: "failed",
-      caption: null,
+    // Run A is handed the SAME field of two and is overtaken while it writes: run B
+    // claims the day mid-call, so A must stop where it is. Two orders interleaving row
+    // by row is how a day ends up with two snaps on one score, which is the one tie
+    // nothing downstream can break.
+    let overtake = async (): Promise<void> => {
+      overtake = () => Promise.resolve();
+      stubGeminiDay();
+      expect((await postRank(mine, 1)).status).toBe(200);
+    };
+    stubGemini(async () => {
+      await overtake();
+      return rankingOf([
+        { photoId: first, score: 2.5 },
+        { photoId: second, score: 2.4 },
+      ]);
     });
+
+    expect((await postRank(mine, 1)).status).toBe(200);
+
+    const scores = await storedDayScores(1);
+    expect(new Set(scores).size).toBe(scores.length);
+    expect(scores).toEqual([rankedScore(0), rankedScore(1)]);
+  });
+
+  it("costs one row and not the day when a snap is retired mid-call", async () => {
+    const { mine, first, second } = await aDescribedDay();
+
+    stubGemini(async () => {
+      const retired = await app.request(
+        `/api/admin/photos/${String(first)}/retire`,
+        { method: "POST", headers: { Cookie: mine } },
+        env,
+      );
+      expect(retired.status).toBe(200);
+      return rankingOf([
+        { photoId: first, score: 7.5 },
+        { photoId: second, score: 7.4 },
+      ]);
+    });
+
+    expect((await postRank(mine, 1)).status).toBe(200);
+    expect(await storedScore(first)).toBeNull();
+    expect((await storedScore(second))?.ai_score).toBe(7.4);
+  });
+
+  it("still produces a verdict for every snap with no GEMINI_API_KEY", async () => {
+    const fetched = stubGeminiDay();
+    const mine = await signIn();
+    const theirs = await signIn("rival");
+    const bindings = withoutGeminiKey();
+    const first = await uploadPhotoId(mine, { bindings });
+    const second = await uploadPhotoId(theirs, { bindings });
+
+    for (const id of [first, second]) {
+      const score = await storedScore(id);
+      expect(score).toMatchObject({ ai_score: 5, ai_status: "failed" });
+      expect(score?.critique).toMatch(/broke it/i);
+    }
+    expect((await storedRanking(1))?.status).toBe("failed");
     expect(fetched).not.toHaveBeenCalled();
   });
 
-  it("takes the caption back off a retry that broke", async () => {
-    // The verdict is written as ONE upsert, so a retry replaces all of it. A snap
-    // that had a caption and then failed a re-evaluation must not keep the old
-    // jury's line hanging off a row that now says the machine choked.
-    stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
-    const cookie = await signIn();
-    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
-    expect((await storedScore(id))?.caption).toBe(VERDICT.caption);
+  it("leaves a snap nobody described out of the batch", async () => {
+    const mine = await signIn();
+    const theirs = await signIn("rival");
+    stubGeminiDay();
+    const described = await uploadPhotoId(mine, { bindings: withGeminiKey() });
 
-    stubGemini(() => new Response("upstream is down", { status: 500 }));
-    const retried = await app.request(
-      `/api/admin/photos/${id}/evaluate`,
-      { method: "POST", headers: { Cookie: cookie } },
-      withGeminiKey(),
+    // The description breaks for the second snap only, so the day is ranked around it
+    // rather than judging it blind.
+    stubGemini((_url, init) =>
+      isRanking(init)
+        ? rankingOf([{ photoId: described, score: 8.2 }])
+        : new Response("upstream is down", { status: 500 }),
     );
-    expect(retried.status).toBe(200);
-    expect(await storedScore(id)).toMatchObject({
-      ai_status: "failed",
-      caption: null,
+    const undescribed = await uploadPhotoId(theirs, {
+      bindings: withGeminiKey(),
     });
+
+    expect((await storedScore(described))?.ai_score).toBe(8.2);
+    expect(await storedScore(undescribed)).toBeNull();
   });
 
-  it("answers the upload before the model does", async () => {
+  it("answers the upload before the jury does", async () => {
     let answer: () => void = () => undefined;
     const thinking = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    // A Response body may be read ONCE, and the description beside the verdict is
-    // reading too — so the wait is shared and the reply built per call.
-    stubGemini(async () => {
+    stubGemini(async (url, init) => {
       await thinking;
-      return geminiReply(JSON.stringify(VERDICT));
+      return geminiDayReply(url, init);
     });
 
     const cookie = await signIn();
@@ -195,7 +272,7 @@ describe("the AI jury", () => {
   });
 
   it("drops a verdict with the snap it belongs to", async () => {
-    stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
+    stubGeminiDay();
     const cookie = await signIn();
     const bindings = withGeminiKey();
 
@@ -209,7 +286,7 @@ describe("the AI jury", () => {
     expect(await scoreRowCount()).toBe(1);
 
     const deleted = await app.request(
-      `/api/photos/${second}`,
+      `/api/photos/${String(second)}`,
       { method: "DELETE", headers: { Cookie: cookie } },
       env,
     );
@@ -217,20 +294,38 @@ describe("the AI jury", () => {
     expect(await scoreRowCount()).toBe(0);
   });
 
+  it("ranks the day the snap is on, never the day the world moved to", async () => {
+    stubGeminiDay();
+    const cookie = await signIn();
+    const first = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    await setDay(2);
+    const later = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    expect(await storedDayScores(1)).toEqual([rankedScore(0)]);
+    expect(await storedDayScores(2)).toEqual([rankedScore(0)]);
+    expect((await storedRanking(1))?.run_stamp).toBe(1);
+    expect(await storedScore(first)).not.toBeNull();
+    expect(await storedScore(later)).not.toBeNull();
+  });
+
   it("serves the verdict to nobody yet", async () => {
-    stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
+    stubGeminiDay();
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
 
     const responses = await Promise.all([
-      app.request(`/api/photos/${id}`, { headers: { Cookie: cookie } }, env),
+      app.request(
+        `/api/photos/${String(id)}`,
+        { headers: { Cookie: cookie } },
+        env,
+      ),
       app.request("/api/photos/mine", { headers: { Cookie: cookie } }, env),
       app.request("/api/state", {}, env),
     ]);
     for (const res of responses) {
       expect(res.status).toBe(200);
       const body = await res.text();
-      expect(body).not.toContain(VERDICT.critique);
+      expect(body).not.toContain(RANKED_CRITIQUE);
       expect(body).not.toContain("critique");
       expect(body).not.toContain("score");
     }

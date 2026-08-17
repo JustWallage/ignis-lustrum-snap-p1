@@ -15,7 +15,7 @@ import {
   GEMINI_MODEL,
 } from "../lib/gemini";
 import {
-  geminiReply,
+  geminiDayReply,
   patchAvatarCaps,
   PHOTO_BYTES,
   resetWorld,
@@ -24,7 +24,6 @@ import {
   storedScore,
   stubGemini,
   uploadPhotoId,
-  VERDICT,
   withAvatarKeyOnly,
   withGeminiKey,
   withJuryKeyOnly,
@@ -334,7 +333,7 @@ describe("avatar generation", () => {
   });
 
   it("judges on the jury's key alone, and answers offline without spending a slot", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(VERDICT)));
+    const fetched = stubGemini(geminiDayReply);
     const cookie = await signIn();
 
     const id = await uploadPhotoId(cookie, { bindings: withJuryKeyOnly() });

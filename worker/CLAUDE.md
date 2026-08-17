@@ -88,27 +88,50 @@
   `wrangler dev`, so the bucket is declared in all three blocks.
 - **`lib/images.ts` is the only module that touches the bucket.** Object BEFORE row, row BEFORE
   object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
-  500, and the admin retry SKIPS a row whose object has gone rather than scoring an empty image.
+  500, and the console's describe REFUSES a row whose object has gone rather than reading an empty
+  image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
 - **Two Gemini keys, no fallback between them**: `GEMINI_API_KEY` judges photographs,
   `GEMINI_API_KEY_PAID` draws avatars, and the billed one is the only thing `lib/avatar.ts` will
   reach for. Falling back either way spends the wrong key. Both are optional everywhere — without
   one the jury scores 5, without the other the avatar machine answers "offline", and local and e2e
   depend on both. Every test helper pins BOTH variables, because the vitest pool reads a
   developer's `.env` and absence is never the default.
-- **The jury never blocks an upload**: `waitUntil`, and any throw stores score 5,
-  `ai_status = 'failed'` and NO caption. It UPSERTs, which makes one function both the first pass
-  and the admin retry.
-- **`lib/gemini.ts` makes TWO photograph calls, and the second one knows nothing**:
+- **The jury never blocks an upload**: `waitUntil`, and a throw leaves the day's PREVIOUS verdicts
+  exactly where they were rather than overwriting nine good ones with fives because the tenth
+  upload's call timed out. `lib/photo-score.ts` ranks a WHOLE DAY (`rankDay`) — one text-only call
+  over every described snap, keyed by `photos.id` in both directions — and the score IS the order:
+  reals, distinct within the day, nothing storing a rank beside them. A response with a repeated
+  score, a missing id or an id nobody sent is a PARSE FAILURE, because a tie is the one thing the
+  scoring half cannot break.
+  - **Newest run wins, by a per-day stamp in `day_rankings`.** Two uploads seconds apart race and
+    there is no `alone()` outside `RealtimeDO`; comparing photo sets does not close it, because two
+    runs over the SAME set are reachable and their two orders would interleave row by row. The stamp
+    is claimed in one statement before the call and re-read before every row, so an overtaken run
+    writes nothing further.
+  - **The write is per row, never one `db.batch`**: `photo_scores.photo_id` is a real FK, so one
+    snap retired mid-call would roll the whole day back. The dead row is skipped and the day stands.
+    It UPSERTs, which is what makes a re-rank replace the day's verdicts rather than add a set.
+  - **A keyless environment still produces rows**: the day-level fallback writes 5 with
+    `ai_status = 'failed'` for every snap, because a missing verdict reads as "not ranked yet"
+    forever and no Playwright environment has a key. Distinctness cannot hold across it — that is
+    the unscored-field case `scoreDay` answers with the median position.
+  - A snap with no `ok` description is left OUT of the batch rather than judged blind, and has no
+    row at all: on the wire its `aiStatus` is `null`, the absence `scoreDay` already prices.
+- **`lib/gemini.ts` makes THREE photograph calls and one that is not about a photograph at all** —
+  the day's ranking reads descriptions and sends no image bytes, which is why `generateContent`
+  takes PARTS rather than a required image. The second photograph call knows nothing:
   `requestDescription` is THEME-BLIND and JURY-BLIND — no jury, no theme, no persona, no score in its
   prompt — because `photo_descriptions_photo_idx` allows one row per photograph and nothing re-runs
   it when the jury or theme changes, so every later reader gets that same text. It judges
-  photographs, so it reads `GEMINI_API_KEY` and never the billed key. It is its OWN `waitUntil`
-  beside the verdict's rather than a step chained after it, so neither call waits on what the other
-  learns and it blocks an upload no more than the jury does; a failure stores a row that SAYS it
-  failed (`lib/photo-description.ts`), since a missing one reads as "not described yet" forever. It
-  UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are one function, and
-  the state reaches the console on `dayPhotosSchema`'s parallel `descriptions` array — never as a
-  field on `photoSchema`, whose masking is the player's. Nothing scores off the text yet.
+  photographs, so it reads `GEMINI_API_KEY` and never the billed key. The upload's ONE `waitUntil`
+  chains the ranking BEHIND it, since the ranking reads the day's descriptions and starting it first
+  would rank a day this snap is not yet in — but the upload still waits on neither; a failure stores
+  a row that SAYS it failed (`lib/photo-description.ts`), since a missing one reads as "not described
+  yet" forever. It UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are
+  one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`
+  array — never as a field on `photoSchema`, whose masking is the player's. **The description is the
+  ONLY record of the photograph the jury ever sees**: a snap the describer never read is a snap the
+  jury cannot rank.
 - **Avatars are the opposite trade**: synchronous, no fallback, a failure the player reads. Two caps
   are STORED config an admin PATCHes (`settings`, seeded with what used to be compiled in), and 0 is
   legal — a closed machine. They are decided in ONE statement so two requests cannot spend the last slot;
@@ -146,12 +169,14 @@
 - ONE `isAdmin` gate on the admin sub-router, not per handler — which is why the console's routers
   are mounted ON `adminRoutes` rather than in `index.ts`, where `adminEventRoutes` sits outside that
   gate and carries its own. What it serves is COUNTS, CONFIG and the operator's LEVERS — the clock,
-  retirement and the bucket — plus, for RETIRED KEYS ONLY, bytes: a retired snap has no `photos` row
+  retirement, the bucket and the day's jury batch (`POST /api/admin/days/:day/rank`, whose state
+  rides on `dayPhotosSchema` beside the descriptions) — plus, for RETIRED KEYS ONLY, bytes: a retired snap has no `photos` row
   left to serve it through, and it is the one object the console can render because
   `retired_photos` is the only thing still naming its content type. A true orphan is listed as a key
   and a size and never fetched, a live snap and a sprite keep their own routes, and no score or
   sprite is served here. The caps PATCH is the one config lever, a count is not, and neither it nor
-  a retry broadcasts; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
+  a re-rank broadcasts — no verdict reaches any client before its day is revealed, so there is
+  nothing to invalidate; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
   only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
   worker — Google reports no billing figures — so a price per image never crosses the wire.
   **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app

@@ -6,7 +6,6 @@ import { BowserPanel } from "@/admin/BowserPanel";
 import { BucketPanel } from "@/admin/BucketPanel";
 import { ClockPanel } from "@/admin/ClockPanel";
 import { PrizesPanel } from "@/admin/PrizesPanel";
-import { RetryPanel } from "@/admin/RetryPanel";
 import { RigPanel } from "@/admin/RigPanel";
 import { SnapsPanel } from "@/admin/SnapsPanel";
 import { useAuth } from "@/context/AuthContext";
@@ -21,7 +20,6 @@ const SECTIONS = [
   { id: "rig", label: "Rigged landings" },
   { id: "avatars", label: "Avatars" },
   { id: "bench", label: "Jury bench" },
-  { id: "retries", label: "Jury retries" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -100,7 +98,6 @@ export function AdminConsole() {
           {section === "rig" && <RigPanel />}
           {section === "avatars" && <AvatarsPanel clock={state} />}
           {section === "bench" && <BenchPanel />}
-          {section === "retries" && <RetryPanel clock={state} />}
         </main>
       </div>
     </div>

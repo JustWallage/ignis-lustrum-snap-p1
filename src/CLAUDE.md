@@ -93,8 +93,10 @@
 - The ballot has **no confirm and no Save button** — every tap is one tap from undone, debounce-saved
   through the idempotent PUT, and the readout reads the route's refusal rather than swallowing it.
   `tapRank` is the only rank decision and always returns a contiguous 1..n.
-- `lib/rating.ts` is the ONE place the jury's rating is worded: every surface printing it reads it
-  from there, and independently written "AI n/10" strings are how it drifted (#97). `useChampion`
+- `lib/rating.ts` is the ONE place the jury's rating is worded, the operator's console included:
+  every surface printing it reads it from there, independently written "AI n/10" strings are how it
+  drifted (#97), and it is also the only thing that ROUNDS — the stored score carries decimals
+  because it is the day's order, so two snaps reading `8/10` are not a tie underneath. `useChampion`
   reads the same results query the archive and reveal read, so the plinth cannot disagree with the
   scoreboard.
 - **A peer figure is green and a jury figure blue, everywhere either prints** — `.ink-peer` /

@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -104,15 +105,31 @@ export const photoScores = sqliteTable(
     photoId: integer("photo_id")
       .notNull()
       .references(() => photos.id),
-    aiScore: integer("ai_score").notNull(),
+    aiScore: real("ai_score").notNull(),
     critique: text("critique").notNull(),
-    caption: text("caption"),
     bonusDetected: integer("bonus_detected", { mode: "boolean" }).notNull(),
     bonusReason: text("bonus_reason").notNull(),
     aiStatus: text("ai_status", { enum: ["ok", "failed"] }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (t) => [uniqueIndex("photo_scores_photo_idx").on(t.photoId)],
+);
+
+export const dayRankings = sqliteTable(
+  "day_rankings",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    day: integer("day").notNull(),
+    // Claimed by an UPSERT that bumps it, so two re-ranks racing over one day get two
+    // different numbers and the higher one wins. It is not a foreign key to anything:
+    // a day is an integer with no row of its own.
+    runStamp: integer("run_stamp").notNull(),
+    status: text("status", { enum: ["ok", "failed"] }).notNull(),
+    // Null until a run FINISHES, which is what tells "never ranked" from "ranked and
+    // the model choked": a claim that never comes back leaves `failed` with no time.
+    ranAt: integer("ran_at", { mode: "timestamp" }),
+  },
+  (t) => [uniqueIndex("day_rankings_day_idx").on(t.day)],
 );
 
 export const photoDescriptions = sqliteTable(

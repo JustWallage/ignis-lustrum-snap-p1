@@ -16,7 +16,6 @@ function result(photoId: number, name: string, rank: number): DayResult {
     aiStatus: "ok",
     bonus: false,
     critique: null,
-    juryCaption: null,
     noVotePenalty: false,
   };
 }

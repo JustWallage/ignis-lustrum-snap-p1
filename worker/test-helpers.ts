@@ -7,7 +7,6 @@ import { env } from "cloudflare:workers";
 import { afterEach, expect, vi } from "vitest";
 import { z } from "zod";
 import {
-  failedEvaluationsSchema,
   photoSchema,
   prizeListSchema,
   prizesPath,
@@ -540,18 +539,96 @@ export function geminiReply(text: string): Response {
   });
 }
 
+/** The bench's shape: ONE photograph, one score, no ids. Nothing else asks Gemini for
+ * a verdict about a single picture any more. */
 export const VERDICT = {
   score: 9,
   critique: "The light is doing all the work, and it is working.",
-  caption: "Low Sun Over A Bad Idea",
   bonusDetected: true,
   bonusReason: "A hot dog, lower left.",
 };
 
-export function stubGemini(reply: () => Promise<Response> | Response) {
-  const mock = vi.fn((_url: string, _init: RequestInit) => reply());
+export const DESCRIBED = {
+  subject: "A man in a yellow raincoat holding a dripping umbrella.",
+  objects: "An umbrella, a bicycle, two crates of apples, a folded newspaper.",
+  readableText: '"MARKT" on the awning, "7" chalked on a crate.',
+  setting: "An open-air market street, wet cobbles, late afternoon.",
+  composition: "Eye level, subject a third from the left, stalls receding.",
+  light: "Flat overcast light from above, no hard shadows, even exposure.",
+  technical: "Sharp on the coat, slight motion blur on the bicycle wheel.",
+  colour: "Muted greys and browns with the coat as the one saturated note.",
+  oddities: "A second umbrella lies unopened in a puddle.",
+};
+
+const DESCRIBING_TEXT = "Describe this photograph";
+
+export const DESCRIBING = new RegExp(DESCRIBING_TEXT);
+
+export const RANKING = /judging today's entries/;
+
+export const RANKED_CRITIQUE = "Het licht doet al het werk, en het werkt goed.";
+
+export function stubGemini(
+  reply: (url: string, init: RequestInit) => Promise<Response> | Response,
+) {
+  const mock = vi.fn((url: string, init: RequestInit) => reply(url, init));
   vi.stubGlobal("fetch", mock);
   return mock;
+}
+
+export function promptOf(init: RequestInit): string {
+  const body = geminiRequestSchema.parse(
+    JSON.parse(z.string().parse(init.body)),
+  );
+  return (body.contents[0]?.parts ?? [])
+    .map((part) => part.text ?? "")
+    .join("");
+}
+
+/** Every id the ranking prompt actually asked about. Read off the prompt rather than
+ * passed in, because a verdict keyed by an id nobody sent is a parse failure — a stub
+ * answering a list of its own would be testing the wrong thing. */
+function askedIds(prompt: string): number[] {
+  return [...prompt.matchAll(/^Entry (\d+):$/gm)].map((found) =>
+    Number(found[1]),
+  );
+}
+
+/** What `geminiDayReply` scores the entry in position `at`, highest first: half a point
+ * apart, because two equal scores are a parse failure and a stub that answered a tie
+ * would be testing the refusal instead of the day. Halves are exact in binary, so a
+ * test may compare these to what came back out of SQLite. */
+export function rankedScore(at: number): number {
+  return 9 - at * 0.5;
+}
+
+/**
+ * Answers BOTH calls an upload makes: the description, then the day's ranking. A fixed
+ * reply cannot serve the second — it is keyed by `photos.id` and its scores must all
+ * differ — so the verdicts are built from the ids the prompt actually asked about.
+ */
+export function geminiDayReply(_url: string, init: RequestInit): Response {
+  const prompt = promptOf(init);
+  if (prompt.includes(DESCRIBING_TEXT)) {
+    return geminiReply(JSON.stringify(DESCRIBED));
+  }
+  return geminiReply(
+    JSON.stringify({
+      verdicts: askedIds(prompt).map((photoId, at) => ({
+        photoId,
+        score: rankedScore(at),
+        critique: RANKED_CRITIQUE,
+        bonusDetected: true,
+        bonusReason: RANKED_BONUS,
+      })),
+    }),
+  );
+}
+
+export const RANKED_BONUS = "Een hotdog, linksonder.";
+
+export function stubGeminiDay() {
+  return stubGemini(geminiDayReply);
 }
 
 /** Every one of these four pins BOTH variables, the one it wants and the other to
@@ -581,9 +658,8 @@ export function withAvatarKeyOnly(): object {
 }
 
 const storedScoreSchema = z.object({
-  ai_score: z.int(),
+  ai_score: z.number(),
   critique: z.string(),
-  caption: z.string().nullable(),
   bonus_detected: z.int(),
   bonus_reason: z.string(),
   ai_status: z.enum(["ok", "failed"]),
@@ -591,11 +667,40 @@ const storedScoreSchema = z.object({
 
 export async function storedScore(photoId: number) {
   const row = await env.DB.prepare(
-    "SELECT ai_score, critique, caption, bonus_detected, bonus_reason, ai_status FROM photo_scores WHERE photo_id = ?",
+    "SELECT ai_score, critique, bonus_detected, bonus_reason, ai_status FROM photo_scores WHERE photo_id = ?",
   )
     .bind(photoId)
     .first();
   return row === null ? null : storedScoreSchema.parse(row);
+}
+
+/** The day's scores in the order the jury put them, highest first: what a test about
+ * distinctness or about an overtaken run has to read. */
+export async function storedDayScores(day: number): Promise<number[]> {
+  const rows = await env.DB.prepare(
+    "SELECT ai_score FROM photo_scores JOIN photos ON photos.id = photo_scores.photo_id WHERE photos.day = ? ORDER BY ai_score DESC",
+  )
+    .bind(day)
+    .all();
+  return z
+    .array(z.object({ ai_score: z.number() }))
+    .parse(rows.results)
+    .map((row) => row.ai_score);
+}
+
+const storedRankingSchema = z.object({
+  run_stamp: z.int(),
+  status: z.enum(["ok", "failed"]),
+  ran_at: z.int().nullable(),
+});
+
+export async function storedRanking(day: number) {
+  const row = await env.DB.prepare(
+    "SELECT run_stamp, status, ran_at FROM day_rankings WHERE day = ?",
+  )
+    .bind(day)
+    .first();
+  return row === null ? null : storedRankingSchema.parse(row);
 }
 
 const storedDescriptionSchema = z.object({
@@ -641,15 +746,7 @@ export function geminiCallAsking(
   asking: RegExp,
 ): { url: string; init: RequestInit; prompt: string } {
   const asked = calls
-    .map(([url, init]) => {
-      const body = geminiRequestSchema.parse(
-        JSON.parse(z.string().parse(init.body)),
-      );
-      const prompt = (body.contents[0]?.parts ?? [])
-        .map((part) => part.text ?? "")
-        .join("");
-      return { url, init, prompt };
-    })
+    .map(([url, init]) => ({ url, init, prompt: promptOf(init) }))
     .filter(({ prompt }) => asking.test(prompt));
   const [only, ...rest] = asked;
   if (only === undefined || rest.length > 0) {
@@ -676,29 +773,11 @@ export const geminiRequestSchema = z.object({
   generationConfig: z.object({ responseMimeType: z.string() }),
 });
 
-// No jury key is exactly the shape of a bad Gemini day, so every upload in
-// these blocks lands a `failed` row for the retry to find.
-
-export async function failedCount(
-  cookie: string,
-  day?: number,
-): Promise<number> {
-  const query = day === undefined ? "" : `?day=${day}`;
-  const res = await app.request(
-    `/api/admin/evaluate${query}`,
-    { headers: { Cookie: cookie } },
-    env,
-  );
-  expect(res.status).toBe(200);
-  return failedEvaluationsSchema.parse(await res.json()).failed;
-}
-
-export async function postRetry(
-  cookie: string,
-  path: string,
-): Promise<Response> {
+/** The console's own re-rank, which is the only surface that asks for a day's verdicts
+ * outside an upload. Runs with the jury's key, since no test pool has one. */
+export async function postRank(cookie: string, day: number): Promise<Response> {
   return app.request(
-    path,
+    `/api/admin/days/${String(day)}/rank`,
     { method: "POST", headers: { Cookie: cookie } },
     withGeminiKey(),
   );
