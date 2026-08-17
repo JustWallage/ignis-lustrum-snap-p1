@@ -75,6 +75,7 @@ import {
   strideTo,
   type Stride,
 } from "@/game/stride";
+import { decorLayer } from "@/game/decor";
 import { animFrame, drawTile, TILE, tileAtlas } from "@/game/tiles";
 import { useAvatarDraw } from "@/hooks/useAvatarDraw";
 import { useChampion } from "@/hooks/useChampion";
@@ -1014,17 +1015,19 @@ export function Overworld() {
   const draw = useCallback(
     (ctx: CanvasRenderingContext2D, now: number) => {
       if (splashRef.current) {
-        drawSplash(ctx, now, crowdRef.current, juryRef.current.palette);
+        drawSplash(ctx, now, crowdRef.current);
         return;
       }
       const local = poseAt(posRef.current, stepRef.current, now);
 
-      const atlas = tileAtlas(animFrame(now), juryRef.current.palette);
+      const frame = animFrame(now);
+      const atlas = tileAtlas(frame);
       for (let ty = 0; ty < MAP_H; ty++) {
         for (let tx = 0; tx < MAP_W; tx++) {
           drawTile(ctx, atlas, tileAt(tx, ty), tx, ty);
         }
       }
+      ctx.drawImage(decorLayer(juryRef.current.decor, frame), 0, 0);
 
       // Painter's order: lower on the screen is drawn on top. The sort is stable, and
       // the local player is NOT in it — being last in a `y` sort only wins a shared

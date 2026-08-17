@@ -9,22 +9,28 @@ export const jurySpriteSchema = z.object({
 });
 export type JurySprite = z.infer<typeof jurySpriteSchema>;
 
-export const juryPaletteSchema = z.enum([
-  "sea",
-  "sunset",
-  "ember",
-  "steel",
-  "frost",
-  "neon",
-  "timber",
-  "candy",
+export const juryDecorSchema = z.enum([
+  "voyage",
+  "hearts",
+  "kitchen",
+  "flames",
+  "cans",
+  "boulders",
+  "pink",
+  "workshop",
+  "delft",
+  "gallery",
+  "oranje",
+  "beach",
+  "christmas",
+  "toys",
 ]);
-export type JuryPalette = z.infer<typeof juryPaletteSchema>;
+export type JuryDecor = z.infer<typeof juryDecorSchema>;
 
 export const jurySchema = z.object({
   name: line,
   theme: line,
-  palette: juryPaletteSchema,
+  decor: juryDecorSchema,
   bonusItem: line,
   bonusPrompt: line,
   critiquePersona: line,
@@ -43,7 +49,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Christopher Columbus",
     theme: "Voyage",
-    palette: "sea",
+    decor: "voyage",
     bonusItem: "water",
     bonusPrompt:
       "Is there visible water in this photo — sea, river, rain, a puddle, a glass?",
@@ -59,7 +65,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Insta Juan",
     theme: "Instagrammable",
-    palette: "sunset",
+    decor: "hearts",
     bonusItem: "a sunset",
     bonusPrompt:
       "Does this photo show the sun, a sunset or strong golden light?",
@@ -75,7 +81,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Gorden Ramsey",
     theme: "Iets vets",
-    palette: "steel",
+    decor: "kitchen",
     bonusItem: "a pan or a plate",
     bonusPrompt:
       "Is there kitchen equipment in this photo — a pan, a stove, a knife, a plate?",
@@ -91,7 +97,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "De Phoenix",
     theme: "Iets vlammends",
-    palette: "ember",
+    decor: "flames",
     bonusItem: "a beer can or bottle",
     bonusPrompt: "Is there a beer can or a beer bottle in this photo?",
     critiquePersona:
@@ -106,7 +112,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Halve liter blik",
     theme: "Iets groots",
-    palette: "frost",
+    decor: "cans",
     bonusItem: "something metal",
     bonusPrompt: "Is there a clearly metallic object in this photo?",
     critiquePersona:
@@ -121,7 +127,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "The Rock",
     theme: "Iets hards",
-    palette: "steel",
+    decor: "boulders",
     bonusItem: "a bald head",
     bonusPrompt: "Is there a bald or shaven head in this photo?",
     critiquePersona:
@@ -136,7 +142,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Geer en Goor",
     theme: "Iets gays",
-    palette: "neon",
+    decor: "pink",
     bonusItem: "anything starting with a G",
     bonusPrompt:
       "Does this photo contain an object whose Dutch name starts with the letter G?",
@@ -152,7 +158,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "De lustrum orga",
     theme: "Iets dat schuurt",
-    palette: "timber",
+    decor: "workshop",
     bonusItem: "a shed or a workshop",
     bonusPrompt:
       "Is there a shed, a garage or a workshop visible in this photo?",
@@ -168,7 +174,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Edo",
     theme: "Iets Delfts",
-    palette: "sea",
+    decor: "delft",
     bonusItem: "a train or a railway",
     bonusPrompt: "Is there a train, a tram or a railway track in this photo?",
     critiquePersona:
@@ -183,7 +189,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Clownathan",
     theme: "Kunst",
-    palette: "neon",
+    decor: "gallery",
     bonusItem: "a face",
     bonusPrompt: "Is a person's face clearly visible in this photo?",
     critiquePersona:
@@ -198,7 +204,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Willem Alexander",
     theme: "Je passie",
-    palette: "sunset",
+    decor: "oranje",
     bonusItem: "a glass of beer",
     bonusPrompt: "Is there a glass of beer in this photo?",
     critiquePersona:
@@ -213,7 +219,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Dries Roelvink",
     theme: "Iets ludieks",
-    palette: "candy",
+    decor: "beach",
     bonusItem: "swimwear",
     bonusPrompt:
       "Is anyone in this photo wearing swimwear — a swimsuit, trunks or a bikini?",
@@ -229,7 +235,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Mariah Carey",
     theme: "Kerst",
-    palette: "frost",
+    decor: "christmas",
     bonusItem: "something white",
     bonusPrompt:
       "Is there a large white area or a clearly white object in this photo?",
@@ -245,7 +251,7 @@ export const JURIES: readonly [Jury, ...Jury[]] = [
   {
     name: "Douwe Delfos",
     theme: "Iets kinderachtigs",
-    palette: "candy",
+    decor: "toys",
     bonusItem: "a ball",
     bonusPrompt: "Is there a ball in this photo?",
     critiquePersona:

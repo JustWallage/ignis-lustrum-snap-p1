@@ -1,7 +1,7 @@
 // A ramp maps shade LETTERS rather than luminance, so a tile may spend its darkest slot
 // on a bright colour — which is how flower petals come out pink.
 
-import type { JuryPalette, JurySprite } from "@shared/juries";
+import type { JurySprite } from "@shared/juries";
 
 export interface Ramp {
   lightest: string;
@@ -134,50 +134,6 @@ export const TILE_RAMPS: Record<string, Ramp> = {
 
 export function rampFor(tile: string): Ramp {
   return TILE_RAMPS[tile] ?? GRASS;
-}
-
-/** A table of ramps per palette instead of a tint is 112 ramps that drift out of step
- * with the art the first time a tile is redrawn. */
-const PALETTE_TINTS: Record<JuryPalette, string> = {
-  sea: "#2878d8",
-  sunset: "#f88030",
-  ember: "#e03020",
-  steel: "#8898b0",
-  frost: "#c8f0ff",
-  neon: "#e040c0",
-  timber: "#a06828",
-  candy: "#ff70b0",
-};
-
-const TINT_STRENGTH: Record<keyof Ramp, number> = {
-  lightest: 0.2,
-  light: 0.18,
-  dark: 0.12,
-  darkest: 0.05,
-};
-
-function channel(hex: string, at: number): number {
-  return Number.parseInt(hex.slice(at, at + 2), 16);
-}
-
-function mix(base: string, tint: string, amount: number): string {
-  const shifted = [1, 3, 5].map((at) => {
-    const from = channel(base, at);
-    const value = Math.round(from + (channel(tint, at) - from) * amount);
-    return value.toString(16).padStart(2, "0");
-  });
-  return `#${shifted.join("")}`;
-}
-
-export function themedRampFor(tile: string, palette: JuryPalette): Ramp {
-  const base = rampFor(tile);
-  const tint = PALETTE_TINTS[palette];
-  return {
-    lightest: mix(base.lightest, tint, TINT_STRENGTH.lightest),
-    light: mix(base.light, tint, TINT_STRENGTH.light),
-    dark: mix(base.dark, tint, TINT_STRENGTH.dark),
-    darkest: mix(base.darkest, tint, TINT_STRENGTH.darkest),
-  };
 }
 
 export interface SpriteRamp {

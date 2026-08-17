@@ -1,30 +1,11 @@
-import type { JuryPalette } from "@shared/juries";
-import { themedRampFor, TILE_RAMPS, type Ramp } from "@/game/palette";
+import { rampFor, TILE_RAMPS, type Ramp } from "@/game/palette";
+import { blit } from "@/game/pixels";
 
 export const TILE = 16;
 
 const ORDER = Object.keys(TILE_RAMPS);
 
 type Ctx = CanvasRenderingContext2D;
-
-const SHADES: Record<string, keyof Ramp> = {
-  ".": "lightest",
-  l: "light",
-  d: "dark",
-  k: "darkest",
-};
-
-function blit(ctx: Ctx, rows: readonly string[], ramp: Ramp, ox = 0, oy = 0) {
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const shade = SHADES[row.charAt(x)];
-      if (shade !== undefined) {
-        ctx.fillStyle = ramp[shade];
-        ctx.fillRect(ox + x, oy + y, 1, 1);
-      }
-    }
-  });
-}
 
 const GRASS_ROWS = [
   "l...l...l...l...",
@@ -102,7 +83,9 @@ const TALL_GRASS_ROWS = [
   ".d.l..d.l..d.l..",
 ];
 
-const TREE_ROWS = [
+/** Exported because a themed tree is this silhouette in other colours
+ * (`game/decor.ts`): a second copy of it would drift the moment the art is redrawn. */
+export const TREE_ROWS = [
   "................",
   "....kkkkkkkk....",
   "..kkldldldllkk..",
@@ -304,7 +287,7 @@ function paint(ctx: Ctx, tile: string, frame: 0 | 1, ramp: Ramp) {
   } else blit(ctx, GRASS_ROWS, ramp);
 }
 
-function buildAtlas(frame: 0 | 1, palette: JuryPalette): HTMLCanvasElement {
+function buildAtlas(frame: 0 | 1): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = TILE * ORDER.length;
   canvas.height = TILE;
@@ -316,23 +299,19 @@ function buildAtlas(frame: 0 | 1, palette: JuryPalette): HTMLCanvasElement {
     ctx.beginPath();
     ctx.rect(0, 0, TILE, TILE);
     ctx.clip();
-    paint(ctx, tile, frame, themedRampFor(tile, palette));
+    paint(ctx, tile, frame, rampFor(tile));
     ctx.restore();
   });
   return canvas;
 }
 
-const atlases = new Map<string, HTMLCanvasElement>();
+const atlases = new Map<0 | 1, HTMLCanvasElement>();
 
-export function tileAtlas(
-  frame: 0 | 1,
-  palette: JuryPalette,
-): HTMLCanvasElement {
-  const key = `${palette}:${frame}`;
-  const cached = atlases.get(key);
+export function tileAtlas(frame: 0 | 1): HTMLCanvasElement {
+  const cached = atlases.get(frame);
   if (cached !== undefined) return cached;
-  const built = buildAtlas(frame, palette);
-  atlases.set(key, built);
+  const built = buildAtlas(frame);
+  atlases.set(frame, built);
   return built;
 }
 

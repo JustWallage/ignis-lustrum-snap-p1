@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JURIES, juryForDay, juryPaletteSchema, jurySchema } from "./juries";
+import { JURIES, juryDecorSchema, juryForDay, jurySchema } from "./juries";
 
 describe("JURIES", () => {
   it("is a fortnight long", () => {
@@ -31,16 +31,10 @@ describe("JURIES", () => {
     }
   });
 
-  it("never paints the town the same two days running, the wrap included", () => {
-    JURIES.forEach((jury, index) => {
-      const yesterday = juryForDay(index);
-      expect(jury.palette, jury.name).not.toBe(yesterday.palette);
-    });
-  });
-
-  it("wears every palette the enum offers", () => {
-    const worn = new Set(JURIES.map((jury) => jury.palette));
-    expect([...worn].sort()).toEqual([...juryPaletteSchema.options].sort());
+  it("gives every jury a town of its own to dress", () => {
+    const dressings = JURIES.map((jury) => jury.decor);
+    expect(new Set(dressings).size).toBe(dressings.length);
+    expect([...dressings].sort()).toEqual([...juryDecorSchema.options].sort());
   });
 
   it("gives every jury a distinct look", () => {
