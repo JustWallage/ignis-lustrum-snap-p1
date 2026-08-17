@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { commentSubjectSchema } from "./api";
 import { eventStateSchema } from "./events";
+import { jukeboxStateSchema } from "./jukebox";
 import { MESSAGE_MAX_CHARS, presencePlayerSchema } from "./presence";
 import { gameStateSchema } from "./state";
 
@@ -42,6 +43,13 @@ export const wsEventSchema = z.discriminatedUnion("type", [
     name: z.string(),
   }),
   z.object({ type: z.literal("presence_talk_end"), id: z.string() }),
+  // Prefixed for that same reason, and it carries no identity: a record starting is not
+  // content news — no day, ballot, comment or scoreboard moves with it, and revalidating
+  // every cached fetch twice a song is the load test the filter exists to prevent.
+  z.object({
+    type: z.literal("presence_jukebox"),
+    jukebox: jukeboxStateSchema,
+  }),
 ]);
 
 export type WsEvent = z.infer<typeof wsEventSchema>;

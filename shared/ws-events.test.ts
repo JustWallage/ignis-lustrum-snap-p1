@@ -17,6 +17,7 @@ describe("WS_EVENT_TYPES", () => {
       "photo_deleted",
       "photo_liked",
       "presence_here",
+      "presence_jukebox",
       "presence_left",
       "presence_moved",
       "presence_said",
@@ -52,7 +53,8 @@ describe("REVALIDATE_EVENT_TYPES", () => {
       "state_changed",
       "votes_changed",
     ]);
-    expect(REVALIDATE_EVENT_TYPES).toHaveLength(WS_EVENT_TYPES.length - 6);
+    expect(REVALIDATE_EVENT_TYPES).toHaveLength(WS_EVENT_TYPES.length - 7);
+    expect(REVALIDATE_EVENT_TYPES).not.toContain("presence_jukebox");
   });
 });
 
@@ -107,6 +109,25 @@ describe("wsEventSchema", () => {
     expect(wsEventSchema.parse(started)).toEqual(started);
     const ended = { type: "presence_talk_end", id: "sock-1" };
     expect(wsEventSchema.parse({ ...ended, name: "tester" })).toEqual(ended);
+  });
+
+  it("carries what is playing and when it started, and nobody's name", () => {
+    const event = {
+      type: "presence_jukebox",
+      jukebox: {
+        playing: {
+          trackId: "Nena - 99 Luftballons",
+          startedAt: 1_700_000_000_000,
+          endsAt: 1_700_000_180_000,
+        },
+      },
+    };
+    expect(wsEventSchema.parse(event)).toEqual(event);
+    expect(
+      wsEventSchema.parse({ ...event, userId: 4, name: "tester" }),
+    ).toEqual(event);
+    const silence = { type: "presence_jukebox", jukebox: { playing: null } };
+    expect(wsEventSchema.parse(silence)).toEqual(silence);
   });
 
   it("rejects an unknown phase and an unknown event type", () => {
