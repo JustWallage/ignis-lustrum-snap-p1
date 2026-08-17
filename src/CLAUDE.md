@@ -69,7 +69,11 @@
   crowd stands right across the countdown — so the column makes the room and nothing on it has to
   dodge. The padding and the portrait are ONE container query, because a strip nobody stands in is
   a bite out of the screen; below that width the column takes the strip back and the portrait is
-  the half that goes. The picture is authored art keyed on the jury's NAME
+  the half that goes — the width where 13cqw stops covering the art's own 40 pixels, which
+  every phone held upright is above. The beast is the one thing that takes the strip back
+  (a negative margin in that same query): it enters at `115%` of its own stage while
+  `.gb-beast` is `cqw`, so a narrowed stage starts its entrance on screen, and it walks in
+  FRONT of the portrait. The picture is authored art keyed on the jury's NAME
   (`game/portraits.ts`, drawn by `scripts/jury-portraits.mjs`), never `jurySpriteSchema`'s
   hat/hair/outfit triple, and a plain `<img>`: `keyOutBackground` keys white out of
   MACHINE-drawn sprites, and art authored with transparency needs none of it.

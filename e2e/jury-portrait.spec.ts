@@ -165,7 +165,7 @@ test("on a shell too narrow for both, the portrait goes rather than the screen",
     wide.x + wide.width / 2 - 1,
   );
 
-  await page.setViewportSize({ width: 360, height: 780 });
+  await page.setViewportSize({ width: 300, height: 640 });
   await expect(portrait).toBeHidden();
   const narrow = await boxOf(page, "event-overlay");
   const dayWhenNarrow = await boxAround(page.locator(".gb-event-day"));
