@@ -98,8 +98,8 @@ async function likeState(
   };
 }
 
-/** The snap gone mid-description is the one case that ranks nothing: its row is going
- * with it, and whatever replaces it brings its own upload. */
+/** A snap that has gone needs no ranking: its row went with it, and where it was
+ * REPLACED rather than deleted, the replacement brought its own upload. */
 async function describeThenRank(
   env: Bindings,
   image: { id: number; data: string; contentType: string },
