@@ -1,5 +1,5 @@
 // Legend: T tree · W water · R roof · S side wall · H front wall · D door
-//         A archive shelf · Y trophy plinth (all solid)
+//         A archive shelf · Y trophy plinth · J jukebox (all solid)
 //         . grass · t tall grass · P path · F flowers · s shore sand
 //         f floor (all walkable)
 //
@@ -18,7 +18,7 @@ export type Direction = z.infer<typeof directionSchema>;
 
 export const MAP_ROWS = [
   "RRRRRTTTTT",
-  "SYfAS.t..T",
+  "SYfAS.t.JT",
   "SfffS.t..T",
   "HHDHH....T",
   "T...PP...T",
@@ -44,6 +44,8 @@ export const NEIGHBOUR: Point = { x: 5, y: 7 };
 export const SHELF: Point = { x: 3, y: 1 };
 
 export const TROPHY: Point = { x: 1, y: 1 };
+
+export const JUKEBOX: Point = { x: 8, y: 1 };
 
 const OCCUPIED: readonly Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR];
 

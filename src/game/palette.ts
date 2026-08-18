@@ -87,6 +87,25 @@ const TROPHY: Ramp = {
   darkest: "#8c5c14",
 };
 
+const JUKEBOX_WOOD = "#8c3c58";
+const JUKEBOX_OUTLINE = "#200c18";
+
+// `light` is the ONE slot that differs between dark and lit, and every lamp spends it: that
+// is what makes the lit look a second GLYPH rather than a second drawing path.
+const JUKEBOX_DARK: Ramp = {
+  lightest: GRASS_LIGHTEST,
+  light: "#582838",
+  dark: JUKEBOX_WOOD,
+  darkest: JUKEBOX_OUTLINE,
+};
+
+const JUKEBOX_LIT: Ramp = {
+  lightest: GRASS_LIGHTEST,
+  light: "#f8d860",
+  dark: JUKEBOX_WOOD,
+  darkest: JUKEBOX_OUTLINE,
+};
+
 const ROOF: Ramp = {
   lightest: "#f8c0a8",
   light: "#e05038",
@@ -130,6 +149,10 @@ export const TILE_RAMPS: Record<string, Ramp> = {
   f: FLOOR,
   A: SHELF,
   Y: TROPHY,
+  J: JUKEBOX_DARK,
+  // The one key no `MAP_ROWS` character is. `tileOffset` resolves a character against
+  // `ORDER`, which is these keys, so being one is exactly what "can be drawn" means.
+  j: JUKEBOX_LIT,
 };
 
 export function rampFor(tile: string): Ramp {

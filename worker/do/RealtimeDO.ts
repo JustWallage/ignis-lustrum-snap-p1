@@ -20,6 +20,15 @@ import {
   type EventState,
 } from "../../shared/events";
 import {
+  isPressTooSoon,
+  jukeboxStateSchema,
+  nowPlaying,
+  SILENT,
+  startedRecord,
+  type JukeboxState,
+  type PutRecord,
+} from "../../shared/jukebox";
+import {
   isPresenceTooSoon,
   isSayTooSoon,
   isTalkOver,
@@ -36,6 +45,7 @@ import type { Bindings } from "../env";
 import { getDb } from "../lib/db";
 import { resultsForDays } from "../lib/day-results";
 import type { EventOutcome } from "../lib/event";
+import type { JukeboxOutcome } from "../lib/jukebox";
 import {
   advanceDayStatement,
   readGameState,
@@ -57,6 +67,19 @@ import {
 const STATE_KEY = "state_changed";
 
 const EVENT_KEY = "event_state";
+
+const JUKEBOX_KEY = "jukebox";
+
+/** ONE key holding a last-press time per presser rather than one key each, so winding it
+ * back is a single `delete` — `/api/test/reset` runs before every e2e test and a `list()` on
+ * that path is latency every test pays. */
+const PRESSED_KEY = "jukebox_pressed";
+
+const JUKEBOX_IN_EVENT =
+  "The town is watching the reveal. Put a record on once the event is over.";
+
+const JUKEBOX_TOO_SOON =
+  "Let the record settle. Fourteen friends and one cabinet is a stop-start war otherwise.";
 
 function frame(event: WsEvent): string {
   return JSON.stringify(wsEventSchema.parse(event));
@@ -134,6 +157,10 @@ export class RealtimeDO extends DurableObject<Bindings> {
         this.send(socket, frame({ type: "event_changed", state: event.data }));
       }
       this.expireGhosts(now);
+      const jukebox = await this.storedJukebox();
+      if (nowPlaying(jukebox, now) !== null) {
+        this.send(socket, frame({ type: "presence_jukebox", jukebox }));
+      }
       // BEFORE the roster, the way `event_changed` is: `openSocket` in
       // `worker/test-helpers.ts` reads the greeting until the roster on the documented
       // promise that the roster is last, and a frame after it desynchronises every DO
@@ -361,7 +388,51 @@ export class RealtimeDO extends DurableObject<Bindings> {
   }
 
   async setEventPhase(phase: GamePhase): Promise<EventState> {
-    return this.alone(() => this.publish({ ...idleEvent(), phase }));
+    return this.alone(async () => {
+      // `/api/test/*` is this method's only caller, and it winds the DO's whole stored world
+      // back: a cooldown that outlived the reset would refuse the first press of whichever
+      // test comes next on this shard.
+      await this.ctx.storage.delete(PRESSED_KEY);
+      return this.publish({ ...idleEvent(), phase });
+    });
+  }
+
+  private async storedJukebox(): Promise<JukeboxState> {
+    const stored = jukeboxStateSchema.safeParse(
+      await this.ctx.storage.get(JUKEBOX_KEY),
+    );
+    return stored.success ? stored.data : SILENT;
+  }
+
+  async setRecord(
+    userId: number,
+    press: PutRecord | null,
+  ): Promise<JukeboxOutcome> {
+    return this.alone(async () => {
+      const now = Date.now();
+      if (press !== null && (await this.readEvent()).phase !== "submission") {
+        return { ok: false, status: 409, error: JUKEBOX_IN_EVENT };
+      }
+      const pressed =
+        (await this.ctx.storage.get<Record<string, number>>(PRESSED_KEY)) ?? {};
+      const who = String(userId);
+      if (isPressTooSoon(pressed[who] ?? null, now)) {
+        return { ok: false, status: 409, error: JUKEBOX_TOO_SOON };
+      }
+      await this.ctx.storage.put(PRESSED_KEY, { ...pressed, [who]: now });
+      const jukebox: JukeboxState = {
+        playing: press === null ? null : startedRecord(press, now),
+      };
+      await this.ctx.storage.put(JUKEBOX_KEY, jukebox);
+      this.fanout(frame({ type: "presence_jukebox", jukebox }));
+      return { ok: true, jukebox };
+    });
+  }
+
+  private async clearRecord(): Promise<void> {
+    if ((await this.storedJukebox()).playing === null) return;
+    await this.ctx.storage.put(JUKEBOX_KEY, SILENT);
+    this.fanout(frame({ type: "presence_jukebox", jukebox: SILENT }));
   }
 
   /**
@@ -371,6 +442,7 @@ export class RealtimeDO extends DurableObject<Bindings> {
    * CLEARS it rather than leaving a stale one to fire into the next event.
    */
   private async publish(draft: EventDraft): Promise<EventState> {
+    await this.clearRecord();
     const db = getDb(this.env);
     await setGamePhase(db, draft.phase);
     const state = await readGameState(db);

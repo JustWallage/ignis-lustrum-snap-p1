@@ -508,6 +508,75 @@ export function nextPlayAt(cursor: number, now: number, lead: number): number {
 
 let voiceCursor = 0;
 
+const RECORD_GAIN = 1.8;
+
+/** ONE element with its `src` swapped: `createMediaElementSource` throws on a second call
+ * for the same element. */
+let record: HTMLAudioElement | null = null;
+
+/** Tracked here rather than read back off `element.src`, whose getter answers the ABSOLUTE,
+ * percent-encoded URL and so never equals the root-relative path the shelf holds — the
+ * comparison would always miss and every call would reload the file. */
+let playingUrl: string | null = null;
+
+function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
+  if (record !== null) return record;
+  const element = new Audio();
+  element.crossOrigin = "anonymous";
+  element.preload = "auto";
+  const gain = audio.createGain();
+  gain.gain.value = RECORD_GAIN;
+  audio.createMediaElementSource(element).connect(gain);
+  gain.connect(out);
+  // Forgotten on failure, or a screen whose load failed would skip the `src` assignment on
+  // the next press of that same record and stay silent until another one intervened.
+  element.addEventListener("error", () => {
+    playingUrl = null;
+  });
+  record = element;
+  return element;
+}
+
+export function playRecord(url: string, offsetSeconds: number): void {
+  whenLive((audio, out) => {
+    const element = recordElement(audio, out);
+    if (playingUrl !== url) {
+      element.src = url;
+      playingUrl = url;
+    }
+    element.currentTime = offsetSeconds;
+    element.play().catch(() => {
+      // This browser wants a gesture it has not had. Nothing to say about it.
+    });
+  });
+}
+
+export function stopRecord(): void {
+  record?.pause();
+}
+
+/** Null is what a file that is not there looks like — a missing asset URL answers
+ * `index.html` with a 200, never a 404, so nothing here may test playability by status
+ * code. */
+export async function recordDurationMs(url: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const probe = new Audio();
+    probe.preload = "metadata";
+    probe.addEventListener("loadedmetadata", () => {
+      const seconds = probe.duration;
+      resolve(
+        Number.isFinite(seconds) && seconds > 0
+          ? Math.round(seconds * 1000)
+          : null,
+      );
+    });
+    probe.addEventListener("error", () => {
+      resolve(null);
+    });
+    probe.src = url;
+  });
+}
+
 /** Deliberately does NOT ask `isMuted()`: mute is for the synthesised cues, and a muted
  * player still hears their friends. */
 export function speakSamples(samples: Float32Array, rate: number): void {

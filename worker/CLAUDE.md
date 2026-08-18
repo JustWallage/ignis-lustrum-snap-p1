@@ -76,6 +76,23 @@
   `saidAt`: `webSocketMessage` is synchronous, so an attachment needs no `alone()` where a storage
   key would. It frees itself by SILENCE the way `expireGhosts` does, never by an alarm — the DO has
   one slot and the event's deadlines own it — so a tab that dies mid-sentence cannot hold the town.
+- **What the jukebox is playing lives in `RealtimeDO`'s storage**, beside the event's key, and the
+  greeting sends it — so a reload or a late join lands inside the record. It goes to EVERY socket on
+  the unfiltered `fanout`, an anonymous one included, because the frame names no person and walking is
+  public; `fanoutHeard` stays the one filtered fanout. The greeting frame is CONDITIONAL, sent only
+  while a record is playing, unlike `event_changed`: silence is the common case and four assertions in
+  the existing suite pin that greeting exactly (`index.test.ts`, `do/voice.test.ts` twice,
+  `prizes.test.ts`), with `do/jukebox.test.ts` adding a fifth. **No alarm is ever set for a record**,
+  for the reason the bullet above gives, so a stale state expires when it is READ, the way the voice
+  channel frees itself by silence. **`publish` is what
+  clears the record**, which is one rule covering the countdown, an abort, the landing and
+  `POST /api/test/reset`; get that last one wrong and a record one e2e test left playing lights the
+  cabinet for every later test on that shard. The presser's last-press time is DO storage under ONE key
+  holding a time per presser, never broadcast, which is how a per-presser cooldown coexists with "the
+  wire carries no identity"; `lib/rate-limit.ts` is not the tool, its own comment calling it a per-isolate
+  window rather than an access control. Putting one on refuses OUTSIDE `submission`, with a reason, the way
+  the clock route refuses; a stop is refused by nothing but that cooldown, because it can make no
+  noise.
 - `lib/gemini.ts` (REST) and `lib/npc.ts` (Workers AI) are not interchangeable. **Verify both model
   ids against the provider's docs, never from memory.** `AVATAR_IMAGE_SIZE` is a PRICE. Gemini
   throws and callers decide differently on purpose; for the NPC, offline is a normal path.

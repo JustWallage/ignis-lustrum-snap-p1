@@ -154,6 +154,40 @@ export async function readEvent(): Promise<EventState> {
   return eventStateSchema.parse(await res.json());
 }
 
+export async function putRecord(
+  press: unknown,
+  cookie?: string,
+): Promise<Response> {
+  return app.request(
+    "/api/jukebox",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookie === undefined ? {} : { Cookie: cookie }),
+      },
+      body: JSON.stringify(press),
+    },
+    env,
+  );
+}
+
+export async function stopRecord(cookie?: string): Promise<Response> {
+  return app.request(
+    "/api/jukebox",
+    {
+      method: "DELETE",
+      headers: cookie === undefined ? {} : { Cookie: cookie },
+    },
+    env,
+  );
+}
+
+export const A_RECORD = {
+  trackId: "Nena - 99 Luftballons",
+  durationMs: 180_000,
+};
+
 export async function postSpin(cookie: string): Promise<Response> {
   return app.request(
     "/api/event/spin",

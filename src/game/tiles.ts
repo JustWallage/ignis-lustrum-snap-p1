@@ -3,6 +3,10 @@ import { blit } from "@/game/pixels";
 
 export const TILE = 16;
 
+export const JUKEBOX_TILE = "J";
+
+export const JUKEBOX_LIT_TILE = "j";
+
 const ORDER = Object.keys(TILE_RAMPS);
 
 type Ctx = CanvasRenderingContext2D;
@@ -202,6 +206,48 @@ const TROPHY_ROWS = [
   "...kkkkkkkkkk...",
 ];
 
+const JUKEBOX_ROWS = [
+  "................",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdllllllllldk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+];
+
+/** Lit in BOTH frames, which is why `e2e/jukebox.spec.ts` samples HERE: a chasing lamp is
+ * bright in one frame only. */
+const JUKEBOX_GLOW = [
+  "lllllllllll",
+  "ldllllllldl",
+  "lldllllldll",
+  "lllllllllll",
+];
+
+const JUKEBOX_MARQUEE: readonly [string[], string[]] = [
+  ["ldldldldldl"],
+  ["dldldldldld"],
+];
+
+const JUKEBOX_GRILLE: readonly [string[], string[]] = [
+  ["lllllllllll", "dldldldldld"],
+  ["dldldldldld", "lllllllllll"],
+];
+
+const JUKEBOX_MARQUEE_AT = { x: 3, y: 2 };
+const JUKEBOX_GLOW_AT = { x: 3, y: 4 };
+const JUKEBOX_GRILLE_AT = { x: 3, y: 9 };
+
 const WALL_ROWS = [
   "kkkkkkkkkkkkkkkk",
   "................",
@@ -280,7 +326,21 @@ function paint(ctx: Ctx, tile: string, frame: 0 | 1, ramp: Ramp) {
   else if (tile === "D") blit(ctx, DOOR_ROWS, ramp);
   else if (tile === "f") blit(ctx, FLOOR_ROWS, ramp);
   else if (tile === "A") blit(ctx, SHELF_ROWS, ramp);
-  else if (tile === "Y") {
+  else if (tile === JUKEBOX_TILE || tile === JUKEBOX_LIT_TILE) {
+    blit(ctx, JUKEBOX_ROWS, ramp);
+    if (tile === JUKEBOX_LIT_TILE) {
+      blit(ctx, JUKEBOX_GLOW, ramp, JUKEBOX_GLOW_AT.x, JUKEBOX_GLOW_AT.y);
+      const { x, y } = JUKEBOX_MARQUEE_AT;
+      blit(ctx, JUKEBOX_MARQUEE[frame], ramp, x, y);
+      blit(
+        ctx,
+        JUKEBOX_GRILLE[frame],
+        ramp,
+        JUKEBOX_GRILLE_AT.x,
+        JUKEBOX_GRILLE_AT.y,
+      );
+    }
+  } else if (tile === "Y") {
     // Grass first, so the dither shows around the plinth's base.
     blit(ctx, GRASS_ROWS, ramp);
     blit(ctx, TROPHY_ROWS, ramp);

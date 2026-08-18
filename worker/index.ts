@@ -14,6 +14,7 @@ import { avatarRoutes } from "./routes/avatar";
 import { commentRoutes } from "./routes/comments";
 import { daysRoutes } from "./routes/days";
 import { adminEventRoutes, eventRoute, eventSpinRoutes } from "./routes/event";
+import { jukeboxRoutes } from "./routes/jukebox";
 import { leaderboardRoutes } from "./routes/leaderboard";
 import { npcRoutes } from "./routes/npc";
 import { photosRoutes } from "./routes/photos";
@@ -71,6 +72,8 @@ app.route("/api/admin", adminRoutes);
 app.route(`${COMMENT_SUBJECT_PATH.photo}/:id/comments`, commentRoutes("photo"));
 app.route("/api/photos", photosRoutes);
 app.route("/api/prizes", prizesRoutes);
+
+app.route("/api/jukebox", jukeboxRoutes);
 
 app.route("/api/votes", votesRoutes);
 app.route("/api/days", daysRoutes);

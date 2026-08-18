@@ -10,6 +10,7 @@ import { eventStateSchema } from "../shared/events";
 import { juryForDay } from "../shared/juries";
 import {
   ARTIST,
+  JUKEBOX,
   MAP_H,
   MAP_W,
   NEIGHBOUR,
@@ -149,6 +150,25 @@ export async function walkToShelf(page: Page): Promise<void> {
   await walk(page, "ArrowRight", SHELF.x - 1, SHELF.y);
   await expect(
     page.getByText(/read the archive|sign in to read the archive/i),
+  ).toBeVisible();
+}
+
+/**
+ * Ends on the tile to the CABINET'S LEFT, never the one below it. A figure's name bubble is
+ * drawn ABOVE its head, so a friend standing below the cabinet paints
+ * `rampFor("H").darkest` over it and every pixel assertion about the lights reads that
+ * instead; from the left, sprite and bubble both fall outside the cabinet's tile.
+ */
+export async function walkToJukebox(page: Page): Promise<void> {
+  await walk(page, "ArrowRight", SPAWN.x + 1, SPAWN.y);
+  await walk(page, "ArrowUp", SPAWN.x + 1, SPAWN.y - 1);
+  await walk(page, "ArrowUp", SPAWN.x + 1, SPAWN.y - 2);
+  await walk(page, "ArrowUp", SPAWN.x + 1, JUKEBOX.y);
+  await walk(page, "ArrowRight", SPAWN.x + 2, JUKEBOX.y);
+  await walk(page, "ArrowRight", JUKEBOX.x - 1, JUKEBOX.y);
+  await walk(page, "ArrowRight", JUKEBOX.x - 1, JUKEBOX.y);
+  await expect(
+    page.getByText(/put a record on|sign in to put a record on/i),
   ).toBeVisible();
 }
 
@@ -702,6 +722,15 @@ export const AVATAR_TROUSERS = [152, 56, 152];
 
 /** Hardcoded because the palette lives under `src/`, which e2e cannot see. */
 export const DEFAULT_TROUSERS = [60, 88, 168];
+
+/** The cabinet's window: `l` in the lit ramp, `d` in the dark one. */
+export const JUKEBOX_LAMP = [248, 216, 96];
+
+export const JUKEBOX_WOOD = [140, 60, 88];
+
+export async function jukeboxPixel(page: Page): Promise<number[]> {
+  return pixelAtPoint(page, JUKEBOX.x + 6.5 / 16, JUKEBOX.y + 5.5 / 16);
+}
 
 export const INK = {
   peerOnDark: "rgb(120, 224, 136)",

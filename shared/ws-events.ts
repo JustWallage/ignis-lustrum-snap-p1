@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { commentSubjectSchema } from "./api";
 import { eventStateSchema } from "./events";
+import { jukeboxStateSchema } from "./jukebox";
 import { MESSAGE_MAX_CHARS, presencePlayerSchema } from "./presence";
 import { gameStateSchema } from "./state";
 
@@ -42,6 +43,10 @@ export const wsEventSchema = z.discriminatedUnion("type", [
     name: z.string(),
   }),
   z.object({ type: z.literal("presence_talk_end"), id: z.string() }),
+  z.object({
+    type: z.literal("presence_jukebox"),
+    jukebox: jukeboxStateSchema,
+  }),
 ]);
 
 export type WsEvent = z.infer<typeof wsEventSchema>;

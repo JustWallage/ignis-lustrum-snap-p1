@@ -37,6 +37,17 @@ Each is a failure that happened:
   surface. Every image, ballot, scoreboard, sprite, comment, mutation and the town's VOICE is behind
   the cookie — the voice in both directions, since a channel only signed-in friends may transmit on
   is still public if anybody with the URL can listen.
+- **The jukebox's audio files are the ONE public payload**, and that is a decision rather than the
+  invariant leaking. They are served off the SPA at cacheable unauthenticated URLs, so anybody with
+  a URL can listen — and this repo is public (`.gitignore` says so in its own words, which is why the
+  roster is not in it), so a song is published twice: in the git history and at that URL. Accepted
+  because the payload is **shipped app art, like the tile atlas and the pixel font — not a player's
+  photograph, ballot, comment or voice**: nothing about a person is in an mp3 somebody committed. The
+  alternative — the Worker serving every byte behind the cookie out of `IMAGES`, like every other
+  picture — was considered and rejected, because the authoring story is a file dropped into a
+  directory and a redeploy. What is on the WIRE still carries no identity: the track and when it
+  started, never who pressed it, so the public frame holds nothing from behind the cookie. Putting a
+  record on and stopping one are mutations and stay behind it.
 - **The bucket and D1 cannot be atomic**, so the object is written BEFORE its row and deleted
   AFTER it: what leaks is an orphan nobody references, never a row whose image 404s. The Worker
   serves every byte itself — no public bucket, no signed URL.

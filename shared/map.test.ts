@@ -3,6 +3,7 @@ import {
   ARTIST,
   isWalkable,
   isWalkableTile,
+  JUKEBOX,
   JURY,
   MAP_H,
   MAP_ROWS,
@@ -154,6 +155,35 @@ describe("the map", () => {
       .split("")
       .filter((tile) => tile === "Y");
     expect(plinths).toHaveLength(1);
+  });
+
+  // NOT in FIXTURES: that list means the archive house's INDOOR fixtures, and the test
+  // below it filters reachable tiles by `isInterior`, which an outdoor cabinet fails.
+  it("stands the jukebox in the top-right corner, as terrain rather than a person", () => {
+    expect(JUKEBOX).toEqual({ x: 8, y: 1 });
+    expect(tileAt(JUKEBOX.x, JUKEBOX.y)).toBe("J");
+    expect(isWalkableTile("J")).toBe(false);
+    expect(isWalkable(JUKEBOX.x, JUKEBOX.y)).toBe(false);
+    for (const neighbour of around(JUKEBOX)) {
+      expect(
+        stepTarget(neighbour, JUKEBOX),
+        `from ${neighbour.x},${neighbour.y}`,
+      ).toBeNull();
+    }
+    for (const from of [
+      { x: JUKEBOX.x - 1, y: JUKEBOX.y },
+      { x: JUKEBOX.x, y: JUKEBOX.y + 1 },
+    ]) {
+      expect(isWalkable(from.x, from.y), `from ${from.x},${from.y}`).toBe(true);
+      expect(isInterior(from), `from ${from.x},${from.y}`).toBe(false);
+    }
+    expect(tileAt(JUKEBOX.x + 1, JUKEBOX.y)).toBe("T");
+    expect(PEOPLE).not.toContainEqual(JUKEBOX);
+    expect(FIXTURES).not.toContainEqual(JUKEBOX);
+    const cabinets = MAP_ROWS.join("")
+      .split("")
+      .filter((tile) => tile === "J");
+    expect(cabinets).toHaveLength(1);
   });
 
   it("stands the voting NPC off the path, on plain grass", () => {
