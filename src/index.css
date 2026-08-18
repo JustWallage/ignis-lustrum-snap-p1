@@ -1357,14 +1357,18 @@ button.gb-pill-cap:disabled {
 .arc-bar {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid #e2e0da;
 }
+/* A FOURTH pill does not fit beside the title on a phone, and `min-width: 0` here let the
+   title give all of its width away until the word read "Arch" under the pills.
+   `max-content` is what makes the bar WRAP instead. */
 .arc-title {
   flex: 1;
-  min-width: 0;
+  min-width: max-content;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1376,8 +1380,8 @@ button.gb-pill-cap:disabled {
   border-radius: 999px;
   background: #eceae4;
 }
-/* Tighter than a chip in a rail: a THIRD pill up here clipped "Archive" at 375px, and
-   `.arc-title` has nowhere to go — it is the flex child that gives. */
+/* Tighter than a chip in a rail: a THIRD pill up here clipped "Archive" at 375px, and with
+   a FOURTH the pills are the widest thing in the bar rather than the title. */
 .arc-tabs .arc-tab {
   padding-inline: 0.6rem;
 }
@@ -1398,6 +1402,14 @@ button.gb-pill-cap:disabled {
 .arc-chip[aria-pressed="true"] {
   background: #14181d;
   color: #fbfbf8;
+}
+@media (width <= 560px) {
+  /* `order` moves the pills' box and never the tab order, so the × is drawn beside the
+     title but is still reached after the pills that now sit under it. */
+  .arc-tabs {
+    order: 1;
+    flex-basis: 100%;
+  }
 }
 .arc-close {
   flex-shrink: 0;
@@ -1550,6 +1562,92 @@ button.gb-pill-cap:disabled {
   padding: 0.9rem;
   overflow-y: auto;
   font-size: 0.85rem;
+}
+
+.arc-scores-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.arc-scores-day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.arc-scores-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* Thirteen columns do not fit a phone and must not stretch the screen either: the
+   table scrolls inside this box, which is why the box and not the table is what has a
+   width to be narrower than its content. */
+.arc-scores-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 24 29 / 0.1),
+    0 6px 16px rgb(20 24 29 / 0.06);
+}
+.arc-scores {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: max-content;
+  color: #4b545e;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.arc-scores th,
+.arc-scores td {
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  white-space: nowrap;
+  font-weight: 400;
+}
+.arc-scores thead th {
+  border-bottom: 1px solid #e2e0da;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.arc-scores tbody tr + tr th,
+.arc-scores tbody tr + tr td {
+  border-top: 1px solid #f0eee8;
+}
+/* Bold, not dark: the total takes the same untinted ink as the place, the bonus and the
+   penalty, or the tint rule reads as a fourth colour. */
+.arc-scores-total {
+  font-weight: 700;
+}
+.arc-scores-shot {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.arc-scores-shot img {
+  display: block;
+  width: 3.25rem;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  background: #0e1116;
+  object-fit: cover;
+}
+.arc-scores-foot {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b747f;
 }
 
 /* No cap and no scroller of its own: a 10rem list put eleven of fourteen players behind

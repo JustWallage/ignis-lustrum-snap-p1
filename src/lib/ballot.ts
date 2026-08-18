@@ -16,6 +16,13 @@ export function rankLabel(rank: number): string {
   return RANK_LABELS[rank - 1] ?? `#${rank}`;
 }
 
+export function ballotText(ballot: readonly number[]): string {
+  const given = ballot.flatMap((count, index) =>
+    count === 0 ? [] : [`${String(count)}×${rankLabel(index + 1)}`],
+  );
+  return given.length === 0 ? "NO VOTES" : given.join(" ");
+}
+
 export function rankOf(picks: Picks, photoId: number): number | null {
   const index = picks.indexOf(photoId);
   return index === -1 ? null : index + 1;

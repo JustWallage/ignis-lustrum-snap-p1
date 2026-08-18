@@ -1,3 +1,4 @@
+import type { DayResult } from "@shared/api";
 import { AI_SCORE_MAX } from "@shared/scoring";
 
 // The ONE place the rating's wording lives. Every surface printing it reads it from
@@ -22,4 +23,11 @@ export function curvedText(aiNorm: number): string {
 
 export function isFallbackRating(aiStatus: "ok" | "failed" | null): boolean {
   return aiStatus === "failed";
+}
+
+export function juryLine(
+  result: Pick<DayResult, "aiScore" | "aiStatus">,
+): string {
+  const broke = isFallbackRating(result.aiStatus) ? " (machine broke)" : "";
+  return `Jury ${ratingText(result.aiScore)}${broke}`;
 }

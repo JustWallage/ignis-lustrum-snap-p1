@@ -204,6 +204,46 @@ describe("the archive", () => {
     }
   });
 
+  it("carries both field positions and what the ballots gave each snap", async () => {
+    const mine = await signIn();
+    const theirs = await signIn("rival");
+    const voter = await signIn("voter");
+    const judge = await signIn("judge");
+    const first = await uploadPhotoId(mine);
+    const second = await uploadPhotoId(theirs);
+    expect((await putVotes(voter, [first, second])).status).toBe(200);
+    expect((await putVotes(judge, [first])).status).toBe(200);
+    try {
+      await setDay(2);
+      const ranked =
+        (await archive(mine)).days.find((one) => one.day === 1)?.results ?? [];
+      const [winner, loser] = ranked;
+      expect(winner?.photoId).toBe(first);
+      expect(winner?.ballot).toEqual([2, 0, 0]);
+      expect(loser?.ballot).toEqual([0, 1, 0]);
+      expect(winner?.peerPlace).toBe(1);
+      expect(loser?.peerPlace).toBe(2);
+      // Every verdict here is the keyless fallback, so neither snap is judged and both
+      // stand on the field's median position rather than on a jury place they took.
+      expect(winner?.juryPlace).toBe(1.5);
+      expect(loser?.juryPlace).toBe(winner?.juryPlace);
+
+      // Read as TEXT: a parse drops an unknown key before an assertion can see it, and
+      // the voter rows those counts were built from are exactly what must not be here.
+      const raw = await app.request(
+        ARCHIVE,
+        { headers: { Cookie: mine } },
+        env,
+      );
+      const body = await raw.text();
+      expect(body).toContain("ballot");
+      expect(body).not.toContain("voterId");
+      expect(body).not.toContain("voter");
+    } finally {
+      await setDay(1);
+    }
+  });
+
   it("hands back the history without a single image byte in it", async () => {
     const cookie = await signIn();
     await uploadPhotoId(cookie);

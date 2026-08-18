@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AI_SCORE_MAX } from "./scoring";
+import { AI_SCORE_MAX, RANK_POINTS } from "./scoring";
 import { gameStateSchema } from "./state";
 
 export const loginSchema = z.object({
@@ -82,6 +82,14 @@ export const dayResultSchema = z.object({
    * broken rating (#97). `aiScore` is the rating. */
   aiNorm: z.number(),
   peerPoints: z.int().nonnegative(),
+  /** Fractional wherever a group tied, and `juryPlace` also wherever a snap went
+   * unjudged and took the field's median, which is why neither is a `z.int()`. */
+  peerPlace: z.number().positive(),
+  juryPlace: z.number().positive(),
+  /** What the ballots GAVE this snap, as counts per rank: `[2, 1, 0]` is two firsts and a
+   * second. `votes.voterId` has no place on the wire — what a snap received is the
+   * town's, who cast it is not. */
+  ballot: z.array(z.int().nonnegative()).length(RANK_POINTS.length),
   aiScore: aiRatingSchema,
   aiStatus: aiStatusSchema.nullable(),
   bonus: z.boolean(),

@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { archiveSchema, type DayResult } from "@shared/api";
+import { archiveSchema } from "@shared/api";
 import { juryForDay } from "@shared/juries";
 import { WINNING_RANK } from "@shared/leaderboard";
 import { AvatarGallery } from "@/components/AvatarGallery";
@@ -8,6 +8,7 @@ import { GbPlaceholder } from "@/components/GbPending";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LikeButton } from "@/components/LikeButton";
 import { Modal } from "@/components/Modal";
+import { ScoresTable } from "@/components/ScoresTable";
 import { SnapViewer } from "@/components/SnapViewer";
 import { useRealtimeEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
@@ -16,31 +17,22 @@ import {
   ALL,
   dayInView,
   feedOf,
+  fieldsOf,
   photographers,
   type ArchiveEntry,
 } from "@/lib/archive";
-import { curvedText, isFallbackRating, ratingText } from "@/lib/rating";
+import { points } from "@/lib/figures";
+import { curvedText, juryLine } from "@/lib/rating";
 import type { ViewerSnap } from "@/lib/viewer";
 
 const VIEWS = [
   { id: "days", label: "Days" },
+  { id: "scores", label: "Scores" },
   { id: "standings", label: "Standings" },
   { id: "avatars", label: "Avatars" },
 ] as const;
 
 type View = (typeof VIEWS)[number]["id"];
-
-function points(value: number): string {
-  return String(Math.round(value));
-}
-
-/** The card and the open photograph print the same line, so the wording — and what
- * `null` means, which is a snap the jury never reached rather than a nought — lives
- * once. The number itself is `lib/rating.ts`'s, as it is on every other surface. */
-function juryLine(result: DayResult): string {
-  const broke = isFallbackRating(result.aiStatus) ? " (machine broke)" : "";
-  return `Jury ${ratingText(result.aiScore)}${broke}`;
-}
 
 export function ArchiveDialog({
   onDelete,
@@ -63,13 +55,18 @@ export function ArchiveDialog({
   const day = dayInView(days, chosenDay);
   const names = useMemo(() => photographers(days, who), [days, who]);
   const feed = useMemo(() => feedOf(days, { day, who }), [days, day, who]);
-  // The viewer pages through what the two rails left on screen, in the order it is in,
-  // so a filter still means something once a photograph is open.
+  const fields = useMemo(() => fieldsOf(days, day), [days, day]);
+  // The table's own rows, which the By-photographer rail does not narrow — so the
+  // viewer a thumbnail opens pages the field the reader is looking at rather than a
+  // feed that may not contain the row they tapped.
+  const rows = useMemo(() => feedOf(days, { day, who: ALL }), [days, day]);
+  const entries = view === "scores" ? rows : feed;
   const paging = useMemo<ViewerSnap[]>(
-    () => feed.map(({ result }) => ({ id: result.photoId, url: result.url })),
-    [feed],
+    () =>
+      entries.map(({ result }) => ({ id: result.photoId, url: result.url })),
+    [entries],
   );
-  const shown = feed.find(({ result }) => result.photoId === open);
+  const shown = entries.find(({ result }) => result.photoId === open);
 
   return (
     <>
@@ -101,9 +98,10 @@ export function ArchiveDialog({
               ×
             </button>
           </header>
-          {/* Every view that is not the feed branches ABOVE the empty gate below:
-              inside it, a shelf nobody has revealed a day on would answer "Avatars"
-              with "nothing is in the archive". */}
+          {/* Standings and Avatars branch ABOVE the empty gate below — inside it, a
+              shelf nobody has revealed a day on would answer "Avatars" with "nothing
+              is in the archive". Scores WANTS that gate: with no revealed day it has
+              no field to table. */}
           {view === "standings" ? (
             <div className="arc-panel" data-testid="standings-panel">
               <Leaderboard
@@ -153,27 +151,42 @@ export function ArchiveDialog({
                     />
                   ))}
                 </Rail>
-                <Rail label="By" testId="archive-people">
-                  <Chip
-                    label="Everyone"
-                    on={who === ALL}
-                    onPick={() => {
-                      setWho(ALL);
-                    }}
-                  />
-                  {names.map((name) => (
+                {view === "days" && (
+                  <Rail label="By" testId="archive-people">
                     <Chip
-                      key={name}
-                      label={name}
-                      on={who === name}
+                      label="Everyone"
+                      on={who === ALL}
                       onPick={() => {
-                        setWho(name);
+                        setWho(ALL);
                       }}
                     />
-                  ))}
-                </Rail>
+                    {names.map((name) => (
+                      <Chip
+                        key={name}
+                        label={name}
+                        on={who === name}
+                        onPick={() => {
+                          setWho(name);
+                        }}
+                      />
+                    ))}
+                  </Rail>
+                )}
               </div>
-              {feed.length === 0 ? (
+              {view === "scores" ? (
+                <div
+                  className="arc-panel arc-scores-panel"
+                  data-testid="scores"
+                >
+                  {fields.map((field) => (
+                    <ScoresTable
+                      key={field.day}
+                      field={field}
+                      onOpen={setOpen}
+                    />
+                  ))}
+                </div>
+              ) : feed.length === 0 ? (
                 <p className="arc-panel" data-testid="archive-none">
                   Nothing to show for that day and that photographer.
                 </p>

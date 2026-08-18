@@ -175,6 +175,16 @@
   wardrobe, which is `AvatarGallery` inside a `.gb-window`. Sharing the one shelf is what keeps a
   player from being offered different faces in the two places, and jscpd refuses the copy that would
   avoid it; the `arc-` classes come along with it.
+- **The Scores tab is the whole-day read and the card is the one-snap read** (#60): one revealed day
+  is one table, every figure that decided it a column. It shares the Day rail and NOT the
+  By-photographer one — a place only means something against the field it was taken in — which is
+  also why a thumbnail there opens `SnapViewer` on the TABLE's rows and not on `feed`, whose rail
+  may not contain the row that was tapped. "All days" is one table per day for that same reason.
+  **Every place printed is `scoreDay`'s own** (`peerPlace` / `juryPlace` on the wire, never
+  re-derived here), so `=7.5` is a position eight snaps SHARE — or, on the jury side, the median an
+  unjudged snap stands on — rather than a figure to round: rounding it names a placing
+  nobody took. What the ballots gave a snap is on the wire as COUNTS PER RANK and
+  no voter is ever named.
 - **The operator's console is the second one** (#29), quarantined the same way under `ops-`, and it
   crosses nowhere: it is a PAGE, not a window, so it is not inside `.gb-stage` at all — `App` branches
   on `location.pathname` and mounts `AuthProvider` and nothing else. No `WebSocketProvider`, because

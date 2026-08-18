@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MAX_PICKS } from "@shared/api";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
 import {
+  ballotText,
   noVoteWarning,
   podium,
   rankLabel,
@@ -29,6 +30,18 @@ function expectContiguous(picks: readonly number[]): void {
     picks.map((_unused, index) => index + 1),
   );
 }
+
+describe("ballotText", () => {
+  it("reads the counts back in the ballot's own words", () => {
+    expect(ballotText([2, 1, 0])).toBe("2×1ST 1×2ND");
+    expect(ballotText([0, 0, 3])).toBe("3×3RD");
+  });
+
+  it("says a snap nobody picked got no votes rather than printing noughts", () => {
+    expect(ballotText([0, 0, 0])).toBe("NO VOTES");
+    expect(ballotText([0, 0, 0])).not.toContain("0×");
+  });
+});
 
 describe("the ranking rule", () => {
   it("has one slot per rank, named for the podium", () => {

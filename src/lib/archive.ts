@@ -32,19 +32,24 @@ export function photographers(
   return [...names].sort();
 }
 
+export function fieldsOf(
+  days: readonly ArchiveDay[],
+  day: number | typeof ALL,
+): ArchiveDay[] {
+  return days.filter((one) => day === ALL || one.day === day);
+}
+
 export function feedOf(
   days: readonly ArchiveDay[],
   filter: ArchiveFilter,
 ): ArchiveEntry[] {
-  return days
-    .filter((one) => filter.day === ALL || one.day === filter.day)
-    .flatMap((one) =>
-      one.results
-        .filter(
-          (result) => filter.who === ALL || result.uploader.name === filter.who,
-        )
-        .map((result) => ({ day: one.day, prize: one.prize, result })),
-    );
+  return fieldsOf(days, filter.day).flatMap((one) =>
+    one.results
+      .filter(
+        (result) => filter.who === ALL || result.uploader.name === filter.who,
+      )
+      .map((result) => ({ day: one.day, prize: one.prize, result })),
+  );
 }
 
 /**
