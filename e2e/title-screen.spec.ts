@@ -30,27 +30,39 @@ test("the title screen stands in front of every load", async ({ page }) => {
 test("a signed-in title screen gathers the town, an anonymous one asks for nobody", async ({
   page,
 }) => {
-  const asked: string[] = [];
+  const askedForRoster: string[] = [];
+  const askedForClock: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("/api/avatars")) asked.push(request.url());
+    const url = request.url();
+    if (url.includes("/api/avatars")) askedForRoster.push(url);
+    if (url.includes("/api/state")) askedForClock.push(url);
   });
 
   await apiSignIn(page);
   await page.goto("/");
   await expect(page.getByRole("img", { name: "Title screen" })).toBeVisible();
   await expect(page.getByTestId("player-name")).toHaveText("tester");
-  // COUNTED, not pinned at one: `useTownAvatars` reloads the roster on every content
-  // event the socket delivers, so the number of requests is not fixed.
-  await expect.poll(() => asked.length).toBeGreaterThan(0);
-  const whileSignedIn = asked.length;
+  await expect.poll(() => askedForRoster.length).toBeGreaterThan(0);
 
   await page.context().clearCookies();
   await page.reload();
   await expect(page.getByRole("img", { name: "Title screen" })).toBeVisible();
   await expect(page.getByTestId("player-name")).toHaveCount(0);
+
+  // Watched from zero rather than differenced against a count taken while signed in:
+  // `useTownAvatars` reloads the roster on every content frame and the socket's greeting
+  // delivers more than one, so a snapshot between them charges the anonymous half for
+  // the signed-in half's requests. The reload above drains those; this load counts.
+  askedForRoster.length = 0;
+  askedForClock.length = 0;
+  await page.goto("/");
+  await expect(page.getByRole("img", { name: "Title screen" })).toBeVisible();
+  await expect(page.getByTestId("player-name")).toHaveCount(0);
   await pressStart(page);
   await walk(page, "ArrowRight", SPAWN.x + 1, SPAWN.y);
-  expect(asked).toHaveLength(whileSignedIn);
+
+  await expect.poll(() => askedForClock.length).toBeGreaterThan(0);
+  expect(askedForRoster).toEqual([]);
 });
 
 test("a live event already running skips the title screen", async ({
