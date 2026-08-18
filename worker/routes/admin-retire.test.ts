@@ -296,6 +296,7 @@ describe("GET /api/admin/days/:day/photos", () => {
       day: 6,
       photos: [],
       descriptions: [],
+      verdicts: [],
       ranking: { generated: false, ranAt: null, failed: false },
     });
 

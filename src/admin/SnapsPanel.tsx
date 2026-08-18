@@ -6,12 +6,13 @@ import {
   retirementSchema,
   type DayRanking,
   type PhotoDescription,
+  type PhotoVerdict,
 } from "@shared/api";
 import type { GameState } from "@shared/state";
 import { ConfirmButton } from "@/admin/ConfirmButton";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { readApiError } from "@/lib/api";
-import { ratingText } from "@/lib/rating";
+import { isFallbackRating, ratingText } from "@/lib/rating";
 
 const REFUSED = "Nothing was retired.";
 
@@ -23,10 +24,45 @@ function retiredText(retired: number, day: number): string {
   return `${String(retired)} snap${retired === 1 ? "" : "s"} retired out of day ${String(day)}. The pictures are still in the bucket.`;
 }
 
-function describedText(status: PhotoDescription["status"] | undefined): string {
+type PassState = PhotoVerdict["aiStatus"] | undefined;
+
+function describedText(status: PassState): string {
   if (status === undefined) return "Not described";
   return status === "ok" ? "Described" : "Description failed";
 }
+
+function describeNote(done: PhotoDescription): string {
+  const next =
+    done.status === "ok"
+      ? "Rank the day to turn it into a verdict."
+      : "The jury still has no record of it.";
+  return `Snap #${String(done.photoId)} — ${describedText(done.status)}. ${next}`;
+}
+
+function verdictText(aiStatus: PassState): string {
+  if (aiStatus === undefined) return "Never scored";
+  return isFallbackRating(aiStatus) ? "Fallback verdict" : "Scored";
+}
+
+function isUsable(status: PassState, aiStatus: PassState): boolean {
+  return status === "ok" && aiStatus === "ok";
+}
+
+function countOk(states: Iterable<PassState>): number {
+  return [...states].filter((state) => state === "ok").length;
+}
+
+function evaluatedText(tally: {
+  total: number;
+  described: number;
+  scored: number;
+  usable: number;
+}): string {
+  return `Evaluated ${String(tally.usable)} of ${String(tally.total)} — ${String(tally.described)} described, ${String(tally.scored)} with a verdict the jury stands behind.`;
+}
+
+const JURY_HINT =
+  "A verdict only comes out of ranking the whole day: describe the broken snaps one at a time, then rank the day once.";
 
 function rankedText(ranking: DayRanking | undefined): string {
   if (ranking === undefined) return "Reading the day…";
@@ -92,8 +128,7 @@ export function SnapsPanel({
       DESCRIBE_REFUSED,
     );
     if (body === null) return;
-    const done = photoDescriptionSchema.parse(body);
-    setNote(`Snap #${String(done.photoId)} — ${describedText(done.status)}.`);
+    setNote(describeNote(photoDescriptionSchema.parse(body)));
     mutate();
   };
 
@@ -113,6 +148,19 @@ export function SnapsPanel({
   const described = new Map(
     (list.data?.descriptions ?? []).map((row) => [row.photoId, row.status]),
   );
+  const scored = new Map(
+    (list.data?.verdicts ?? []).map((row) => [row.photoId, row.aiStatus]),
+  );
+  // Counted off the two maps this grid renders from, never a figure the route sends: a
+  // second source is one that can disagree with the cards printed beside it.
+  const tally = {
+    total: photos.length,
+    described: countOk(described.values()),
+    scored: countOk(scored.values()),
+    usable: photos.filter((photo) =>
+      isUsable(described.get(photo.id), scored.get(photo.id)),
+    ).length,
+  };
 
   return (
     <section className="ops-panel" data-testid="ops-snaps-panel">
@@ -146,6 +194,9 @@ export function SnapsPanel({
         />
       </div>
       <div className="ops-row">
+        <p className="ops-readout" data-testid="ops-evaluated">
+          {evaluatedText(tally)}
+        </p>
         <p className="ops-readout" data-testid="ops-ranked">
           {rankedText(list.data?.ranking)}
         </p>
@@ -162,6 +213,9 @@ export function SnapsPanel({
           Rank the day again
         </button>
       </div>
+      <p className="ops-note" data-testid="ops-jury-hint">
+        {JURY_HINT}
+      </p>
       {note !== null && (
         <p className="ops-note" data-testid="ops-snaps-note">
           {note}
@@ -181,7 +235,16 @@ export function SnapsPanel({
       ) : (
         <ul className="ops-grid" data-testid="ops-snaps">
           {photos.map((photo) => (
-            <li className="ops-card" key={photo.id} data-testid="ops-snap">
+            <li
+              className="ops-card"
+              key={photo.id}
+              data-testid="ops-snap"
+              data-usable={
+                isUsable(described.get(photo.id), scored.get(photo.id))
+                  ? "true"
+                  : "false"
+              }
+            >
               <img className="ops-shot" src={photo.url} alt="" loading="lazy" />
               <p className="ops-card-meta">
                 <span>#{photo.id}</span>
@@ -191,6 +254,9 @@ export function SnapsPanel({
                 )}
                 <span data-testid={`ops-described-${String(photo.id)}`}>
                   {describedText(described.get(photo.id))}
+                </span>
+                <span data-testid={`ops-verdict-${String(photo.id)}`}>
+                  {verdictText(scored.get(photo.id))}
                 </span>
               </p>
               <button

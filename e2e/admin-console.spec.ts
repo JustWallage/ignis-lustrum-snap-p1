@@ -186,6 +186,59 @@ test("the console says which snaps are described, and describes one again", asyn
   expect(await described()).toEqual([{ photoId: id, status: "failed" }]);
 });
 
+test("the console counts what the jury can use, and retries one description", async ({
+  page,
+}) => {
+  const id = await apiUpload(page, "rival");
+  await apiSignIn(page);
+
+  await expect
+    .poll(async () => {
+      const listed = await page.request.get("/api/admin/days/1/photos");
+      const { descriptions, verdicts } = dayPhotosSchema.parse(
+        await listed.json(),
+      );
+      return { descriptions, verdicts };
+    })
+    .toEqual({
+      descriptions: [{ photoId: id, status: "failed" }],
+      verdicts: [{ photoId: id, aiStatus: "failed" }],
+    });
+
+  const posted: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posted.push(new URL(request.url()).pathname);
+  });
+
+  const panel = await openConsole(page, "Snaps");
+  await expect(panel.getByTestId("ops-evaluated")).toHaveText(
+    "Evaluated 0 of 1 — 0 described, 0 with a verdict the jury stands behind.",
+  );
+  const described = panel.getByTestId(`ops-described-${String(id)}`);
+  await expect(described).toHaveText("Description failed");
+  await expect(panel.getByTestId(`ops-verdict-${String(id)}`)).toHaveText(
+    "Fallback verdict",
+  );
+  await expect(panel.getByTestId("ops-snap")).toHaveAttribute(
+    "data-usable",
+    "false",
+  );
+  await expect(panel.getByTestId("ops-jury-hint")).toContainText(
+    /ranking the whole day/i,
+  );
+
+  await panel.getByTestId(`ops-describe-${String(id)}`).click();
+  // A retry that fails again answers 200 with the failure in its body, so `readApiError`
+  // is never reached and no refusal is rendered.
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    "The jury still has no record of it.",
+  );
+  await expect(panel.getByTestId("ops-snaps-error")).toHaveCount(0);
+  await expect(described).toHaveText("Description failed");
+  expect(posted).toEqual([`/api/admin/photos/${String(id)}/describe`]);
+});
+
 test("retiring a snap frees the day and leaves the picture in the bucket", async ({
   page,
 }) => {

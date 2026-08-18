@@ -144,10 +144,17 @@ export const dayRankingSchema = z.object({
 });
 export type DayRanking = z.infer<typeof dayRankingSchema>;
 
+const photoVerdictSchema = z.object({
+  photoId: z.int(),
+  aiStatus: aiStatusSchema,
+});
+export type PhotoVerdict = z.infer<typeof photoVerdictSchema>;
+
 export const dayPhotosSchema = z.object({
   day: z.int().positive(),
   photos: z.array(photoSchema),
   descriptions: z.array(photoDescriptionSchema),
+  verdicts: z.array(photoVerdictSchema),
   ranking: dayRankingSchema,
 });
 
