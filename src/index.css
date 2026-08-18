@@ -2050,6 +2050,9 @@ button.gb-pill-cap:disabled {
   border-radius: 10px;
   background: #fff;
 }
+.ops-card[data-usable="false"] {
+  border-color: #a3231f;
+}
 .ops-shot {
   width: 100%;
   aspect-ratio: 1;

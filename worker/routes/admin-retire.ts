@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   photoDescriptions,
   photos,
+  photoScores,
   retiredPhotos,
   type PhotoRow,
 } from "../../db/schema";
@@ -121,6 +122,16 @@ adminDayRoutes.get("/:day/photos", async (c) => {
     .from(photoDescriptions)
     .innerJoin(photos, eq(photos.id, photoDescriptions.photoId))
     .where(eq(photos.day, day));
+  // Two columns and never the score: `toPhoto` gives an admin no verdict before the day
+  // is out, and this array is not the way around that.
+  const verdicts = await db
+    .select({
+      photoId: photoScores.photoId,
+      aiStatus: photoScores.aiStatus,
+    })
+    .from(photoScores)
+    .innerJoin(photos, eq(photos.id, photoScores.photoId))
+    .where(eq(photos.day, day));
   return c.json(
     dayPhotosSchema.parse({
       day,
@@ -131,6 +142,7 @@ adminDayRoutes.get("/:day/photos", async (c) => {
         }),
       ),
       descriptions: described,
+      verdicts,
       ranking: await readDayRanking(db, day),
     }),
   );
