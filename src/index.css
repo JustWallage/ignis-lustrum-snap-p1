@@ -1363,11 +1363,9 @@ button.gb-pill-cap:disabled {
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid #e2e0da;
 }
-/* A FOURTH pill does not fit beside the title on a phone, and `.arc-title` giving all
-   of its width away left the word reading "Arch" under the pills. `max-content` is what
-   makes the bar WRAP instead — and a media query, not a container query, because this
-   screen is the viewport: `.arc-screen` sits inside `.gb-shell`, whose box a `@container`
-   here would measure and whose width is the Game Boy, not the modal covering it. */
+/* A FOURTH pill does not fit beside the title on a phone, and `min-width: 0` here let the
+   title give all of its width away until the word read "Arch" under the pills.
+   `max-content` is what makes the bar WRAP instead. */
 .arc-title {
   flex: 1;
   min-width: max-content;
@@ -1382,8 +1380,8 @@ button.gb-pill-cap:disabled {
   border-radius: 999px;
   background: #eceae4;
 }
-/* Tighter than a chip in a rail: a THIRD pill up here clipped "Archive" at 375px, and
-   with a FOURTH the padding is what keeps all four on one line at 320px instead of two. */
+/* Tighter than a chip in a rail: a THIRD pill up here clipped "Archive" at 375px, and with
+   a FOURTH the pills are the widest thing in the bar rather than the title. */
 .arc-tabs .arc-tab {
   padding-inline: 0.6rem;
 }
@@ -1406,8 +1404,8 @@ button.gb-pill-cap:disabled {
   color: #fbfbf8;
 }
 @media (width <= 560px) {
-  /* The pills take the second line and the close button stays up beside the title,
-     which is what `order` buys: the DOM order is the tab order and does not move. */
+  /* `order` moves the pills' box and never the tab order, so the × is drawn beside the
+     title but is still reached after the pills that now sit under it. */
   .arc-tabs {
     order: 1;
     flex-basis: 100%;
@@ -1602,8 +1600,6 @@ button.gb-pill-cap:disabled {
 .arc-scores {
   border-collapse: collapse;
   width: 100%;
-  /* The cells size themselves and the box above scrolls; `100%` would squash thirteen
-     columns into a phone and wrap every heading to three lines. */
   min-width: max-content;
   color: #4b545e;
   font-size: 0.75rem;

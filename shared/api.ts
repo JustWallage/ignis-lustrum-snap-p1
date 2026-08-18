@@ -82,7 +82,8 @@ export const dayResultSchema = z.object({
    * broken rating (#97). `aiScore` is the rating. */
   aiNorm: z.number(),
   peerPoints: z.int().nonnegative(),
-  /** Fractional wherever a group tied, which is why neither is a `z.int()`. */
+  /** Fractional wherever a group tied, and `juryPlace` also wherever a snap went
+   * unjudged and took the field's median, which is why neither is a `z.int()`. */
   peerPlace: z.number().positive(),
   juryPlace: z.number().positive(),
   /** What the ballots GAVE this snap, as counts per rank: `[2, 1, 0]` is two firsts and a

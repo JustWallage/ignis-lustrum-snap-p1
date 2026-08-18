@@ -32,10 +32,6 @@ export function photographers(
   return [...names].sort();
 }
 
-/** The days the Scores tab lays out, each with its WHOLE field: a position only means
- * something inside its own day, and the By-photographer rail is the feed's — narrowing
- * a table to one player would leave every place in it measured against a field the
- * screen no longer shows. */
 export function fieldsOf(
   days: readonly ArchiveDay[],
   day: number | typeof ALL,

@@ -15,8 +15,6 @@ describe("placeText", () => {
     expect(placeText(14)).toBe("14");
   });
 
-  // Rounding is the tempting alternative and it lies: 7.5 is eight snaps sharing the
-  // positions 4..11, and "8" is a placing one of them took.
   it("keeps the fraction of a shared place, and says it is shared", () => {
     expect(placeText(7.5)).toBe("=7.5");
     expect(placeText(1.5)).toBe("=1.5");

@@ -385,8 +385,6 @@ test("the Scores tab lays a revealed day out as one table of every figure", asyn
   }
   expect(encloses(screen, close)).toBe(true);
 
-  // The Day rail is the feed's own and comes along; the By-photographer rail does not,
-  // because a place only means something against the whole field it was taken in.
   await expect(page.getByTestId("archive-days")).toBeVisible();
   await expect(page.getByTestId("archive-people")).toHaveCount(0);
 
@@ -402,8 +400,6 @@ test("the Scores tab lays a revealed day out as one table of every figure", asyn
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId("scores-outcome")).toContainText("tester won");
 
-  // Two snaps, neither judged (no Gemini key here), so both stand on the field's
-  // median jury position and the totals are 50 + 30 and (10 + 30) × 0.5.
   const won = rows.first();
   await expect(won.getByTestId("scores-place")).toHaveText("#1");
   await expect(won).toContainText("tester");
@@ -451,8 +447,6 @@ test("the Scores tab lays a revealed day out as one table of every figure", asyn
     );
   }
 
-  // Thirteen columns on a 390px phone: the table scrolls inside its own box and the
-  // archive itself does not move sideways.
   const held = page.locator(".arc-scores-scroll");
   expect(await held.evaluate((node) => getComputedStyle(node).overflowX)).toBe(
     "auto",
@@ -462,8 +456,6 @@ test("the Scores tab lays a revealed day out as one table of every figure", asyn
   ).toBe(true);
   await noSidewaysScroll(page);
 
-  // "All days" is one table per day, because a position only means something inside
-  // the day whose field it was taken in.
   await filterBy(page, "archive-days", "All days");
   await expect(page.getByTestId("scores-day")).toHaveCount(2);
   await expect(page.getByTestId("scores-row")).toHaveCount(3);
@@ -497,7 +489,6 @@ test("a thumbnail in the table pages the table's own rows, not the feed's", asyn
 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("scores-table")).toBeVisible();
-  // Back on the feed, its own rail is still where it was left.
   await archive.getByRole("button", { name: "Days", exact: true }).click();
   await expect(page.getByTestId("archive-card")).toHaveCount(1);
 });

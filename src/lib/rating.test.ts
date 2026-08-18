@@ -52,8 +52,6 @@ describe("juryLine", () => {
     );
   });
 
-  // The whole point of the line: a keyless run writes 5 for every snap, and a bare
-  // 5/10 reads as a verdict the jury never reached.
   it("says the machine broke rather than passing the fallback off as a verdict", () => {
     const broken = juryLine({ aiScore: 5, aiStatus: "failed" });
     expect(broken).toContain("machine broke");

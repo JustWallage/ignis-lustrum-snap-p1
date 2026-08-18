@@ -25,8 +25,6 @@ export function isFallbackRating(aiStatus: "ok" | "failed" | null): boolean {
   return aiStatus === "failed";
 }
 
-/** Every archive surface prints this one line, so what `null` means — a snap the jury
- * never reached rather than a nought — and what a fallback 5 is are worded once. */
 export function juryLine(
   result: Pick<DayResult, "aiScore" | "aiStatus">,
 ): string {

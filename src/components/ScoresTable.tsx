@@ -5,8 +5,6 @@ import { ballotText } from "@/lib/ballot";
 import { points, placeText } from "@/lib/figures";
 import { curvedText, juryLine } from "@/lib/rating";
 
-/** Three of these columns are called "place", so the tint is what tells a reader which
- * field each position was taken in. */
 const COLUMNS = [
   { label: "Place", ink: null },
   { label: "Who", ink: null },

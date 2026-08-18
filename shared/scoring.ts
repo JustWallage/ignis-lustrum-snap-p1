@@ -36,14 +36,8 @@ export interface DayEntry {
 export interface DayScore {
   photoId: number;
   peerPoints: number;
-  /** How many 1st / 2nd / 3rd place votes the snap collected, indexed by rank - 1. */
   ballot: number[];
   peerNorm: number;
-  /** The two POSITIONS the halves above were paid for. `rankOf` averages the positions
-   * a tied group occupies, so neither is an integer in general and an unjudged snap
-   * takes the field's median — a caller that rounds one of these to name a placing
-   * names a placing nobody took. Re-deriving them outside this module is how the
-   * archive and the standings started disagreeing. */
   peerPlace: number;
   juryPlace: number;
   aiNorm: number;

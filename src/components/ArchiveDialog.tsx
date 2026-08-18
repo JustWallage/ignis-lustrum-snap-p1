@@ -61,8 +61,6 @@ export function ArchiveDialog({
   // feed that may not contain the row they tapped.
   const rows = useMemo(() => feedOf(days, { day, who: ALL }), [days, day]);
   const entries = view === "scores" ? rows : feed;
-  // The viewer pages through what the screen left on show, in the order it is in, so a
-  // filter still means something once a photograph is open.
   const paging = useMemo<ViewerSnap[]>(
     () =>
       entries.map(({ result }) => ({ id: result.photoId, url: result.url })),
