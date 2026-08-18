@@ -170,7 +170,6 @@ describe("the map", () => {
         `from ${neighbour.x},${neighbour.y}`,
       ).toBeNull();
     }
-    // Approached from below and from the left, and framed by the tree line.
     for (const from of [
       { x: JUKEBOX.x - 1, y: JUKEBOX.y },
       { x: JUKEBOX.x, y: JUKEBOX.y + 1 },

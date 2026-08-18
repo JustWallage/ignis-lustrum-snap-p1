@@ -20,8 +20,6 @@ export type JukeboxState = z.infer<typeof jukeboxStateSchema>;
 
 export const SILENT: JukeboxState = { playing: null };
 
-/** `durationMs` comes off the presser's own media element, so it is a number a CLIENT
- * supplied: bounded here rather than trusted. */
 export const putRecordSchema = z.object({
   trackId: trackIdSchema,
   durationMs: z.int().positive().max(RECORD_MAX_MS),

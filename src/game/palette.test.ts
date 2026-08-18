@@ -12,8 +12,6 @@ import {
 
 const PLACED = [...new Set(MAP_ROWS.join("").split(""))].sort();
 
-/** The lit cabinet is the one ramp no map character is — the same tile in its other state,
- * picked by the render loop off the shared playback rather than by the map. */
 const UNPLACED = ["j"];
 
 const HEX = /^#[0-9a-f]{6}$/;
@@ -83,7 +81,6 @@ describe("TILE_RAMPS", () => {
     expect(TILE_RAMPS).toHaveProperty("j");
     expect(rampFor("J")).not.toBe(rampFor("."));
     expect(rampFor("j")).not.toBe(rampFor("."));
-    // ONE slot separates them, and it is the one every lamp spends.
     expect(rampFor("j").light).not.toBe(rampFor("J").light);
     expect(rampFor("j").dark).toBe(rampFor("J").dark);
   });

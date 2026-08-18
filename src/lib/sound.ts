@@ -511,8 +511,7 @@ let voiceCursor = 0;
 const RECORD_GAIN = 1.8;
 
 /** ONE element with its `src` swapped: `createMediaElementSource` throws on a second call
- * for the same element. A streaming element rather than a decoded buffer, because a
- * four-minute file as PCM is tens of megabytes on a phone. */
+ * for the same element. */
 let record: HTMLAudioElement | null = null;
 
 function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
@@ -543,10 +542,9 @@ export function stopRecord(): void {
   record?.pause();
 }
 
-/** A THROWAWAY element: measuring on the playing one would interrupt whatever is already
- * on, and no AudioContext is involved so this opens no second one. Null is what a file that
- * is not there looks like — a missing asset URL answers `index.html` with a 200, never a
- * 404, so nothing here may test playability by status code. */
+/** Null is what a file that is not there looks like — a missing asset URL answers
+ * `index.html` with a 200, never a 404, so nothing here may test playability by status
+ * code. */
 export async function recordDurationMs(url: string): Promise<number | null> {
   return new Promise((resolve) => {
     const probe = new Audio();

@@ -36,8 +36,6 @@ export function JukeboxDialog({
   const [note, setNote] = useState<string | null>(null);
   const pending = useRef<Promise<number | null> | null>(null);
 
-  // The ‹ › buttons, the arrow keys and a tap on a neighbouring sleeve all come HERE, so a
-  // change to how the shelf moves cannot land on one input only.
   const step = useCallback(
     (delta: number) => {
       if (count === 0) return;

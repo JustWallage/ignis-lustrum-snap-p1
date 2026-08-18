@@ -5,8 +5,6 @@ export const TILE = 16;
 
 export const JUKEBOX_TILE = "J";
 
-/** A character `MAP_ROWS` never contains: the map says where the cabinet IS, the shared
- * playback which of its two looks gets blitted. */
 export const JUKEBOX_LIT_TILE = "j";
 
 const ORDER = Object.keys(TILE_RAMPS);
@@ -208,8 +206,6 @@ const TROPHY_ROWS = [
   "...kkkkkkkkkk...",
 ];
 
-// The lamps, the window and the grille are `d` here and overlaid in `l` for the lit glyph,
-// so ONE body serves both states and their shapes cannot drift apart.
 const JUKEBOX_ROWS = [
   "................",
   "..kkkkkkkkkkkkk.",

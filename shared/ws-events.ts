@@ -43,8 +43,6 @@ export const wsEventSchema = z.discriminatedUnion("type", [
     name: z.string(),
   }),
   z.object({ type: z.literal("presence_talk_end"), id: z.string() }),
-  // Prefixed for that same reason: no day, ballot, comment or scoreboard moves when a
-  // record starts.
   z.object({
     type: z.literal("presence_jukebox"),
     jukebox: jukeboxStateSchema,

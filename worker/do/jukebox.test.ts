@@ -25,8 +25,6 @@ function playingId(event: unknown): string | null {
   return jukeboxStateSchema.parse(event).playing?.trackId ?? null;
 }
 
-/** The cooldown is per presser, so a test that needs a second press either waits it out
- * or presses as somebody else. Waiting is what this is for. */
 async function afterTheCooldown<T>(body: () => Promise<T>): Promise<T> {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(Date.now() + 60_000);
@@ -51,7 +49,6 @@ describe("the jukebox", () => {
         throw new Error(`heard ${heard.type} instead`);
       }
       expect(heard.jukebox.playing?.trackId).toBe(A_RECORD.trackId);
-      // The whole frame, key by key: nothing on the wire says who pressed.
       expect(Object.keys(heard).sort()).toEqual(["jukebox", "type"]);
       expect(Object.keys(heard.jukebox.playing ?? {}).sort()).toEqual([
         "endsAt",
@@ -106,7 +103,6 @@ describe("the jukebox", () => {
     );
     expect(swapped.status).toBe(200);
     expect(playingId(await swapped.json())).toBe("Prince - Kiss");
-    // A third friend, who put nothing on, may still take it off: nobody owns it.
     const stopped = await stopRecord(await signIn("voter"));
     expect(stopped.status).toBe(200);
     expect(playingId(await stopped.json())).toBeNull();
@@ -149,7 +145,6 @@ describe("the jukebox", () => {
       jukebox: { playing: null },
     });
 
-    // And nothing resumes: the wheel's landing publishes silence, not the record back.
     await playUntil("wheel");
     const latecomer = await openSocket();
     expect(latecomer.greeting.map((event) => event.type)).not.toContain(
@@ -165,7 +160,6 @@ describe("the jukebox", () => {
     expect(tooSoon.status).toBe(409);
     expect(apiErrorSchema.parse(await tooSoon.json()).error).toMatch(/settle/i);
 
-    // Somebody ELSE is not on that cooldown: the cabinet has no owner.
     expect((await stopRecord(await signIn("rival"))).status).toBe(200);
     await afterTheCooldown(async () => {
       expect((await putRecord(A_RECORD, cookie)).status).toBe(200);

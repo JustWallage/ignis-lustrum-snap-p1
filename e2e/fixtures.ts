@@ -723,8 +723,7 @@ export const AVATAR_TROUSERS = [152, 56, 152];
 /** Hardcoded because the palette lives under `src/`, which e2e cannot see. */
 export const DEFAULT_TROUSERS = [60, 88, 168];
 
-/** The cabinet's window: `l` in the lit ramp, `d` in the dark one. Read at the glow rather
- * than at a chasing lamp, which is bright in one animation frame only. */
+/** The cabinet's window: `l` in the lit ramp, `d` in the dark one. */
 export const JUKEBOX_LAMP = [248, 216, 96];
 
 export const JUKEBOX_WOOD = [140, 60, 88];

@@ -58,14 +58,11 @@ test("plays one record to every screen in the town, an anonymous one included", 
 
     const put = await pressPlay(presser);
 
-    // The anonymous screen learns what is on WITHOUT a reload, and its cabinet lights up.
     await expect
       .poll(async () => (await jukeboxPixel(page)).join())
       .toBe(JUKEBOX_LAMP.join());
-    // And the presser's own selector agrees, because it renders the shared state.
     await expect(presser.getByTestId("jukebox-note")).toContainText(put);
 
-    // Any signed-in friend may take it off: nobody owns the cabinet.
     await friend.keyboard.press("Enter");
     await friend.getByTestId("jukebox-stop").click();
     await expect
@@ -120,7 +117,6 @@ test("steps the shelf the same way from the buttons, the arrow keys and a sleeve
   await page.keyboard.press("ArrowLeft");
   await expect(title).toHaveText(faced ?? "");
 
-  // The neighbouring sleeve itself, which is the third input into the one step function.
   await page.getByTestId("jukebox-sleeve-1").click();
   await expect(title).toHaveText(next ?? "");
 });
@@ -136,8 +132,6 @@ test("backs out of the selector and leaves the record playing", async ({
 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("jukebox")).toBeHidden();
-  // The player is back on the map and the record is still on: B walks away, it does not stop
-  // the town's music.
   await expect(page.getByTestId("player-pos")).toBeVisible();
   await expect
     .poll(async () => (await jukeboxPixel(page)).join())

@@ -6,8 +6,6 @@ export interface RecordCue {
   offsetSeconds: number;
 }
 
-/** A track id the shelf does not have plays SILENCE: the Worker holds no copy of a
- * build-time glob, so a stale id outlives the redeploy that removed the file. */
 export function recordCue(
   shelf: readonly ShelfRecord[],
   state: JukeboxState,

@@ -73,8 +73,6 @@ app.route(`${COMMENT_SUBJECT_PATH.photo}/:id/comments`, commentRoutes("photo"));
 app.route("/api/photos", photosRoutes);
 app.route("/api/prizes", prizesRoutes);
 
-// No sibling path to swallow it, so the auth boundary above is its only ordering
-// constraint.
 app.route("/api/jukebox", jukeboxRoutes);
 
 app.route("/api/votes", votesRoutes);

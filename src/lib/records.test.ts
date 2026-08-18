@@ -80,13 +80,11 @@ describe("sleevesOf", () => {
       expect(near?.scale).toBeLessThan(1);
       expect(far?.scale).toBeLessThan(near?.scale ?? 0);
       expect(far?.opacity).toBeLessThan(near?.opacity ?? 0);
-      // Painter's order: the faced sleeve is highest, so its neighbours tuck behind it.
       expect(near?.z).toBeGreaterThan(far?.z ?? 0);
     }
     expect(away(0)?.z).toBeGreaterThan(away(1)?.z ?? 0);
     expect(away(-1)?.leftPct).toBeLessThan(50);
     expect(away(1)?.leftPct).toBeGreaterThan(50);
-    // Symmetrical about the faced record, or a flick one way would look unlike the other.
     expect((away(-1)?.leftPct ?? 0) + (away(1)?.leftPct ?? 0)).toBeCloseTo(100);
   });
 

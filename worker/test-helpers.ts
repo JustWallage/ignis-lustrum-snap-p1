@@ -154,8 +154,6 @@ export async function readEvent(): Promise<EventState> {
   return eventStateSchema.parse(await res.json());
 }
 
-/** Takes `unknown` so a refused body can be driven through it, and an optional cookie so
- * the anonymous half of each route is the same call. */
 export async function putRecord(
   press: unknown,
   cookie?: string,

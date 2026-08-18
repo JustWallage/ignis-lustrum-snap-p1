@@ -1163,10 +1163,6 @@ button.gb-pill-cap:disabled {
   gap: 0.5rem;
 }
 
-/* Every number a sleeve is placed by is written in by `lib/records.ts` as it renders, so
-   nothing here has a copy to go stale. The overflow is what makes a flick read as a shelf
-   moving past a window — and unlike the prize drum this places nothing in 3-D, so it costs
-   no `preserve-3d` for the clip to flatten. */
 .gb-shelf {
   position: relative;
   width: 100%;
@@ -1180,9 +1176,6 @@ button.gb-pill-cap:disabled {
   width: 30%;
   margin-top: -15%;
   aspect-ratio: 1;
-  /* `left` and the scale are two properties on purpose: the browser interpolates both, so
-     the neighbouring record slides in and grows rather than cutting to its place. Stepped,
-     because a Game Boy has no in-betweens. */
   transition:
     left 200ms steps(5),
     transform 200ms steps(5),
@@ -1194,8 +1187,8 @@ button.gb-pill-cap:disabled {
   image-rendering: pixelated;
 }
 
-/* The tonearm coming down. `animation-fill-mode` deliberately unset: the needle unmounts
-   when its `animationend` lands the press, so there is nothing left to hold in place. */
+/* `animation-fill-mode` deliberately unset: the needle unmounts when its `animationend`
+   lands the press, so there is nothing left to hold in place. */
 .gb-needle {
   position: absolute;
   top: 6%;

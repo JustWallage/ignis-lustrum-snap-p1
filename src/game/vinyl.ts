@@ -1,7 +1,5 @@
 import { rampFor } from "@/game/palette";
 
-/** ONE disc for every sleeve: a filename is all the shelf knows, so there is no art per
- * record to draw. */
 const SIZE = 32;
 
 const GROOVES = [15, 13, 11];

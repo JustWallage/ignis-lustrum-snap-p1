@@ -70,10 +70,9 @@ const EVENT_KEY = "event_state";
 
 const JUKEBOX_KEY = "jukebox";
 
-/** One key holding a last-press time per presser, never broadcast: how a cooldown that has
- * to know who pressed coexists with a wire that carries no identity. ONE key rather than one
- * each, so winding it back is a single `delete` — `/api/test/reset` runs before every e2e
- * test and a `list()` on that path is latency every test pays. */
+/** ONE key holding a last-press time per presser rather than one key each, so winding it
+ * back is a single `delete` — `/api/test/reset` runs before every e2e test and a `list()` on
+ * that path is latency every test pays. */
 const PRESSED_KEY = "jukebox_pressed";
 
 const JUKEBOX_IN_EVENT =
@@ -158,9 +157,6 @@ export class RealtimeDO extends DurableObject<Bindings> {
         this.send(socket, frame({ type: "event_changed", state: event.data }));
       }
       this.expireGhosts(now);
-      // CONDITIONAL, unlike `event_changed`: silence is the common case, and four
-      // assertions pin this greeting exactly (`index.test.ts`, `do/voice.test.ts` twice,
-      // `prizes.test.ts`).
       const jukebox = await this.storedJukebox();
       if (nowPlaying(jukebox, now) !== null) {
         this.send(socket, frame({ type: "presence_jukebox", jukebox }));
@@ -414,7 +410,6 @@ export class RealtimeDO extends DurableObject<Bindings> {
   ): Promise<JukeboxOutcome> {
     return this.alone(async () => {
       const now = Date.now();
-      // Only PUTTING one on is refused: stopping can make no noise.
       if (press !== null && (await this.readEvent()).phase !== "submission") {
         return { ok: false, status: 409, error: JUKEBOX_IN_EVENT };
       }
@@ -434,9 +429,6 @@ export class RealtimeDO extends DurableObject<Bindings> {
     });
   }
 
-  /** Called from `publish`, so the countdown, an abort, the landing and
-   * `POST /api/test/reset` take ONE rule: a record left playing by one e2e test would
-   * otherwise light the cabinet for every later test on that shard. */
   private async clearRecord(): Promise<void> {
     if ((await this.storedJukebox()).playing === null) return;
     await this.ctx.storage.put(JUKEBOX_KEY, SILENT);
