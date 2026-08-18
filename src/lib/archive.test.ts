@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArchiveDay, DayResult } from "@shared/api";
-import { ALL, dayInView, feedOf, photographers } from "@/lib/archive";
+import { ALL, dayInView, feedOf, fieldsOf, photographers } from "@/lib/archive";
 
 function result(photoId: number, name: string, rank: number): DayResult {
   return {
@@ -12,6 +12,9 @@ function result(photoId: number, name: string, rank: number): DayResult {
     peerNorm: 5,
     aiNorm: 5,
     peerPoints: 3,
+    peerPlace: 1,
+    juryPlace: 1,
+    ballot: [1, 0, 0],
     aiScore: 5,
     aiStatus: "ok",
     bonus: false,
@@ -45,6 +48,22 @@ describe("photographers", () => {
 
   it("still names a selected photographer once", () => {
     expect(photographers(DAYS, "tester")).toEqual(["rival", "tester"]);
+  });
+});
+
+describe("fieldsOf", () => {
+  it("keeps a day's whole field, whoever the feed is filtered to", () => {
+    expect(fieldsOf(DAYS, ALL).map((one) => one.day)).toEqual([3, 1]);
+    const [only] = fieldsOf(DAYS, 3);
+    expect(only?.results.map((one) => one.uploader.name)).toEqual([
+      "rival",
+      "tester",
+    ]);
+  });
+
+  it("has nothing for a day the archive does not carry", () => {
+    expect(fieldsOf(DAYS, 2)).toEqual([]);
+    expect(fieldsOf([], ALL)).toEqual([]);
   });
 });
 

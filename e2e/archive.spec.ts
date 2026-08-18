@@ -1,14 +1,19 @@
 import type { Page } from "@playwright/test";
 import { juryForDay } from "../shared/juries";
+import { HALF_WEIGHT, NO_VOTE_MULTIPLIER } from "../shared/scoring";
 import {
   apiSignIn,
   apiUpload,
+  apiVote,
+  boxAround,
   boxOf,
   encloses,
   expect,
   filterBy,
+  INK,
   openArchive,
   operate,
+  overlaps,
   pressStart,
   reachPhase,
   readEvent,
@@ -329,4 +334,170 @@ test("an empty archive says so, and a stranger cannot open one", async ({
   await expect(page.getByTestId("archive-empty")).toContainText(
     /nothing is in the archive/i,
   );
+});
+
+/** Two snaps on day 1, one on day 2, and `rival` never casts a ballot — so the ×0.5 is
+ * on a row and day 2 is a field nobody voted on at all. */
+async function twoScoredDays(page: Page): Promise<void> {
+  const mine = await apiUpload(page, "tester");
+  const theirs = await apiUpload(page, "rival");
+  await apiVote(page, "voter", [mine, theirs]);
+  await apiVote(page, "judge", [mine]);
+  await apiVote(page, "tester", [theirs]);
+  await setDay(page, 2);
+  await apiUpload(page, "tester");
+  await setDay(page, 3);
+  await apiSignIn(page, "tester");
+}
+
+async function openScores(page: Page) {
+  const archive = await openArchive(page);
+  await archive.getByRole("button", { name: "Scores", exact: true }).click();
+  await expect(page.getByTestId("scores")).toBeVisible();
+  return archive;
+}
+
+test("the Scores tab lays a revealed day out as one table of every figure", async ({
+  page,
+}) => {
+  await twoScoredDays(page);
+
+  await page.setViewportSize(PHONE);
+  await page.goto("/");
+  await pressStart(page);
+  await walkToShelf(page);
+  const archive = await openScores(page);
+
+  // A FOURTH pill in a bar that already clipped its title at 375px, on a screen that is
+  // `overflow: hidden`: the pills take a line of their own here, and nothing in that bar
+  // may sit on top of the close button — an overlapped × is a button that takes the tap
+  // meant for it and pages the archive nowhere.
+  const screen = await boxOf(page, "archive");
+  const close = await boxAround(archive.getByRole("button", { name: "Close" }));
+  for (const label of ["Days", "Scores", "Standings", "Avatars"]) {
+    const tab = await boxAround(
+      archive.getByRole("button", { name: label, exact: true }),
+    );
+    expect(encloses(screen, tab), `${label} is off the screen`).toBe(true);
+    expect(overlaps(tab, close), `${label} sits on the close button`).toBe(
+      false,
+    );
+  }
+  expect(encloses(screen, close)).toBe(true);
+
+  // The Day rail is the feed's own and comes along; the By-photographer rail does not,
+  // because a place only means something against the whole field it was taken in.
+  await expect(page.getByTestId("archive-days")).toBeVisible();
+  await expect(page.getByTestId("archive-people")).toHaveCount(0);
+
+  // Day 2 is the default day in view, and nobody voted on it.
+  await expect(page.getByTestId("scores-day")).toHaveCount(1);
+  await expect(page.getByTestId("scores-ballot")).toHaveText("NO VOTES");
+  await expect(page.getByTestId("scores-penalty")).toHaveText(
+    `×${String(NO_VOTE_MULTIPLIER)}`,
+  );
+
+  await filterBy(page, "archive-days", "Day 1");
+  const rows = page.getByTestId("scores-row");
+  await expect(rows).toHaveCount(2);
+  await expect(page.getByTestId("scores-outcome")).toContainText("tester won");
+
+  // Two snaps, neither judged (no Gemini key here), so both stand on the field's
+  // median jury position and the totals are 50 + 30 and (10 + 30) × 0.5.
+  const won = rows.first();
+  await expect(won.getByTestId("scores-place")).toHaveText("#1");
+  await expect(won).toContainText("tester");
+  await expect(won.getByTestId("scores-peer-points")).toHaveText("6");
+  await expect(won.getByTestId("scores-ballot")).toHaveText("2×1ST");
+  await expect(won.getByTestId("scores-peer-place")).toHaveText("1");
+  await expect(won.getByTestId("scores-peer-half")).toHaveText(
+    String(HALF_WEIGHT),
+  );
+  const rating = won.getByTestId("scores-rating");
+  await expect(rating).toContainText("5/10");
+  await expect(rating).toContainText("machine broke");
+  await expect(won.getByTestId("scores-jury-place")).toHaveText("=1.5");
+  await expect(won.getByTestId("scores-jury-half")).toContainText("CURVED 30");
+  await expect(won.getByTestId("scores-bonus")).toHaveText("—");
+  await expect(won.getByTestId("scores-penalty")).toHaveText("—");
+  await expect(won.getByTestId("scores-total")).toHaveText("80");
+
+  const lost = rows.nth(1);
+  await expect(lost).toContainText("rival");
+  await expect(lost.getByTestId("scores-peer-points")).toHaveText("5");
+  await expect(lost.getByTestId("scores-ballot")).toHaveText("1×1ST 1×2ND");
+  await expect(lost.getByTestId("scores-peer-place")).toHaveText("2");
+  await expect(lost.getByTestId("scores-penalty")).toHaveText(
+    `×${String(NO_VOTE_MULTIPLIER)}`,
+  );
+  await expect(lost.getByTestId("scores-total")).toHaveText("20");
+
+  for (const id of ["peer-points", "ballot", "peer-place", "peer-half"]) {
+    await expect(won.getByTestId(`scores-${id}`)).toHaveCSS(
+      "color",
+      INK.peerOnLight,
+    );
+  }
+  for (const id of ["rating", "jury-place", "jury-half"]) {
+    await expect(won.getByTestId(`scores-${id}`)).toHaveCSS(
+      "color",
+      INK.juryOnLight,
+    );
+  }
+  for (const id of ["place", "bonus", "penalty", "total"]) {
+    await expect(won.getByTestId(`scores-${id}`)).toHaveCSS(
+      "color",
+      INK.untintedOnLight,
+    );
+  }
+
+  // Thirteen columns on a 390px phone: the table scrolls inside its own box and the
+  // archive itself does not move sideways.
+  const held = page.locator(".arc-scores-scroll");
+  expect(await held.evaluate((node) => getComputedStyle(node).overflowX)).toBe(
+    "auto",
+  );
+  expect(
+    await held.evaluate((node) => node.scrollWidth > node.clientWidth),
+  ).toBe(true);
+  await noSidewaysScroll(page);
+
+  // "All days" is one table per day, because a position only means something inside
+  // the day whose field it was taken in.
+  await filterBy(page, "archive-days", "All days");
+  await expect(page.getByTestId("scores-day")).toHaveCount(2);
+  await expect(page.getByTestId("scores-row")).toHaveCount(3);
+});
+
+test("a thumbnail in the table pages the table's own rows, not the feed's", async ({
+  page,
+}) => {
+  await twoScoredDays(page);
+
+  await page.setViewportSize(PHONE);
+  await page.goto("/");
+  await pressStart(page);
+  await walkToShelf(page);
+  await openArchive(page);
+  await filterBy(page, "archive-days", "Day 1");
+  await filterBy(page, "archive-people", "tester");
+  await expect(page.getByTestId("archive-card")).toHaveCount(1);
+
+  const archive = await openScores(page);
+  await expect(page.getByTestId("scores-row")).toHaveCount(2);
+  // The row the feed's rail leaves out: it opens onto the photograph that was tapped
+  // and pages the two rows on screen, where `feed` would have had one snap and not
+  // this one.
+  await page.getByTestId("scores-photo").nth(1).click();
+  await expect(viewerTitle(page, 2, 2)).toBeVisible();
+  await expect(page.getByTestId("viewer-who")).toHaveText("rival");
+  await tapArrow(page, "on");
+  await expect(viewerTitle(page, 1, 2)).toBeVisible();
+  await expect(page.getByTestId("viewer-who")).toHaveText("tester");
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("scores-table")).toBeVisible();
+  // Back on the feed, its own rail is still where it was left.
+  await archive.getByRole("button", { name: "Days", exact: true }).click();
+  await expect(page.getByTestId("archive-card")).toHaveCount(1);
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AI_SCORE_MAX, HALF_WEIGHT } from "@shared/scoring";
-import { curvedText, isFallbackRating, ratingText } from "./rating";
+import { curvedText, isFallbackRating, juryLine, ratingText } from "./rating";
 
 describe("ratingText", () => {
   it("prints the jury's rating out of the scale it was given", () => {
@@ -42,5 +42,25 @@ describe("isFallbackRating", () => {
     expect(isFallbackRating("failed")).toBe(true);
     expect(isFallbackRating("ok")).toBe(false);
     expect(isFallbackRating(null)).toBe(false);
+  });
+});
+
+describe("juryLine", () => {
+  it("names the jury and prints the rating it gave", () => {
+    expect(juryLine({ aiScore: 7, aiStatus: "ok" })).toBe(
+      `Jury 7/${String(AI_SCORE_MAX)}`,
+    );
+  });
+
+  // The whole point of the line: a keyless run writes 5 for every snap, and a bare
+  // 5/10 reads as a verdict the jury never reached.
+  it("says the machine broke rather than passing the fallback off as a verdict", () => {
+    const broken = juryLine({ aiScore: 5, aiStatus: "failed" });
+    expect(broken).toContain("machine broke");
+    expect(broken).not.toBe(`Jury 5/${String(AI_SCORE_MAX)}`);
+  });
+
+  it("says a snap was not scored where the jury never reached it at all", () => {
+    expect(juryLine({ aiScore: null, aiStatus: null })).toBe("Jury NOT SCORED");
   });
 });

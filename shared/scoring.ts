@@ -36,7 +36,16 @@ export interface DayEntry {
 export interface DayScore {
   photoId: number;
   peerPoints: number;
+  /** How many 1st / 2nd / 3rd place votes the snap collected, indexed by rank - 1. */
+  ballot: number[];
   peerNorm: number;
+  /** The two POSITIONS the halves above were paid for. `rankOf` averages the positions
+   * a tied group occupies, so neither is an integer in general and an unjudged snap
+   * takes the field's median — a caller that rounds one of these to name a placing
+   * names a placing nobody took. Re-deriving them outside this module is how the
+   * archive and the standings started disagreeing. */
+  peerPlace: number;
+  juryPlace: number;
   aiNorm: number;
   bonus: boolean;
   penalised: boolean;
@@ -60,9 +69,17 @@ function isJudged(entry: DayEntry): boolean {
   return entry.aiScore > 0 && entry.aiStatus !== "failed";
 }
 
+function ballotFor(ranksReceived: readonly number[]): number[] {
+  return RANK_POINTS.map(
+    (_unused, index) =>
+      ranksReceived.filter((rank) => rank === index + 1).length,
+  );
+}
+
 interface Weighed {
   entry: DayEntry;
   peerPoints: number;
+  peerRank: number;
   peerNorm: number;
   aiNorm: number;
   aiRank: number;
@@ -95,8 +112,8 @@ export function scoreDay(entries: readonly DayEntry[]): DayScore[] {
   return weighed
     .map(({ entry, peerPoints }): Weighed => {
       const aiRank = isJudged(entry) ? rankOf(entry.aiScore, judged) : median;
-      const peerNorm =
-        HALF_WEIGHT * share(rankOf(peerPoints, peerField), field);
+      const peerRank = rankOf(peerPoints, peerField);
+      const peerNorm = HALF_WEIGHT * share(peerRank, field);
       const aiNorm = HALF_WEIGHT * share(aiRank, field);
       const earned =
         peerNorm + aiNorm + (entry.bonusDetected ? BONUS_POINTS : 0);
@@ -104,6 +121,7 @@ export function scoreDay(entries: readonly DayEntry[]): DayScore[] {
       return {
         entry,
         peerPoints,
+        peerRank,
         peerNorm,
         aiNorm,
         aiRank,
@@ -115,7 +133,10 @@ export function scoreDay(entries: readonly DayEntry[]): DayScore[] {
     .map((one, index) => ({
       photoId: one.entry.photoId,
       peerPoints: one.peerPoints,
+      ballot: ballotFor(one.entry.ranksReceived),
       peerNorm: one.peerNorm,
+      peerPlace: one.peerRank,
+      juryPlace: one.aiRank,
       aiNorm: one.aiNorm,
       bonus: one.entry.bonusDetected,
       penalised: one.penalised,

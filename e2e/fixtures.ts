@@ -480,6 +480,19 @@ export async function apiUpload(
   return photoSchema.parse(await res.json()).id;
 }
 
+/** A ballot cast through the real route. POSITION IS THE RANK, so `[a, b]` is a 1st for
+ * `a` and a 2nd for `b` — and whoever never calls this is a player whose own snap takes
+ * the no-ballot ×0.5. */
+export async function apiVote(
+  page: Page,
+  name: keyof typeof USERS,
+  photoIds: readonly number[],
+): Promise<void> {
+  await apiSignIn(page, name);
+  const res = await page.request.put("/api/votes", { data: { photoIds } });
+  expect(res.ok()).toBeTruthy();
+}
+
 export async function apiStoreAvatar(
   page: Page,
   sprite: Buffer = AVATAR_PNG,

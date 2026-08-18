@@ -70,7 +70,10 @@ describe("scoring a day", () => {
     expect(only).toEqual({
       photoId: 7,
       peerPoints: 0,
+      ballot: [0, 0, 0],
       peerNorm: HALF_WEIGHT,
+      peerPlace: 1,
+      juryPlace: 1,
       aiNorm: HALF_WEIGHT,
       bonus: false,
       penalised: false,
@@ -294,6 +297,85 @@ describe("a tied group takes the average of the positions it occupies", () => {
 // The two properties everybody misreads as a bug, pinned so nobody "fixes" them:
 // `aiNorm` is FLOOR*HALF_WEIGHT..HALF_WEIGHT measured against the DAY's field, not a
 // rating out of ten.
+describe("the two positions the halves were paid for", () => {
+  it("hands back the peer position rather than leaving it inside the half", () => {
+    const field = 6;
+    const scored = scoreDay([
+      judged({ photoId: 1, ranksReceived: [1, 1], aiScore: 5 }),
+      judged({ photoId: 2, ranksReceived: [1, 1], aiScore: 5 }),
+      judged({ photoId: 3, ranksReceived: [1], aiScore: 5 }),
+      judged({ photoId: 4, ranksReceived: [1], aiScore: 5 }),
+      judged({ photoId: 5, ranksReceived: [1], aiScore: 5 }),
+      judged({ photoId: 6, aiScore: 5 }),
+    ]);
+    // The same positions the halves above were paid for, so a table printing one of
+    // these cannot disagree with the number beside it.
+    for (const one of scored) {
+      expect(one.peerPlace).toBeCloseTo(rankFrom(one.peerNorm, field));
+    }
+    expect(forPhoto(scored, 1).peerPlace).toBe(1.5);
+    expect(forPhoto(scored, 3).peerPlace).toBe(4);
+    expect(forPhoto(scored, 6).peerPlace).toBe(6);
+    expect(scored.reduce((sum, one) => sum + one.peerPlace, 0)).toBeCloseTo(
+      (field * (field + 1)) / 2,
+    );
+  });
+
+  it("gives a tied jury group the average of the positions it occupies", () => {
+    const scored = scoreDay([
+      judged({ photoId: 1, aiScore: 9 }),
+      judged({ photoId: 2, aiScore: 9 }),
+      judged({ photoId: 3, aiScore: 1 }),
+    ]);
+    expect(forPhoto(scored, 1).juryPlace).toBe(1.5);
+    expect(forPhoto(scored, 2).juryPlace).toBe(1.5);
+    expect(forPhoto(scored, 3).juryPlace).toBe(3);
+  });
+
+  it("stands an unjudged snap on the field's median jury position", () => {
+    const field = 4;
+    const scored = scoreDay([
+      judged({ photoId: 1, aiScore: 8 }),
+      judged({ photoId: 2, aiScore: 4 }),
+      entry({ photoId: 3, aiScore: 5, aiStatus: "failed" }),
+      entry({ photoId: 4 }),
+    ]);
+    const median = (field + 1) / 2;
+    expect(forPhoto(scored, 3).juryPlace).toBe(median);
+    expect(forPhoto(scored, 4).juryPlace).toBe(median);
+    // A field nobody judged is every snap on that same median, not a first place each.
+    const none = scoreDay([entry({ photoId: 1 }), entry({ photoId: 2 })]);
+    expect(none.map((one) => one.juryPlace)).toEqual([1.5, 1.5]);
+  });
+
+  it("counts the ballot a snap collected per rank, naming no voter", () => {
+    const scored = scoreDay([
+      entry({ photoId: 1, ranksReceived: [1, 3, 1] }),
+      entry({ photoId: 2, ranksReceived: [2] }),
+      entry({ photoId: 3 }),
+    ]);
+    expect(forPhoto(scored, 1).ballot).toEqual([2, 0, 1]);
+    expect(forPhoto(scored, 2).ballot).toEqual([0, 1, 0]);
+    expect(forPhoto(scored, 3).ballot).toEqual([0, 0, 0]);
+    expect(forPhoto(scored, 1).ballot).toHaveLength(RANK_POINTS.length);
+    // The counts are what pays the points, so the two cannot drift.
+    for (const one of scored) {
+      expect(one.peerPoints).toBe(
+        one.ballot.reduce(
+          (sum, count, index) => sum + count * pointsForRank(index + 1),
+          0,
+        ),
+      );
+    }
+  });
+
+  it("ignores a rank no ballot has room for, as the points already do", () => {
+    const [only] = scoreDay([entry({ photoId: 1, ranksReceived: [1, 9] })]);
+    expect(only?.ballot).toEqual([1, 0, 0]);
+    expect(only?.peerPoints).toBe(3);
+  });
+});
+
 describe("the AI half, and why the leader reads as 50", () => {
   it("puts the day's best AI score on exactly HALF_WEIGHT, always", () => {
     for (const best of [2, 5, AI_SCORE_MAX]) {
