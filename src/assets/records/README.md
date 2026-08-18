@@ -5,11 +5,15 @@ glob is what enumerates this directory, so there is no script to run and no rout
 separator is a hyphen with a space on each side, and it is load-bearing: the filename is all
 the shelf knows, and the stem is the track's id.
 
-The three `Test Pattern` tones are what `e2e/jukebox.spec.ts` plays. Leave them here, all
-three: with them gone the suite has no real file to put on, and the selector needs at least
-three records before it has a neighbouring sleeve to flick to. `A Tone For Fourteen Friends`
-runs ten seconds because a spec has to watch the cabinet while it is still lit; the other two
-are a second each. Each is deliberately larger than Vite's 4096-byte `assetsInlineLimit`, so
+The glob in `src/lib/shelf.ts` accepts `mp3`, `ogg`, `oga`, `m4a`, `aac`, `flac`, `wav` and
+`webm`, and a file with any other extension is simply not on the shelf — widen that list to
+add one.
+
+Leave the three `Test Pattern` tones here, all three: without them the suite has no real file
+to put on, and the selector needs at least three records before it has a neighbouring sleeve
+to flick to. `e2e/jukebox.spec.ts` plays `A Tone For Fourteen Friends`, which runs ten seconds
+because a spec has to watch the cabinet while it is still lit, and flicks past the other two,
+which are a second each. Each is deliberately larger than Vite's 4096-byte `assetsInlineLimit`, so
 they are served at hashed URLs like real records rather than inlined as data URLs.
 
 These bytes are PUBLIC — served off the SPA, at a cacheable unauthenticated URL, out of a

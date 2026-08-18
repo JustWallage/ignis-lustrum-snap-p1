@@ -40,18 +40,20 @@ export interface NowPlaying {
   offsetMs: number;
 }
 
-/** Null before the start too, which is a screen whose clock trails the DO's: a negative
- * offset is worse than a beat of silence. */
 export function nowPlaying(
   state: JukeboxState,
   now: number,
 ): NowPlaying | null {
   const record = state.playing;
   if (record === null) return null;
-  if (now < record.startedAt) return null;
   if (now >= record.endsAt) return null;
-  if (now - record.startedAt >= RECORD_MAX_MS) return null;
-  return { trackId: record.trackId, offsetMs: now - record.startedAt };
+  // CLAMPED, never refused: a screen whose own clock trails the DO's would get a negative
+  // offset, and because playback reads the clock once per record it would then hear none of
+  // that record — for minutes, with its cabinet lit throughout, since the skew does not
+  // change. It joins at the top instead.
+  const offsetMs = Math.max(0, now - record.startedAt);
+  if (offsetMs >= RECORD_MAX_MS) return null;
+  return { trackId: record.trackId, offsetMs };
 }
 
 const PRESS_MIN_INTERVAL_MS = 5_000;

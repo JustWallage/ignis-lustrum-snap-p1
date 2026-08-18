@@ -4,6 +4,7 @@ import { PixelSprite } from "@/components/Crowd";
 import { GbWindow } from "@/components/GbWindow";
 import { isCancelKey, isConfirmKey, KEY_DIRS } from "@/game/keys";
 import { vinyl } from "@/game/vinyl";
+import { useNow } from "@/hooks/useNow";
 import { readApiError } from "@/lib/api";
 import { sleevesOf, stepTo } from "@/lib/records";
 import { SHELF, type ShelfRecord } from "@/lib/shelf";
@@ -16,6 +17,8 @@ const NO_METADATA =
   "That record will not spin. The file is not where the shelf says it is.";
 
 const REFUSED = "The cabinet would not take it. Try again in a moment.";
+
+const SECOND_MS = 1000;
 
 function label(record: ShelfRecord): string {
   return record.artist === null
@@ -46,7 +49,9 @@ export function JukeboxDialog({
   );
 
   const faced = SHELF[at];
-  const playingId = nowPlaying(jukebox, Date.now())?.trackId ?? null;
+  // Through `useNow`, or a selector held open across the natural end of a record goes on
+  // printing it and leaves STOP enabled: nothing else re-renders this box.
+  const playingId = nowPlaying(jukebox, useNow(SECOND_MS))?.trackId ?? null;
 
   const press = useCallback(async (body: RequestInit) => {
     setNote(null);

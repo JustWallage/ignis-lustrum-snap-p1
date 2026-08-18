@@ -1163,11 +1163,13 @@ button.gb-pill-cap:disabled {
   gap: 0.5rem;
 }
 
+/* `rem`, not `cqw`: this sits inside a top-layer `<dialog>`, which is a sibling of
+   `.gb-shell` rather than a descendant, so it has no query container and `cqw` here would
+   resolve against the VIEWPORT — the same trap `.gb-shell`'s own rule documents. */
 .gb-shelf {
   position: relative;
   width: 100%;
-  height: 40cqw;
-  min-height: 6rem;
+  height: 9rem;
   overflow: hidden;
 }
 .gb-sleeve {

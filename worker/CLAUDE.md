@@ -90,8 +90,9 @@
   cabinet for every later test on that shard. The presser's last-press time is DO storage under ONE key
   holding a time per presser, never broadcast, which is how a per-presser cooldown coexists with "the
   wire carries no identity"; `lib/rate-limit.ts` is not the tool, its own comment calling it a per-isolate
-  window rather than an access control. Putting one on refuses in `submission` only, with a reason,
-  the way the clock route refuses — stopping is always allowed, because it can make no noise.
+  window rather than an access control. Putting one on refuses OUTSIDE `submission`, with a reason, the way
+  the clock route refuses; a stop is refused by nothing but that cooldown, because it can make no
+  noise.
 - `lib/gemini.ts` (REST) and `lib/npc.ts` (Workers AI) are not interchangeable. **Verify both model
   ids against the provider's docs, never from memory.** `AVATAR_IMAGE_SIZE` is a PRICE. Gemini
   throws and callers decide differently on purpose; for the NPC, offline is a normal path.

@@ -110,8 +110,9 @@ describe("nowPlaying", () => {
     expect(nowPlaying(stale, START + RECORD_MAX_MS)).toBeNull();
   });
 
-  it("says nothing is on to a screen whose clock trails the start", () => {
-    expect(nowPlaying(state, START - 1)).toBeNull();
+  it("joins a screen whose clock trails the start at the top, rather than not at all", () => {
+    expect(nowPlaying(state, START - 1)?.offsetMs).toBe(0);
+    expect(nowPlaying(state, START - 30_000)?.offsetMs).toBe(0);
   });
 });
 

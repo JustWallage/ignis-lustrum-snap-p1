@@ -514,6 +514,11 @@ const RECORD_GAIN = 1.8;
  * for the same element. */
 let record: HTMLAudioElement | null = null;
 
+/** Tracked here rather than read back off `element.src`, whose getter answers the ABSOLUTE,
+ * percent-encoded URL and so never equals the root-relative path the shelf holds — the
+ * comparison would always miss and every call would reload the file. */
+let playingUrl: string | null = null;
+
 function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
   if (record !== null) return record;
   const element = new Audio();
@@ -530,7 +535,10 @@ function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
 export function playRecord(url: string, offsetSeconds: number): void {
   whenLive((audio, out) => {
     const element = recordElement(audio, out);
-    if (element.src !== url) element.src = url;
+    if (playingUrl !== url) {
+      element.src = url;
+      playingUrl = url;
+    }
     element.currentTime = offsetSeconds;
     element.play().catch(() => {
       // This browser wants a gesture it has not had. Nothing to say about it.

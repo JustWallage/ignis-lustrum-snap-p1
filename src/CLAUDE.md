@@ -22,7 +22,7 @@
   rather than painted over the opaque overlay — an NPC conversation open when the countdown lands
   used to run on under it and, because SELECT is dead while a dialog is up, took Abort event away
   from the host. What the menu raises must say yes: the host's confirmation is that same box.
-- `interactableAt` + `OPENS` (a total `Record`) are why a seventh interactable cannot exist without
+- `interactableAt` + `OPENS` (a total `Record`) are why an eighth interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or
   Safari refuses (a deferred `click()` loses the gesture), and it is a plain hidden
