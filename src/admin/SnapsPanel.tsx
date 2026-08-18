@@ -20,6 +20,8 @@ const DESCRIBE_REFUSED = "Nothing was described.";
 
 const RANK_REFUSED = "The jury was not asked.";
 
+const READING = "Reading the day…";
+
 function retiredText(retired: number, day: number): string {
   return `${String(retired)} snap${retired === 1 ? "" : "s"} retired out of day ${String(day)}. The pictures are still in the bucket.`;
 }
@@ -52,12 +54,15 @@ function countOk(states: Iterable<PassState>): number {
   return [...states].filter((state) => state === "ok").length;
 }
 
-function evaluatedText(tally: {
+interface Tally {
   total: number;
   described: number;
   scored: number;
   usable: number;
-}): string {
+}
+
+function evaluatedText(tally: Tally | undefined): string {
+  if (tally === undefined) return READING;
   return `Evaluated ${String(tally.usable)} of ${String(tally.total)} — ${String(tally.described)} described, ${String(tally.scored)} with a verdict the jury stands behind.`;
 }
 
@@ -65,7 +70,7 @@ const JURY_HINT =
   "A verdict only comes out of ranking the whole day: describe the broken snaps one at a time, then rank the day once.";
 
 function rankedText(ranking: DayRanking | undefined): string {
-  if (ranking === undefined) return "Reading the day…";
+  if (ranking === undefined) return READING;
   const when =
     ranking.ranAt === null
       ? "never run"
@@ -153,14 +158,17 @@ export function SnapsPanel({
   );
   // Counted off the two maps this grid renders from, never a figure the route sends: a
   // second source is one that can disagree with the cards printed beside it.
-  const tally = {
-    total: photos.length,
-    described: countOk(described.values()),
-    scored: countOk(scored.values()),
-    usable: photos.filter((photo) =>
-      isUsable(described.get(photo.id), scored.get(photo.id)),
-    ).length,
-  };
+  const tally: Tally | undefined =
+    list.data === undefined
+      ? undefined
+      : {
+          total: photos.length,
+          described: countOk(described.values()),
+          scored: countOk(scored.values()),
+          usable: photos.filter((photo) =>
+            isUsable(described.get(photo.id), scored.get(photo.id)),
+          ).length,
+        };
 
   return (
     <section className="ops-panel" data-testid="ops-snaps-panel">
@@ -228,9 +236,7 @@ export function SnapsPanel({
       )}
       {photos.length === 0 ? (
         <p className="ops-empty" data-testid="ops-snaps-empty">
-          {list.loading
-            ? "Reading the day…"
-            : "Nothing was handed in that day."}
+          {list.loading ? READING : "Nothing was handed in that day."}
         </p>
       ) : (
         <ul className="ops-grid" data-testid="ops-snaps">

@@ -211,8 +211,26 @@ test("the console counts what the jury can use, and retries one description", as
       posted.push(new URL(request.url()).pathname);
   });
 
+  // Held open for the panel's own first fetch, because the one line on this panel that
+  // states a number must not state a false one while the day is still on the wire.
+  let land: (() => void) | undefined;
+  const held = new Promise<void>((resolve) => {
+    land = resolve;
+  });
+  await page.route(
+    "**/api/admin/days/1/photos",
+    async (route) => {
+      await held;
+      await route.continue();
+    },
+    { times: 1 },
+  );
+
   const panel = await openConsole(page, "Snaps");
-  await expect(panel.getByTestId("ops-evaluated")).toHaveText(
+  const evaluated = panel.getByTestId("ops-evaluated");
+  await expect(evaluated).toHaveText("Reading the day…");
+  land?.();
+  await expect(evaluated).toHaveText(
     "Evaluated 0 of 1 — 0 described, 0 with a verdict the jury stands behind.",
   );
   const described = panel.getByTestId(`ops-described-${String(id)}`);
