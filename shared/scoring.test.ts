@@ -294,9 +294,6 @@ describe("a tied group takes the average of the positions it occupies", () => {
   });
 });
 
-// The two properties everybody misreads as a bug, pinned so nobody "fixes" them:
-// `aiNorm` is FLOOR*HALF_WEIGHT..HALF_WEIGHT measured against the DAY's field, not a
-// rating out of ten.
 describe("the two positions the halves were paid for", () => {
   it("hands back the peer position rather than leaving it inside the half", () => {
     const field = 6;
@@ -376,6 +373,9 @@ describe("the two positions the halves were paid for", () => {
   });
 });
 
+// The two properties everybody misreads as a bug, pinned so nobody "fixes" them:
+// `aiNorm` is FLOOR*HALF_WEIGHT..HALF_WEIGHT measured against the DAY's field, not a
+// rating out of ten.
 describe("the AI half, and why the leader reads as 50", () => {
   it("puts the day's best AI score on exactly HALF_WEIGHT, always", () => {
     for (const best of [2, 5, AI_SCORE_MAX]) {

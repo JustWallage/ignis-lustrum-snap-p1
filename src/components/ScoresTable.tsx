@@ -64,7 +64,7 @@ export function ScoresTable({
                   <th scope="row" data-testid="scores-place">
                     #{result.rank}
                   </th>
-                  <td className="arc-scores-who">{result.uploader.name}</td>
+                  <td className="arc-who">{result.uploader.name}</td>
                   <td>
                     <button
                       type="button"

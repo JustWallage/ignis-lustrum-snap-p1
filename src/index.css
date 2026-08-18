@@ -1623,10 +1623,6 @@ button.gb-pill-cap:disabled {
 .arc-scores tbody tr + tr td {
   border-top: 1px solid #f0eee8;
 }
-.arc-scores-who {
-  font-weight: 700;
-  color: #14181d;
-}
 /* Bold, not dark: the total takes the same untinted ink as the place, the bonus and the
    penalty, or the tint rule reads as a fourth colour. */
 .arc-scores-total {

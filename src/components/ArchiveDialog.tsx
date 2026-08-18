@@ -98,9 +98,10 @@ export function ArchiveDialog({
               ×
             </button>
           </header>
-          {/* Every view that is not the feed branches ABOVE the empty gate below:
-              inside it, a shelf nobody has revealed a day on would answer "Avatars"
-              with "nothing is in the archive". */}
+          {/* Standings and Avatars branch ABOVE the empty gate below — inside it, a
+              shelf nobody has revealed a day on would answer "Avatars" with "nothing
+              is in the archive". Scores WANTS that gate: with no revealed day it has
+              no field to table. */}
           {view === "standings" ? (
             <div className="arc-panel" data-testid="standings-panel">
               <Leaderboard

@@ -181,8 +181,9 @@
   also why a thumbnail there opens `SnapViewer` on the TABLE's rows and not on `feed`, whose rail
   may not contain the row that was tapped. "All days" is one table per day for that same reason.
   **Every place printed is `scoreDay`'s own** (`peerPlace` / `juryPlace` on the wire, never
-  re-derived here), so `=7.5` is a position eight snaps SHARE rather than a figure to round: rounding
-  it names a placing nobody took. What the ballots gave a snap is on the wire as COUNTS PER RANK and
+  re-derived here), so `=7.5` is a position eight snaps SHARE — or, on the jury side, the median an
+  unjudged snap stands on — rather than a figure to round: rounding it names a placing
+  nobody took. What the ballots gave a snap is on the wire as COUNTS PER RANK and
   no voter is ever named.
 - **The operator's console is the second one** (#29), quarantined the same way under `ops-`, and it
   crosses nowhere: it is a PAGE, not a window, so it is not inside `.gb-stage` at all — `App` branches
