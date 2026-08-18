@@ -232,6 +232,34 @@
   `beastEndsAt` and the clock, like everything else on this screen, so a screen joining mid-beast
   lands inside it; `PixelSprite` is the ONE canvas figure of the overlay and the beast comes through
   it beside the character it eats.
+- **The jukebox is the one sound in the app that is a file**, and its playback lives INSIDE
+  `lib/sound.ts` beside `speakSamples`: `master` and `whenLive` are module-private, so a caller
+  outside could only reach `ctx.destination` and the record would land several times louder than
+  every cue. ONE media element with its `src` swapped — `createMediaElementSource` throws on a second
+  call for the same element, and a four-minute file decoded to a buffer is tens of megabytes on a
+  phone. Routing it through the context buys GAIN-STAGING with the cues rather than the iOS-caps
+  argument that keeps voice here, which a bare element with its own `volume` would not have needed.
+  Mute silences it. An autoplay refusal is SILENT — no throw, no retry, and no dark cabinet, because
+  the lights read the SHARED state and not this browser's audio; a screen with no AudioContext hears
+  nothing at all, which is the honest limit the splash bullet above already states, and the press on
+  the cabinet is itself a gesture. The duration a press carries is read off a throwaway element, so
+  measuring it cannot interrupt whatever is already on and opens no second context.
+- **The cabinet's lit look is a second TILE, not an overlay** (#58): a glyph in `TILE_RAMPS` no
+  `MAP_ROWS` character is, which the render loop blits in place of the dark one. `drawTile` already
+  blits, both cached atlases keep both glyphs and `tileAtlas`'s frame type is untouched — an overlay
+  would have been a second drawing path for one tile. Its chase runs on `animFrame`'s cadence, the
+  pond's clock, never a faster constant. Lit-or-dark is decided in the rAF loop off `Date.now()` and a
+  REF, so the cabinet goes dark the moment the record ends without anything ticking it there.
+- **The record shelf's geometry is `lib/records.ts` and is NOT the prize drum's** (#58). The drum
+  rotates a rigid barrel about the X axis with every plate tangent to it, tilted out of the screen
+  plane and magnified by the perspective, and `isFacing` exists because the far side would show
+  through the front. A sleeve must stay PARALLEL to the screen however far off centre it sits, because
+  a rotated label is an unreadable label — so this is translation and scale, no rotation, no
+  `perspective`, no `preserve-3d` and no hidden far side, and it shares no arithmetic with the barrel.
+  The numbers are written in as it renders and the stylesheet holds no copy. The ‹ › buttons, the
+  arrow keys and a tap on a neighbouring sleeve all go through ONE step, the way `SnapViewer`'s paging
+  does. The artist and title are DOM inside the `.gb-window`, never canvas text: `game/font.ts` has no
+  accented glyphs, so a canvas sleeve renders `Beyoncé` with a hole in it.
 - `beforeinstallprompt` is captured at startup because it fires long before anyone opens the menu;
   browsers that never fire it (always iOS) fall back to instructions, so **Install app** is never
   dead.

@@ -157,8 +157,6 @@ const SURVIVES_EVENT: Record<Dialog["kind"], boolean> = {
   wardrobe: false,
   "avatar-splash": false,
   trophy: false,
-  // The countdown clears the record, so a selector left open over the opaque event overlay
-  // would be a box outliving the event that closed it.
   jukebox: false,
   chat: false,
   "chat-say": false,
@@ -1046,11 +1044,9 @@ export function Overworld() {
 
       const frame = animFrame(now);
       const atlas = tileAtlas(frame);
-      // `Date.now()`, not this loop's `now`, which is `performance.now()`: the record's end
-      // is an absolute epoch-ms target. Read here rather than rendered, so the cabinet goes
-      // dark the moment the record is over without anything ticking it there — and read off
-      // the SHARED state, so a muted friend and one whose browser refused to autoplay both
-      // see the town's cabinet lit.
+      // `Date.now()`, not this loop's `now`, which is `performance.now()`: a record's end is
+      // an absolute epoch-ms target. Read HERE rather than rendered, so the cabinet goes dark
+      // the moment the record is over without anything ticking it there.
       const lit = isCabinetLit(jukeboxRef.current, Date.now());
       for (let ty = 0; ty < MAP_H; ty++) {
         for (let tx = 0; tx < MAP_W; tx++) {

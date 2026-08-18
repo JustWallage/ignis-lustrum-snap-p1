@@ -66,6 +66,17 @@ Everything both sides read. Change a schema here first.
   `TALK_FRAME_MAX_BYTES`, and relays the rest untouched. A chunk is never an implicit press, which
   is what lets it travel with no header saying whose it is — half-duplex settles that, and the lock
   is what keeps it half-duplex.
+- **The jukebox's state is a track id, a start and an END, all absolute epoch-ms** — the same rule
+  every event moment follows, so two screens cannot drift and a late join is not behind. Decision
+  taken in #58: the END is stored rather than derived, because the alternative (a start plus a
+  ceiling) leaves nothing shared knowing a three-minute song is over, and the lit cabinet is the
+  surface that lie shows up on. The duration therefore comes off the presser's media element, which
+  makes it CLIENT-SUPPLIED: `putRecordSchema` bounds it by `RECORD_MAX_MS` and refuses rather than
+  clamping, because a silently shortened record is a cabinet that goes dark mid-song. `nowPlaying` is
+  the ONE reader of "what is on and how far in", so the lights, the seek and the greeting cannot
+  disagree — and the Worker holds no copy of the shelf, which is a build-time glob under `src/`, so a
+  stale id plays silence for everybody until somebody presses again. That is cheap and
+  self-correcting, because anybody may stop it.
 - `WS_EVENT_TYPES` and `REVALIDATE_EVENT_TYPES` are DERIVED from the schema union, never
   hand-maintained: a forgotten entry fails silently, and treating a position frame as content news
   turns a stroll into a load test.

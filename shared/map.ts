@@ -47,9 +47,6 @@ export const TROPHY: Point = { x: 1, y: 1 };
 
 export const JUKEBOX: Point = { x: 8, y: 1 };
 
-/** NPCs only. The cabinet is terrain, because a person is somebody you bump into and a
- * jukebox is furniture: its own solid glyph in `MAP_ROWS` rather than grass made
- * unwalkable. */
 const OCCUPIED: readonly Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR];
 
 const DOOR: Point = { x: 2, y: 3 };

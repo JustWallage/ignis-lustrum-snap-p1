@@ -70,9 +70,11 @@ const EVENT_KEY = "event_state";
 
 const JUKEBOX_KEY = "jukebox";
 
-/** A key per presser. Never broadcast — which is what keeps "the wire carries no
- * identity" true alongside a cooldown that has to know who pressed. */
-const PRESSED_PREFIX = "jukebox_pressed:";
+/** One key holding a last-press time per presser, never broadcast: how a cooldown that has
+ * to know who pressed coexists with a wire that carries no identity. ONE key rather than one
+ * each, so winding it back is a single `delete` — `/api/test/reset` runs before every e2e
+ * test and a `list()` on that path is latency every test pays. */
+const PRESSED_KEY = "jukebox_pressed";
 
 const JUKEBOX_IN_EVENT =
   "The town is watching the reveal. Put a record on once the event is over.";
@@ -156,9 +158,9 @@ export class RealtimeDO extends DurableObject<Bindings> {
         this.send(socket, frame({ type: "event_changed", state: event.data }));
       }
       this.expireGhosts(now);
-      // Sent to EVERY socket, an anonymous one included: the frame names no person and
-      // the record they can already hear is public. CONDITIONAL, unlike `event_changed`,
-      // because silence is the common case and four assertions pin this greeting exactly.
+      // CONDITIONAL, unlike `event_changed`: silence is the common case, and four
+      // assertions pin this greeting exactly (`index.test.ts`, `do/voice.test.ts` twice,
+      // `prizes.test.ts`).
       const jukebox = await this.storedJukebox();
       if (nowPlaying(jukebox, now) !== null) {
         this.send(socket, frame({ type: "presence_jukebox", jukebox }));
@@ -391,18 +393,14 @@ export class RealtimeDO extends DurableObject<Bindings> {
 
   async setEventPhase(phase: GamePhase): Promise<EventState> {
     return this.alone(async () => {
-      // `/api/test/*` is this method's only caller, and it winds the DO's whole stored
-      // world back: a cooldown that outlived the reset would refuse the first press of
-      // whichever test comes next on this shard.
-      const pressed = await this.ctx.storage.list({ prefix: PRESSED_PREFIX });
-      await this.ctx.storage.delete([...pressed.keys()]);
+      // `/api/test/*` is this method's only caller, and it winds the DO's whole stored world
+      // back: a cooldown that outlived the reset would refuse the first press of whichever
+      // test comes next on this shard.
+      await this.ctx.storage.delete(PRESSED_KEY);
       return this.publish({ ...idleEvent(), phase });
     });
   }
 
-  /** A stale state expires HERE rather than on an alarm: the DO has one slot and the
-   * event's deadlines own it, so a record's end is clock-derived like the channel's
-   * silence. */
   private async storedJukebox(): Promise<JukeboxState> {
     const stored = jukeboxStateSchema.safeParse(
       await this.ctx.storage.get(JUKEBOX_KEY),
@@ -410,24 +408,23 @@ export class RealtimeDO extends DurableObject<Bindings> {
     return stored.success ? stored.data : SILENT;
   }
 
-  /** `null` stops whatever is on. There is no owner and no queue: the last press wins. */
   async setRecord(
     userId: number,
     press: PutRecord | null,
   ): Promise<JukeboxOutcome> {
     return this.alone(async () => {
       const now = Date.now();
-      // Only PUTTING one on is refused: stopping can make no noise, and the countdown
-      // has already cleared the record by the time an event is up.
+      // Only PUTTING one on is refused: stopping can make no noise.
       if (press !== null && (await this.readEvent()).phase !== "submission") {
         return { ok: false, status: 409, error: JUKEBOX_IN_EVENT };
       }
-      const key = `${PRESSED_PREFIX}${String(userId)}`;
-      const pressedAt = await this.ctx.storage.get<number>(key);
-      if (isPressTooSoon(pressedAt ?? null, now)) {
+      const pressed =
+        (await this.ctx.storage.get<Record<string, number>>(PRESSED_KEY)) ?? {};
+      const who = String(userId);
+      if (isPressTooSoon(pressed[who] ?? null, now)) {
         return { ok: false, status: 409, error: JUKEBOX_TOO_SOON };
       }
-      await this.ctx.storage.put(key, now);
+      await this.ctx.storage.put(PRESSED_KEY, { ...pressed, [who]: now });
       const jukebox: JukeboxState = {
         playing: press === null ? null : startedRecord(press, now),
       };
@@ -437,9 +434,9 @@ export class RealtimeDO extends DurableObject<Bindings> {
     });
   }
 
-  /** ONE rule for the countdown, an abort, the landing and `POST /api/test/reset`, which
-   * all reach `publish`: a record left playing by one e2e test would otherwise light the
-   * cabinet for every later test on that shard. */
+  /** Called from `publish`, so the countdown, an abort, the landing and
+   * `POST /api/test/reset` take ONE rule: a record left playing by one e2e test would
+   * otherwise light the cabinet for every later test on that shard. */
   private async clearRecord(): Promise<void> {
     if ((await this.storedJukebox()).playing === null) return;
     await this.ctx.storage.put(JUKEBOX_KEY, SILENT);

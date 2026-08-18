@@ -4,9 +4,6 @@ import type { AppEnv } from "../env";
 import { parseJsonBody } from "../lib/http";
 import { setRecord } from "../lib/jukebox";
 
-/** No GET: `/api/state` and `/api/event` are the entire public read surface, and the
- * socket's greeting is the only reader of what is playing — so there is no second answer
- * to disagree with the first. */
 export const jukeboxRoutes = new Hono<AppEnv>();
 
 const NOT_A_RECORD = "That is not a record this jukebox can play.";

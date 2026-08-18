@@ -1,7 +1,7 @@
 import { rampFor } from "@/game/palette";
 
-/** One record, drawn once at module level and worn by every sleeve on the shelf: a filename
- * is all the shelf knows, so there is no art per record to draw. */
+/** ONE disc for every sleeve: a filename is all the shelf knows, so there is no art per
+ * record to draw. */
 const SIZE = 32;
 
 const GROOVES = [15, 13, 11];
@@ -36,8 +36,6 @@ function disc(ctx: CanvasRenderingContext2D): void {
 
 let drawn: HTMLCanvasElement | null = null;
 
-/** Cached at module level, the way the tile atlases are: the shelf re-renders on every
- * flick and redrawing the same disc each time is work nobody asked for. */
 export function vinyl(): HTMLCanvasElement {
   if (drawn !== null) return drawn;
   const canvas = document.createElement("canvas");

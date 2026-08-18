@@ -90,10 +90,8 @@ const TROPHY: Ramp = {
 const JUKEBOX_WOOD = "#8c3c58";
 const JUKEBOX_OUTLINE = "#200c18";
 
-// The cabinet fills its tile rather than standing on a grass dither, so `lightest` is the
-// ground it abuts and the other three are the machine. `light` is the ONE slot that
-// differs between dark and lit — every lamp, the window and the grille spend it — which is
-// what makes the lit look a second glyph rather than a second drawing path.
+// `light` is the ONE slot that differs between dark and lit, and every lamp spends it: that
+// is what makes the lit look a second GLYPH rather than a second drawing path.
 const JUKEBOX_DARK: Ramp = {
   lightest: GRASS_LIGHTEST,
   light: "#582838",
@@ -152,10 +150,8 @@ export const TILE_RAMPS: Record<string, Ramp> = {
   A: SHELF,
   Y: TROPHY,
   J: JUKEBOX_DARK,
-  // The one key no `MAP_ROWS` character is: the SAME tile in its other state, drawn by
-  // the render loop when the shared playback says a record is on. `tileOffset` resolves a
-  // character against `ORDER`, which is these keys — so being one is exactly what "can be
-  // drawn" means, and `tileAtlas`'s frame type is untouched by it.
+  // The one key no `MAP_ROWS` character is. `tileOffset` resolves a character against
+  // `ORDER`, which is these keys, so being one is exactly what "can be drawn" means.
   j: JUKEBOX_LIT,
 };
 

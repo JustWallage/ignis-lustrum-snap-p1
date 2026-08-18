@@ -510,12 +510,9 @@ let voiceCursor = 0;
 
 const RECORD_GAIN = 1.8;
 
-/** ONE element, `src` swapped: `createMediaElementSource` throws on a second call for the
- * same element, and a four-minute file decoded to a PCM buffer is tens of megabytes on a
- * phone. Routed into `master` rather than played bare, so the cues and the record are
- * levelled in one place — which is the whole reason this lives beside `speakSamples` and
- * not in a module calling the exported `audioContext()`, where only `ctx.destination` is
- * reachable and a record lands several times louder than every cue. */
+/** ONE element with its `src` swapped: `createMediaElementSource` throws on a second call
+ * for the same element. A streaming element rather than a decoded buffer, because a
+ * four-minute file as PCM is tens of megabytes on a phone. */
 let record: HTMLAudioElement | null = null;
 
 function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
@@ -531,12 +528,6 @@ function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
   return element;
 }
 
-/**
- * Seeks to where the town already is. An autoplay refusal is SILENT — no throw, no retry,
- * no dark cabinet on a screen the town is playing to: the lights read the shared state, not
- * this element. A screen with no AudioContext hears nothing at all, which is the limit
- * `src/CLAUDE.md` already documents.
- */
 export function playRecord(url: string, offsetSeconds: number): void {
   whenLive((audio, out) => {
     const element = recordElement(audio, out);
@@ -552,11 +543,10 @@ export function stopRecord(): void {
   record?.pause();
 }
 
-/** The duration the press has to carry, read off a throwaway element rather than the
- * playing one: measuring on that would interrupt whatever is already on. No AudioContext is
- * involved, so this opens no second one. Null when the browser could not read it — which is
- * what a file that is not there looks like, since a missing asset URL answers `index.html`
- * with a 200 rather than a 404. */
+/** A THROWAWAY element: measuring on the playing one would interrupt whatever is already
+ * on, and no AudioContext is involved so this opens no second one. Null is what a file that
+ * is not there looks like — a missing asset URL answers `index.html` with a 200, never a
+ * 404, so nothing here may test playability by status code. */
 export async function recordDurationMs(url: string): Promise<number | null> {
   return new Promise((resolve) => {
     const probe = new Audio();

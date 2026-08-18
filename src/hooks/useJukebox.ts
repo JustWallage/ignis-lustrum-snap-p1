@@ -6,10 +6,6 @@ import { recordCue } from "@/lib/jukebox";
 import { playRecord, stopRecord } from "@/lib/sound";
 import { SHELF } from "@/lib/shelf";
 
-/**
- * What the town is playing, learned from the socket and nowhere else: there is no public
- * GET, so the greeting is the only reader and a late join lands inside the record.
- */
 export function useJukebox(): JukeboxState {
   const [state, setState] = useState<JukeboxState>(SILENT);
   useRealtimeEvent(
@@ -21,12 +17,9 @@ export function useJukebox(): JukeboxState {
   return state;
 }
 
-/**
- * Starts and stops this screen's own playback. Keyed on the record's own three fields
- * rather than the state OBJECT, whose identity changes on every frame the socket delivers,
- * and never on the offset, which moves continuously: the clock is read once, at the moment
- * playback begins. Nothing here ticks anything along.
- */
+/** Keyed on the record's three FIELDS rather than the state object, whose identity changes
+ * on every frame the socket delivers, and never on the offset, which moves continuously: the
+ * clock is read once, when playback begins. */
 export function useRecordPlayback(state: JukeboxState, muted: boolean): void {
   const playing = state.playing;
   const trackId = playing?.trackId ?? null;

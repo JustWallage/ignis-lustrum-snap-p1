@@ -5,8 +5,8 @@ export const TILE = 16;
 
 export const JUKEBOX_TILE = "J";
 
-/** The lit cabinet. A character `MAP_ROWS` never contains: the map says where the cabinet
- * IS and the shared playback says which of its two looks the render loop blits. */
+/** A character `MAP_ROWS` never contains: the map says where the cabinet IS, the shared
+ * playback which of its two looks gets blitted. */
 export const JUKEBOX_LIT_TILE = "j";
 
 const ORDER = Object.keys(TILE_RAMPS);
@@ -208,8 +208,8 @@ const TROPHY_ROWS = [
   "...kkkkkkkkkk...",
 ];
 
-// Every lamp, the window and the grille are drawn in `d` here and overlaid in `l` for the
-// lit glyph, so ONE body serves both states and the two cannot drift apart in shape.
+// The lamps, the window and the grille are `d` here and overlaid in `l` for the lit glyph,
+// so ONE body serves both states and their shapes cannot drift apart.
 const JUKEBOX_ROWS = [
   "................",
   "..kkkkkkkkkkkkk.",
@@ -229,8 +229,8 @@ const JUKEBOX_ROWS = [
   "..kkkkkkkkkkkkk.",
 ];
 
-/** The window behind the glass, lit in BOTH frames: the chase below animates, this glows.
- * The e2e's pixel sample reads it, because a chasing lamp is bright in one frame only. */
+/** Lit in BOTH frames, which is why `e2e/jukebox.spec.ts` samples HERE: a chasing lamp is
+ * bright in one frame only. */
 const JUKEBOX_GLOW = [
   "lllllllllll",
   "ldllllllldl",
@@ -238,20 +238,16 @@ const JUKEBOX_GLOW = [
   "lllllllllll",
 ];
 
-/** Lights chasing across the marquee, on `animFrame`'s cadence — the pond's clock, not a
- * faster one of its own. */
 const JUKEBOX_MARQUEE: readonly [string[], string[]] = [
   ["ldldldldldl"],
   ["dldldldldld"],
 ];
 
-/** The pulsing panel: solid, then dithered. */
 const JUKEBOX_GRILLE: readonly [string[], string[]] = [
   ["lllllllllll", "dldldldldld"],
   ["dldldldldld", "lllllllllll"],
 ];
 
-/** Where the three overlays sit inside the body's 11-wide interior. */
 const JUKEBOX_MARQUEE_AT = { x: 3, y: 2 };
 const JUKEBOX_GLOW_AT = { x: 3, y: 4 };
 const JUKEBOX_GRILLE_AT = { x: 3, y: 9 };

@@ -23,10 +23,6 @@ function label(record: ShelfRecord): string {
     : `${record.artist} — ${record.title}`;
 }
 
-/**
- * The 8-bit vinyl selector. It RENDERS the shared state and sends presses: nothing here
- * decides what is playing, and nothing here counts anything down.
- */
 export function JukeboxDialog({
   jukebox,
   onClose,
@@ -40,9 +36,8 @@ export function JukeboxDialog({
   const [note, setNote] = useState<string | null>(null);
   const pending = useRef<Promise<number | null> | null>(null);
 
-  // ONE function for the ‹ › buttons, the arrow keys and a tap on a neighbouring sleeve, the
-  // way `SnapViewer`'s paging is one `step`: a change to how the shelf moves cannot land on
-  // one input only.
+  // The ‹ › buttons, the arrow keys and a tap on a neighbouring sleeve all come HERE, so a
+  // change to how the shelf moves cannot land on one input only.
   const step = useCallback(
     (delta: number) => {
       if (count === 0) return;
@@ -58,14 +53,11 @@ export function JukeboxDialog({
   const press = useCallback(async (body: RequestInit) => {
     setNote(null);
     const res = await fetch("/api/jukebox", body);
-    // Read off the ROUTE rather than swallowed: during an event this is the refusal, and
-    // the screen prints it.
     if (!res.ok) setNote(await readApiError(res, REFUSED));
   }, []);
 
   // The needle drop resolves BEFORE the town hears anything, and the wait it covers is a
-  // real one: the press carries the record's duration, which is metadata this screen has to
-  // read off the file first.
+  // real one: the press carries a duration this screen has to read off the file first.
   const dropNeedle = useCallback(() => {
     if (faced === undefined || dropping) return;
     pending.current = recordDurationMs(faced.url);
@@ -139,6 +131,9 @@ export function JukeboxDialog({
                     : `Step to ${label(record)}`
                 }
                 disabled={sleeve.step === 0}
+                onClick={() => {
+                  step(sleeve.step);
+                }}
                 style={{
                   left: `${sleeve.leftPct.toFixed(3)}%`,
                   transform: `translateX(-50%) scale(${sleeve.scale.toFixed(3)})`,

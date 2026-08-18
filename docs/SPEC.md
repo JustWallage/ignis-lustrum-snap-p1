@@ -35,10 +35,14 @@ play continues.
   and a wreath on the door, a treeline on fire, blossom and bunting, a sailboat on the pond. The
   props hang on what is already solid, so a themed day changes what the town looks like and nothing
   about how it is walked.
-- **Sound is synthesised, no assets** — the channels the hardware had. Footsteps are per surface,
-  because the ground telling you what it is made of is most of what makes a town feel walked in.
-  The squelch around a transmission is two more of those, and mute is for them and not for voice: a
-  muted player still hears their friends.
+- **Sound is synthesised, no assets, with ONE exception** — the channels the hardware had. Footsteps
+  are per surface, because the ground telling you what it is made of is most of what makes a town
+  feel walked in. The squelch around a transmission is two more of those, and mute is for them and
+  not for voice: a muted player still hears their friends. The exception is **the jukebox** (#58),
+  which plays audio files committed to the repo, because the point of it is the songs those fourteen
+  friends actually danced to and no square wave is those songs. Mute DOES silence a record: a record
+  is not a friend, and the mute the player pressed is a mute. Those bytes ship with the SPA and are
+  therefore public, which the root `CLAUDE.md` states and justifies rather than leaves implied.
 - **The voice channel is a walkie-talkie, not a phone.** Fourteen friends can pass each other forty
   characters at a time; holding the speaker grille is how you say the rest. Half-duplex on purpose —
   one speaker at a time is what makes a chunk of samples need no header, and what stops fourteen
