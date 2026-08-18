@@ -2,6 +2,7 @@ import { juryDecorSchema } from "@shared/juries";
 import {
   ARTIST,
   isWalkableTile,
+  JUKEBOX,
   JURY,
   NEIGHBOUR,
   type Point,
@@ -86,6 +87,14 @@ describe("DECOR", () => {
         expect(piece.dx + width, theme).toBeLessThanOrEqual(TILE);
         expect(piece.dy + rows.length, theme).toBeLessThanOrEqual(TILE);
       }
+    }
+  });
+
+  // The cabinet is unwalkable, so a prop MAY legally be hung on it — and `e2e/jukebox.spec.ts`
+  // reads a pixel of its lit window, which a prop over that tile would silently repaint.
+  it("hangs nothing on the jukebox", () => {
+    for (const { theme, piece } of pieces()) {
+      expect(piece.at, theme).not.toContainEqual(JUKEBOX);
     }
   });
 
