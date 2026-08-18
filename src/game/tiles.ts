@@ -3,6 +3,12 @@ import { blit } from "@/game/pixels";
 
 export const TILE = 16;
 
+export const JUKEBOX_TILE = "J";
+
+/** The lit cabinet. A character `MAP_ROWS` never contains: the map says where the cabinet
+ * IS and the shared playback says which of its two looks the render loop blits. */
+export const JUKEBOX_LIT_TILE = "j";
+
 const ORDER = Object.keys(TILE_RAMPS);
 
 type Ctx = CanvasRenderingContext2D;
@@ -202,6 +208,54 @@ const TROPHY_ROWS = [
   "...kkkkkkkkkk...",
 ];
 
+// Every lamp, the window and the grille are drawn in `d` here and overlaid in `l` for the
+// lit glyph, so ONE body serves both states and the two cannot drift apart in shape.
+const JUKEBOX_ROWS = [
+  "................",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+  "..kdllllllllldk.",
+  "..kdddddddddddk.",
+  "..kkkkkkkkkkkkk.",
+];
+
+/** The window behind the glass, lit in BOTH frames: the chase below animates, this glows.
+ * The e2e's pixel sample reads it, because a chasing lamp is bright in one frame only. */
+const JUKEBOX_GLOW = [
+  "lllllllllll",
+  "ldllllllldl",
+  "lldllllldll",
+  "lllllllllll",
+];
+
+/** Lights chasing across the marquee, on `animFrame`'s cadence — the pond's clock, not a
+ * faster one of its own. */
+const JUKEBOX_MARQUEE: readonly [string[], string[]] = [
+  ["ldldldldldl"],
+  ["dldldldldld"],
+];
+
+/** The pulsing panel: solid, then dithered. */
+const JUKEBOX_GRILLE: readonly [string[], string[]] = [
+  ["lllllllllll", "dldldldldld"],
+  ["dldldldldld", "lllllllllll"],
+];
+
+/** Where the three overlays sit inside the body's 11-wide interior. */
+const JUKEBOX_MARQUEE_AT = { x: 3, y: 2 };
+const JUKEBOX_GLOW_AT = { x: 3, y: 4 };
+const JUKEBOX_GRILLE_AT = { x: 3, y: 9 };
+
 const WALL_ROWS = [
   "kkkkkkkkkkkkkkkk",
   "................",
@@ -280,7 +334,21 @@ function paint(ctx: Ctx, tile: string, frame: 0 | 1, ramp: Ramp) {
   else if (tile === "D") blit(ctx, DOOR_ROWS, ramp);
   else if (tile === "f") blit(ctx, FLOOR_ROWS, ramp);
   else if (tile === "A") blit(ctx, SHELF_ROWS, ramp);
-  else if (tile === "Y") {
+  else if (tile === JUKEBOX_TILE || tile === JUKEBOX_LIT_TILE) {
+    blit(ctx, JUKEBOX_ROWS, ramp);
+    if (tile === JUKEBOX_LIT_TILE) {
+      blit(ctx, JUKEBOX_GLOW, ramp, JUKEBOX_GLOW_AT.x, JUKEBOX_GLOW_AT.y);
+      const { x, y } = JUKEBOX_MARQUEE_AT;
+      blit(ctx, JUKEBOX_MARQUEE[frame], ramp, x, y);
+      blit(
+        ctx,
+        JUKEBOX_GRILLE[frame],
+        ramp,
+        JUKEBOX_GRILLE_AT.x,
+        JUKEBOX_GRILLE_AT.y,
+      );
+    }
+  } else if (tile === "Y") {
     // Grass first, so the dither shows around the plinth's base.
     blit(ctx, GRASS_ROWS, ramp);
     blit(ctx, TROPHY_ROWS, ramp);

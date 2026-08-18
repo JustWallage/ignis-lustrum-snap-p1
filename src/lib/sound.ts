@@ -508,6 +508,74 @@ export function nextPlayAt(cursor: number, now: number, lead: number): number {
 
 let voiceCursor = 0;
 
+const RECORD_GAIN = 1.8;
+
+/** ONE element, `src` swapped: `createMediaElementSource` throws on a second call for the
+ * same element, and a four-minute file decoded to a PCM buffer is tens of megabytes on a
+ * phone. Routed into `master` rather than played bare, so the cues and the record are
+ * levelled in one place — which is the whole reason this lives beside `speakSamples` and
+ * not in a module calling the exported `audioContext()`, where only `ctx.destination` is
+ * reachable and a record lands several times louder than every cue. */
+let record: HTMLAudioElement | null = null;
+
+function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
+  if (record !== null) return record;
+  const element = new Audio();
+  element.crossOrigin = "anonymous";
+  element.preload = "auto";
+  const gain = audio.createGain();
+  gain.gain.value = RECORD_GAIN;
+  audio.createMediaElementSource(element).connect(gain);
+  gain.connect(out);
+  record = element;
+  return element;
+}
+
+/**
+ * Seeks to where the town already is. An autoplay refusal is SILENT — no throw, no retry,
+ * no dark cabinet on a screen the town is playing to: the lights read the shared state, not
+ * this element. A screen with no AudioContext hears nothing at all, which is the limit
+ * `src/CLAUDE.md` already documents.
+ */
+export function playRecord(url: string, offsetSeconds: number): void {
+  whenLive((audio, out) => {
+    const element = recordElement(audio, out);
+    if (element.src !== url) element.src = url;
+    element.currentTime = offsetSeconds;
+    element.play().catch(() => {
+      // This browser wants a gesture it has not had. Nothing to say about it.
+    });
+  });
+}
+
+export function stopRecord(): void {
+  record?.pause();
+}
+
+/** The duration the press has to carry, read off a throwaway element rather than the
+ * playing one: measuring on that would interrupt whatever is already on. No AudioContext is
+ * involved, so this opens no second one. Null when the browser could not read it — which is
+ * what a file that is not there looks like, since a missing asset URL answers `index.html`
+ * with a 200 rather than a 404. */
+export async function recordDurationMs(url: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const probe = new Audio();
+    probe.preload = "metadata";
+    probe.addEventListener("loadedmetadata", () => {
+      const seconds = probe.duration;
+      resolve(
+        Number.isFinite(seconds) && seconds > 0
+          ? Math.round(seconds * 1000)
+          : null,
+      );
+    });
+    probe.addEventListener("error", () => {
+      resolve(null);
+    });
+    probe.src = url;
+  });
+}
+
 /** Deliberately does NOT ask `isMuted()`: mute is for the synthesised cues, and a muted
  * player still hears their friends. */
 export function speakSamples(samples: Float32Array, rate: number): void {

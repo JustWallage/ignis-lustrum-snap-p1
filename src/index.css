@@ -1156,6 +1156,96 @@ button.gb-pill-cap:disabled {
   touch-action: none;
 }
 
+.gb-jukebox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Every number a sleeve is placed by is written in by `lib/records.ts` as it renders, so
+   nothing here has a copy to go stale. The overflow is what makes a flick read as a shelf
+   moving past a window — and unlike the prize drum this places nothing in 3-D, so it costs
+   no `preserve-3d` for the clip to flatten. */
+.gb-shelf {
+  position: relative;
+  width: 100%;
+  height: 40cqw;
+  min-height: 6rem;
+  overflow: hidden;
+}
+.gb-sleeve {
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  margin-top: -15%;
+  aspect-ratio: 1;
+  /* `left` and the scale are two properties on purpose: the browser interpolates both, so
+     the neighbouring record slides in and grows rather than cutting to its place. Stepped,
+     because a Game Boy has no in-betweens. */
+  transition:
+    left 200ms steps(5),
+    transform 200ms steps(5),
+    opacity 200ms steps(5);
+}
+.gb-vinyl {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* The tonearm coming down. `animation-fill-mode` deliberately unset: the needle unmounts
+   when its `animationend` lands the press, so there is nothing left to hold in place. */
+.gb-needle {
+  position: absolute;
+  top: 6%;
+  right: 8%;
+  width: 6%;
+  height: 46%;
+  z-index: 9;
+  background: #e0f8cf;
+  border: 2px solid #071821;
+  transform-origin: top center;
+  animation: gb-needle-drop 600ms ease-in;
+}
+@keyframes gb-needle-drop {
+  from {
+    transform: rotate(-38deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+.gb-jukebox-artist,
+.gb-jukebox-title,
+.gb-jukebox-line {
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.gb-jukebox-artist {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  min-height: 1em;
+}
+.gb-jukebox-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.gb-jukebox-line {
+  font-size: 0.7rem;
+  min-height: 1em;
+}
+.gb-jukebox-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
 /* The arrow is a CHILD of the tap-zone button, not a layer over it — a sibling laid
    across the photograph would take the tap it advertises. Style it, never move it out. */
 .gb-viewer-arrow {

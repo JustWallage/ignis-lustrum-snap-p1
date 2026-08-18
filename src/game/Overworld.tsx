@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AvatarState, DayResult } from "@shared/api";
 import { eventStageKey, isBeastOn, isEventRunning } from "@shared/events";
+import { SILENT, type JukeboxState } from "@shared/jukebox";
 import { juryForDay, type Jury } from "@shared/juries";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
 import {
   ARTIST,
+  JUKEBOX,
   JURY,
   MAP_H,
   MAP_W,
@@ -32,6 +34,7 @@ import { AvatarGallery } from "@/components/AvatarGallery";
 import { AvatarSplash } from "@/components/AvatarSplash";
 import { GbTextbox } from "@/components/GbTextbox";
 import { GbWindow } from "@/components/GbWindow";
+import { JukeboxDialog } from "@/components/JukeboxDialog";
 import { LoginDialog } from "@/components/LoginDialog";
 import { PttBar } from "@/components/PttBar";
 import { SayBox } from "@/components/SayBox";
@@ -76,10 +79,18 @@ import {
   strideTo,
   type Stride,
 } from "@/game/stride";
-import { animFrame, drawTile, TILE, tileAtlas } from "@/game/tiles";
+import {
+  animFrame,
+  drawTile,
+  JUKEBOX_LIT_TILE,
+  JUKEBOX_TILE,
+  TILE,
+  tileAtlas,
+} from "@/game/tiles";
 import { useAvatarDraw } from "@/hooks/useAvatarDraw";
 import { useChampion } from "@/hooks/useChampion";
 import { useGameState } from "@/hooks/useGameState";
+import { useJukebox, useRecordPlayback } from "@/hooks/useJukebox";
 import { useMyAvatar } from "@/hooks/useMyAvatar";
 import { useMySubmission } from "@/hooks/useMySubmission";
 import { useNpcChat } from "@/hooks/useNpcChat";
@@ -90,6 +101,7 @@ import { useVoice, type Voice } from "@/hooks/useVoice";
 import { ADMIN_PATH } from "@/lib/admin";
 import { noVoteWarning } from "@/lib/ballot";
 import { IMAGE_ACCEPT } from "@/lib/image";
+import { isCabinetLit } from "@/lib/jukebox";
 import { SAY_MY_OWN } from "@/lib/npc-chat";
 import { deleteSnap } from "@/lib/photos";
 import { installInstructions, promptInstall } from "@/lib/pwa";
@@ -119,6 +131,7 @@ type Dialog =
   | { kind: "wardrobe" }
   | { kind: "avatar-splash"; state: AvatarState }
   | { kind: "trophy" }
+  | { kind: "jukebox" }
   | { kind: "chat" }
   | { kind: "chat-say" }
   | { kind: "confirm"; action: HostAction }
@@ -144,6 +157,9 @@ const SURVIVES_EVENT: Record<Dialog["kind"], boolean> = {
   wardrobe: false,
   "avatar-splash": false,
   trophy: false,
+  // The countdown clears the record, so a selector left open over the opaque event overlay
+  // would be a box outliving the event that closed it.
+  jukebox: false,
   chat: false,
   "chat-say": false,
   "confirm-replace": false,
@@ -278,7 +294,7 @@ function neighbor(pos: Point, dir: Direction): Point {
 }
 
 type Interactable =
-  "jury" | "voting" | "artist" | "neighbour" | "shelf" | "trophy";
+  "jury" | "voting" | "artist" | "neighbour" | "shelf" | "trophy" | "jukebox";
 
 function interactableAt(p: Point): Interactable | null {
   if (p.x === JURY.x && p.y === JURY.y) return "jury";
@@ -287,6 +303,7 @@ function interactableAt(p: Point): Interactable | null {
   if (p.x === NEIGHBOUR.x && p.y === NEIGHBOUR.y) return "neighbour";
   if (p.x === SHELF.x && p.y === SHELF.y) return "shelf";
   if (p.x === TROPHY.x && p.y === TROPHY.y) return "trophy";
+  if (p.x === JUKEBOX.x && p.y === JUKEBOX.y) return "jukebox";
   return null;
 }
 
@@ -297,6 +314,7 @@ const OPENS: Record<Interactable, Dialog> = {
   neighbour: { kind: "chat" },
   shelf: { kind: "archive" },
   trophy: { kind: "trophy" },
+  jukebox: { kind: "jukebox" },
 };
 
 const ARTIST_PAGES = [
@@ -344,6 +362,8 @@ function promptFor(
       return signedIn
         ? "A· LOOK AT THE TROPHY"
         : "A· SIGN IN TO SEE THE CHAMPION";
+    case "jukebox":
+      return signedIn ? "A· PUT A RECORD ON" : "A· SIGN IN TO PUT A RECORD ON";
   }
 }
 
@@ -367,6 +387,7 @@ export function Overworld() {
   const crowdRef = useRef<CrowdMember[]>([]);
   const crowdSeedRef = useRef(0);
   const drewAtRef = useRef(0);
+  const jukeboxRef = useRef<JukeboxState>(SILENT);
 
   const [tile, setTile] = useState({ x: SPAWN.x, y: SPAWN.y });
   const [facing, setFacing] = useState<Direction>("down");
@@ -412,6 +433,8 @@ export function Overworld() {
   const chat = useNpcChat(
     dialog?.kind === "chat" || dialog?.kind === "chat-say",
   );
+  const jukebox = useJukebox();
+  useRecordPlayback(jukebox, muted);
 
   // Assigned during render on purpose: the keydown handler and the rAF loop read the
   // refs, and they must be fresh the moment the new frame paints.
@@ -421,6 +444,7 @@ export function Overworld() {
   eventRef.current = inEvent;
   announceRef.current = announce;
   avatarRef.current = avatar;
+  jukeboxRef.current = jukebox;
 
   useEffect(() => {
     if (user === null) return;
@@ -1022,9 +1046,22 @@ export function Overworld() {
 
       const frame = animFrame(now);
       const atlas = tileAtlas(frame);
+      // `Date.now()`, not this loop's `now`, which is `performance.now()`: the record's end
+      // is an absolute epoch-ms target. Read here rather than rendered, so the cabinet goes
+      // dark the moment the record is over without anything ticking it there — and read off
+      // the SHARED state, so a muted friend and one whose browser refused to autoplay both
+      // see the town's cabinet lit.
+      const lit = isCabinetLit(jukeboxRef.current, Date.now());
       for (let ty = 0; ty < MAP_H; ty++) {
         for (let tx = 0; tx < MAP_W; tx++) {
-          drawTile(ctx, atlas, tileAt(tx, ty), tx, ty);
+          const glyph = tileAt(tx, ty);
+          drawTile(
+            ctx,
+            atlas,
+            lit && glyph === JUKEBOX_TILE ? JUKEBOX_LIT_TILE : glyph,
+            tx,
+            ty,
+          );
         }
       }
       ctx.drawImage(decorLayer(juryRef.current.decor, frame), 0, 0);
@@ -1335,6 +1372,9 @@ export function Overworld() {
         />
       )}
       {dialog?.kind === "vote" && <BallotOverlay onClose={closeDialog} />}
+      {dialog?.kind === "jukebox" && (
+        <JukeboxDialog jukebox={jukebox} onClose={closeDialog} />
+      )}
       {dialog?.kind === "archive" && (
         <ArchiveDialog
           onDelete={askDeleteFromArchive}

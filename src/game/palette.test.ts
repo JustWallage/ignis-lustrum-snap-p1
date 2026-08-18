@@ -12,6 +12,10 @@ import {
 
 const PLACED = [...new Set(MAP_ROWS.join("").split(""))].sort();
 
+/** The lit cabinet is the one ramp no map character is — the same tile in its other state,
+ * picked by the render loop off the shared playback rather than by the map. */
+const UNPLACED = ["j"];
+
 const HEX = /^#[0-9a-f]{6}$/;
 
 // Listed rather than `Object.values`, which widens an interface to `any[]`.
@@ -50,13 +54,14 @@ describe("TILE_RAMPS", () => {
     }
   });
 
-  it("covers exactly the legend documented in shared/map.ts", () => {
+  it("covers exactly the legend documented in shared/map.ts, plus the lit cabinet", () => {
     expect(Object.keys(TILE_RAMPS).sort()).toEqual([
       ".",
       "A",
       "D",
       "F",
       "H",
+      "J",
       "P",
       "R",
       "S",
@@ -64,10 +69,23 @@ describe("TILE_RAMPS", () => {
       "W",
       "Y",
       "f",
+      "j",
       "s",
       "t",
     ]);
-    expect(Object.keys(TILE_RAMPS).sort()).toEqual(PLACED);
+    expect(Object.keys(TILE_RAMPS).sort()).toEqual(
+      [...PLACED, ...UNPLACED].sort(),
+    );
+  });
+
+  it("gives the jukebox a ramp in both states, so neither draws as grass", () => {
+    expect(TILE_RAMPS).toHaveProperty("J");
+    expect(TILE_RAMPS).toHaveProperty("j");
+    expect(rampFor("J")).not.toBe(rampFor("."));
+    expect(rampFor("j")).not.toBe(rampFor("."));
+    // ONE slot separates them, and it is the one every lamp spends.
+    expect(rampFor("j").light).not.toBe(rampFor("J").light);
+    expect(rampFor("j").dark).toBe(rampFor("J").dark);
   });
 
   it("gives every ramp four opaque hex colours", () => {
