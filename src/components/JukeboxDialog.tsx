@@ -50,7 +50,7 @@ export function JukeboxDialog({
 
   const faced = SHELF[at];
   // Through `useNow`, or a selector held open across the natural end of a record goes on
-  // printing it and leaves STOP enabled: nothing else re-renders this box.
+  // printing it and leaves STOP enabled: nothing else re-renders this box on a schedule.
   const playingId = nowPlaying(jukebox, useNow(SECOND_MS))?.trackId ?? null;
 
   const press = useCallback(async (body: RequestInit) => {

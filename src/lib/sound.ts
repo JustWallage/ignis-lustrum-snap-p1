@@ -528,6 +528,11 @@ function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
   gain.gain.value = RECORD_GAIN;
   audio.createMediaElementSource(element).connect(gain);
   gain.connect(out);
+  // Forgotten on failure, or a screen whose load failed would skip the `src` assignment on
+  // the next press of that same record and stay silent until another one intervened.
+  element.addEventListener("error", () => {
+    playingUrl = null;
+  });
   record = element;
   return element;
 }
