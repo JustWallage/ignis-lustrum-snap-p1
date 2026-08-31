@@ -38,6 +38,27 @@ async function openSelector(page: Page) {
   return selector;
 }
 
+/** The shelf WRAPS, so a walk looking for a record that is not on it never ends. */
+const SHELF_BOUND = 200;
+
+/** Flicks to a named tone rather than pressing whatever faces first. `dropNeedle` reads a
+ * duration off the file before it presses, and on a three-minute record that read alone can
+ * outlast the five-second cooldown — which is how a test ABOUT the cooldown gets a 200. */
+async function faceTone(page: Page, title: string) {
+  const artist = page.getByTestId("jukebox-artist");
+  const faced = page.getByTestId("jukebox-title");
+  for (let step = 0; step < SHELF_BOUND; step += 1) {
+    if (
+      (await artist.textContent()) === "Test Pattern" &&
+      (await faced.textContent()) === title
+    ) {
+      return;
+    }
+    await page.keyboard.press("ArrowRight");
+  }
+  throw new Error(`no Test Pattern record titled ${title} on the shelf`);
+}
+
 test("plays one record to every screen in the town, an anonymous one included", async ({
   page,
   browser,
@@ -176,6 +197,7 @@ test("prints the cabinet's own refusal rather than swallowing it", async ({
   await page.goto("/");
   await pressStart(page);
   await openSelector(page);
+  await faceTone(page, "Bleep");
   await pressPlay(page);
 
   // A second press on this presser's heels is the cooldown, and the reason comes off the
