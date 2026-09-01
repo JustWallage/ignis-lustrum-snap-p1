@@ -38,27 +38,6 @@ async function openSelector(page: Page) {
   return selector;
 }
 
-/** The shelf WRAPS, so a walk looking for a record that is not on it never ends. */
-const SHELF_BOUND = 200;
-
-/** Flicks to a named tone rather than pressing whatever faces first. `dropNeedle` reads a
- * duration off the file before it presses, and on a three-minute record that read alone can
- * outlast the five-second cooldown — which is how a test ABOUT the cooldown gets a 200. */
-async function faceTone(page: Page, title: string) {
-  const artist = page.getByTestId("jukebox-artist");
-  const faced = page.getByTestId("jukebox-title");
-  for (let step = 0; step < SHELF_BOUND; step += 1) {
-    if (
-      (await artist.textContent()) === "Test Pattern" &&
-      (await faced.textContent()) === title
-    ) {
-      return;
-    }
-    await page.keyboard.press("ArrowRight");
-  }
-  throw new Error(`no Test Pattern record titled ${title} on the shelf`);
-}
-
 test("plays one record to every screen in the town, an anonymous one included", async ({
   page,
   browser,
@@ -185,7 +164,7 @@ test("closes the selector when an event starts, and refuses a record while one i
   // screen to press: the printed refusal is the test below, on the cooldown a player can
   // actually reach.
   const refused = await page.request.post("/api/jukebox", {
-    data: { trackId: "Test Pattern - Bleep", durationMs: 1000 },
+    data: { trackId: "Het Zangcorps - Panama!", durationMs: 1000 },
   });
   expect(refused.status()).toBe(409);
 });
@@ -197,9 +176,13 @@ test("prints the cabinet's own refusal rather than swallowing it", async ({
   await page.goto("/");
   await pressStart(page);
   await openSelector(page);
-  await faceTone(page, "Bleep");
   await pressPlay(page);
 
+  // The two presses have to land inside the five-second cooldown, and a press waits on a
+  // duration read off the file first — but only the read BETWEEN them counts, and that one
+  // is served out of the cache the first press's read filled. It is why this presses the
+  // same record twice instead of stepping the shelf between them.
+  //
   // A second press on this presser's heels is the cooldown, and the reason comes off the
   // route rather than out of a string this screen made up.
   const refused = page.waitForResponse(
