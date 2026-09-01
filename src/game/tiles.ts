@@ -206,47 +206,50 @@ const TROPHY_ROWS = [
   "...kkkkkkkkkk...",
 ];
 
+// A cabinet, not a box: a crown of bulbs over a framed title card, two grille slats, a lit
+// plinth, and a light tube down each side. `l` is the ONE slot that differs between the dark
+// and lit ramps, so every one of those details is a recess in the dark cabinet and a lamp in
+// the lit one — which is what keeps the lit look a second GLYPH rather than a second drawing
+// path. The wood columns either side of the title card are what stop it merging with the
+// tubes into one gold slab.
 const JUKEBOX_ROWS = [
-  "................",
-  "..kkkkkkkkkkkkk.",
-  "..kdddddddddddk.",
-  "..kkkkkkkkkkkkk.",
-  "..kdddddddddddk.",
-  "..kdddddddddddk.",
-  "..kdddddddddddk.",
-  "..kdddddddddddk.",
-  "..kkkkkkkkkkkkk.",
-  "..kdddddddddddk.",
-  "..kdddddddddddk.",
-  "..kdddddddddddk.",
-  "..kkkkkkkkkkkkk.",
-  "..kdllllllllldk.",
-  "..kdddddddddddk.",
-  "..kkkkkkkkkkkkk.",
+  "----kkkkkkkk----",
+  "--kkddddddddkk--",
+  "--kdldldldldlk--",
+  "--klddddddddlk--",
+  "--kldkkkkkkdlk--",
+  "--klddddddddlk--",
+  "--klddddddddlk--",
+  "--kldkkkkkkdlk--",
+  "--klddddddddlk--",
+  "--kdlllllllldk--",
+  "--kddddddddddk--",
+  "--kdlllllllldk--",
+  "--kddddddddddk--",
+  "--kkkkkkkkkkkk--",
+  "--kllllllllllk--",
+  "--kkkkkkkkkkkk--",
 ];
 
 /** Lit in BOTH frames, which is why `e2e/jukebox.spec.ts` samples HERE: a chasing lamp is
  * bright in one frame only. */
-const JUKEBOX_GLOW = [
-  "lllllllllll",
-  "ldllllllldl",
-  "lldllllldll",
-  "lllllllllll",
-];
+const JUKEBOX_GLOW = ["llllll", "llllll"];
 
 const JUKEBOX_MARQUEE: readonly [string[], string[]] = [
-  ["ldldldldldl"],
-  ["dldldldldld"],
+  ["dldldldldl"],
+  ["ldldldldld"],
 ];
 
+/** Two slats stepping down a row, which reads as movement. Frame 0 repeats what the base
+ * rows already draw, so the cabinet a record just lit does not jump. */
 const JUKEBOX_GRILLE: readonly [string[], string[]] = [
-  ["lllllllllll", "dldldldldld"],
-  ["dldldldldld", "lllllllllll"],
+  ["llllllll", "dddddddd", "llllllll", "dddddddd"],
+  ["dddddddd", "llllllll", "dddddddd", "llllllll"],
 ];
 
 const JUKEBOX_MARQUEE_AT = { x: 3, y: 2 };
-const JUKEBOX_GLOW_AT = { x: 3, y: 4 };
-const JUKEBOX_GRILLE_AT = { x: 3, y: 9 };
+const JUKEBOX_GLOW_AT = { x: 5, y: 5 };
+const JUKEBOX_GRILLE_AT = { x: 4, y: 9 };
 
 const WALL_ROWS = [
   "kkkkkkkkkkkkkkkk",
@@ -327,6 +330,11 @@ function paint(ctx: Ctx, tile: string, frame: 0 | 1, ramp: Ramp) {
   else if (tile === "f") blit(ctx, FLOOR_ROWS, ramp);
   else if (tile === "A") blit(ctx, SHELF_ROWS, ramp);
   else if (tile === JUKEBOX_TILE || tile === JUKEBOX_LIT_TILE) {
+    // The ground under the cabinet is drawn with the GRASS ramp, not this tile's: the
+    // jukebox spends `light` on its lamps, so the dither would come out gold beside a
+    // record. Without it the margin around the cabinet is flat where every neighbouring
+    // tile is dithered, which reads on screen as a pale square cut out of the lawn.
+    blit(ctx, GRASS_ROWS, rampFor("."));
     blit(ctx, JUKEBOX_ROWS, ramp);
     if (tile === JUKEBOX_LIT_TILE) {
       blit(ctx, JUKEBOX_GLOW, ramp, JUKEBOX_GLOW_AT.x, JUKEBOX_GLOW_AT.y);

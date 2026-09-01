@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { SILENT, type JukeboxState } from "@shared/jukebox";
 import type { WsEvent } from "@shared/ws-events";
 import { useRealtimeEvent } from "@/context/WebSocketContext";
 import { recordCue } from "@/lib/jukebox";
-import { playRecord, stopRecord } from "@/lib/sound";
+import {
+  playRecord,
+  recordStatus,
+  stopRecord,
+  watchRecordStatus,
+  type RecordStatus,
+} from "@/lib/sound";
 import { SHELF } from "@/lib/shelf";
 
 export function useJukebox(): JukeboxState {
@@ -38,4 +44,8 @@ export function useRecordPlayback(state: JukeboxState, muted: boolean): void {
     }
     playRecord(cue.url, cue.offsetSeconds);
   }, [trackId, startedAt, endsAt, muted]);
+}
+
+export function useRecordStatus(): RecordStatus {
+  return useSyncExternalStore(watchRecordStatus, recordStatus);
 }

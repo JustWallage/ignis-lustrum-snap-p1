@@ -169,6 +169,38 @@ test("closes the selector when an event starts, and refuses a record while one i
   expect(refused.status()).toBe(409);
 });
 
+test("cues a record before it plays, rather than claiming it is already on", async ({
+  page,
+}) => {
+  await apiSignIn(page, "tester");
+  await page.goto("/");
+  await pressStart(page);
+
+  // Stalls the audio ITSELF, which is the wait this test is about: a record is megabytes and
+  // the cabinet used to look identical whether it was downloading one or spinning it. Both
+  // halves of a press read the same URL — the duration it carries and then the playback — so
+  // one route covers the whole of it.
+  await page.route(/\.mp3(\?|$)/, async (route) => {
+    await new Promise((done) => setTimeout(done, 1500));
+    await route.continue();
+  });
+
+  await openSelector(page);
+  const cabinet = page.getByTestId("jukebox-cabinet");
+  await expect(cabinet).toHaveAttribute("data-needle", "parked");
+
+  await page.getByTestId("jukebox-play").click();
+  await expect(cabinet).toHaveAttribute("data-needle", "cueing");
+  await expect(page.getByTestId("jukebox-note")).toContainText(/cueing/i);
+
+  // The disc turns only once the audio really started, so `playing` here is the element's
+  // own `playing` event and not a guess made off the town's state.
+  await expect(cabinet).toHaveAttribute("data-needle", "playing", {
+    timeout: 20_000,
+  });
+  await expect(page.getByTestId("jukebox-note")).toContainText(/^ON:/);
+});
+
 test("prints the cabinet's own refusal rather than swallowing it", async ({
   page,
 }) => {

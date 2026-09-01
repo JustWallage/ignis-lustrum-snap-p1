@@ -254,6 +254,17 @@
   nothing at all, which is the honest limit the splash bullet above already states, and the press on
   the cabinet is itself a gesture. The duration a press carries is read off a throwaway element, so
   measuring it cannot interrupt whatever is already on and opens no second context.
+- **The cabinet has THREE looks and only one of them is this browser's business**
+  (`needleAt`). Parked and playing read the TOWN's record, exactly as the lit tile does, so a
+  muted screen and one whose autoplay was refused still see the disc turn — the lights and the
+  disc are one claim, and it is never about local audio. **`cueing` is the single state local
+  audio decides**: a download this screen is still waiting on, which is the one wait a player
+  can do nothing about. `lib/sound.ts` owns that status and publishes it through
+  `watchRecordStatus`; a press resolves it off `play()` as well as the `playing` event, because
+  `playing` does NOT re-fire for an element already playing and a re-cue would otherwise cue
+  for ever. The arm's DROP is the animation whose `animationend` lands a press, which is why
+  the reduced-motion rule stops every jukebox loop except that one — and why the arm holds its
+  landed angle until the route answers rather than until the drop ends.
 - **The cabinet's lit look is a second TILE, not an overlay** (#58): a glyph in `TILE_RAMPS` no
   `MAP_ROWS` character is, which the render loop blits in place of the dark one. `drawTile` already
   blits, both cached atlases keep both glyphs and `tileAtlas`'s frame type is untouched — an overlay

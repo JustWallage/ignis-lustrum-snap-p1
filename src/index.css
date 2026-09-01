@@ -1163,53 +1163,304 @@ button.gb-pill-cap:disabled {
   gap: 0.5rem;
 }
 
-/* `rem`, not `cqw`: this sits inside a top-layer `<dialog>`, which is a sibling of
+/* A dome over a straight body is the whole silhouette a jukebox has. The elliptical radius
+   is on the CABINET's own border rather than a pseudo-element laid over it, so the arch
+   clips the crown's bulbs instead of them sitting on top of a painted curve.
+
+   `rem`, not `cqw`: this sits inside a top-layer `<dialog>`, which is a sibling of
    `.gb-shell` rather than a descendant, so it has no query container and `cqw` here would
    resolve against the VIEWPORT — the same trap `.gb-shell`'s own rule documents. */
+.gb-juke-cabinet {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  overflow: hidden;
+  padding: 0.35rem 0.95rem 0.7rem;
+  border: 3px solid #200c18;
+  border-radius: 48% 48% 0.5rem 0.5rem / 22% 22% 0.5rem 0.5rem;
+  background: linear-gradient(180deg, #a04c68 0%, #8c3c58 30%, #6c2c44 100%);
+  box-shadow:
+    inset 0 0 0 2px rgb(248 216 96 / 0.18),
+    0 4px 0 #200c18;
+}
+
+/* The light tubes down each flank, which are the cabinet's signature and the tile art's
+   too. Pseudo-elements rather than two more spans, and the dome's `overflow: hidden` is
+   what tapers their tops into the arch. */
+.gb-juke-cabinet::before,
+.gb-juke-cabinet::after {
+  content: "";
+  position: absolute;
+  top: 4.8rem;
+  bottom: 0.6rem;
+  width: 0.3rem;
+  border: 2px solid #200c18;
+  border-radius: 0.15rem;
+  background: #4c2030;
+}
+.gb-juke-cabinet::before {
+  left: 0.3rem;
+}
+.gb-juke-cabinet::after {
+  right: 0.3rem;
+}
+.gb-juke-cabinet[data-needle="playing"]::before,
+.gb-juke-cabinet[data-needle="playing"]::after,
+.gb-juke-cabinet[data-needle="cueing"]::before,
+.gb-juke-cabinet[data-needle="cueing"]::after {
+  background: linear-gradient(180deg, #f8d860 0%, #c08c18 100%);
+  box-shadow: 0 0 6px rgb(248 216 96 / 0.55);
+}
+
+.gb-juke-crown {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+}
+.gb-juke-bulb {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #4c2030;
+  box-shadow: inset 0 0 0 1px #200c18;
+}
+/* Lit STATICALLY here and only chased by the keyframes, so the reduced-motion rule at the
+   foot of this block can stop the chase without darkening a cabinet that is playing. */
+.gb-juke-cabinet[data-needle="playing"] .gb-juke-bulb,
+.gb-juke-cabinet[data-needle="cueing"] .gb-juke-bulb {
+  background: #f8d860;
+  box-shadow:
+    inset 0 0 0 1px #200c18,
+    0 0 6px rgb(248 216 96 / 0.8);
+  animation: gb-juke-chase 0.9s steps(1) infinite;
+}
+@keyframes gb-juke-chase {
+  0%,
+  49% {
+    background: #f8d860;
+  }
+  50%,
+  100% {
+    background: #4c2030;
+  }
+}
+
+/* The title card needs something UNLIT around it, or a lit cabinet reads as one gold slab —
+   the same trap the tile art in `game/tiles.ts` documents. */
+.gb-juke-marquee {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  overflow: hidden;
+  padding: 0.3rem 0.4rem;
+  border: 2px solid #200c18;
+  border-radius: 4px;
+  background: #140810;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.6);
+}
+.gb-juke-marquee .gb-jukebox-line {
+  color: #e0f8cf;
+}
+/* The cueing look: a light sweeping the card, which is the one wait a player can do nothing
+   about. Hidden rather than parked when motion is reduced — `jukebox-note` spells it out in
+   words either way. */
+.gb-juke-marquee::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(248 216 96 / 0.35) 50%,
+    transparent 80%
+  );
+}
+.gb-juke-cabinet[data-needle="cueing"] .gb-juke-marquee::after {
+  opacity: 1;
+  animation: gb-juke-sweep 1.1s linear infinite;
+}
+@keyframes gb-juke-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.gb-juke-deck {
+  position: relative;
+  display: grid;
+  width: 6.4rem;
+  height: 6.4rem;
+  place-items: center;
+  border: 2px solid #200c18;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #3c2030 0%, #1c0c14 70%);
+  box-shadow: inset 0 2px 8px rgb(0 0 0 / 0.7);
+}
+.gb-juke-platter {
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 50%;
+  background: #241420;
+  box-shadow: inset 0 0 0 1px rgb(248 216 96 / 0.12);
+}
+.gb-juke-disc {
+  position: relative;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  image-rendering: pixelated;
+}
+.gb-juke-cabinet[data-needle="playing"] .gb-juke-disc {
+  animation: gb-juke-spin 1.6s linear infinite;
+}
+/* Cueing does NOT spin: the record is not turning yet, and a disc that pretends to is the
+   lie this state exists to stop telling. It rocks, the way a deck finding speed does. */
+.gb-juke-cabinet[data-needle="cueing"] .gb-juke-disc {
+  animation: gb-juke-rock 1.2s ease-in-out infinite;
+}
+@keyframes gb-juke-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes gb-juke-rock {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+/* ONE arm. Its DROP is the animation whose `animationend` lands the press, and its two
+   resting angles are transitions rather than animations, so nothing but the drop can fire
+   that event. `dropping` also carries the finished angle, so the arm does not jump when the
+   animation is removed. */
+.gb-juke-arm {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.45rem;
+  z-index: 3;
+  width: 0.3rem;
+  height: 3.4rem;
+  border: 2px solid #200c18;
+  border-radius: 0.15rem;
+  background: linear-gradient(180deg, #e0f8cf 0%, #90a884 100%);
+  transform-origin: top center;
+  transition: transform 220ms steps(5);
+}
+/* The pivot and the headshell, so the arm reads as an arm rather than a stray line. Both
+   turn with it, which is why neither carries a mark of its own. */
+.gb-juke-arm::before {
+  content: "";
+  position: absolute;
+  top: -0.3rem;
+  left: 50%;
+  width: 0.66rem;
+  height: 0.66rem;
+  margin-left: -0.33rem;
+  border: 2px solid #200c18;
+  border-radius: 50%;
+  background: #c8d8b8;
+}
+.gb-juke-arm::after {
+  content: "";
+  position: absolute;
+  bottom: -0.1rem;
+  left: 50%;
+  width: 0.52rem;
+  height: 0.46rem;
+  margin-left: -0.26rem;
+  border: 2px solid #200c18;
+  border-radius: 2px;
+  background: #f8d860;
+}
+/* The arm hangs from a pivot at the deck's top RIGHT, so a positive (clockwise) angle swings
+   its tip LEFT, towards the spindle: down is the positive one and parked the negative. Get
+   the signs the wrong way round and the needle rests on the record while nothing plays. */
+.gb-juke-arm[data-pose="parked"] {
+  transform: rotate(-8deg);
+}
+.gb-juke-arm[data-pose="down"] {
+  transform: rotate(18deg);
+}
+.gb-juke-arm[data-pose="dropping"] {
+  transform: rotate(18deg);
+  animation: gb-juke-drop 600ms ease-in;
+}
+@keyframes gb-juke-drop {
+  from {
+    transform: rotate(-8deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+.gb-juke-grille {
+  width: 100%;
+  height: 1.1rem;
+  border: 2px solid #200c18;
+  border-radius: 3px;
+  background: repeating-linear-gradient(180deg, #4c2030 0 2px, #7a3450 2px 4px);
+}
+.gb-juke-cabinet[data-needle="playing"] .gb-juke-grille {
+  background: repeating-linear-gradient(180deg, #f8d860 0 2px, #7a3450 2px 4px);
+  animation: gb-juke-slats 0.6s linear infinite;
+}
+@keyframes gb-juke-slats {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 4px;
+  }
+}
+
 .gb-shelf {
   position: relative;
   width: 100%;
-  height: 9rem;
+  height: 4.4rem;
   overflow: hidden;
+  border: 2px solid #200c18;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #2c1420 0%, #4c2030 100%);
 }
 .gb-sleeve {
   position: absolute;
   top: 50%;
-  width: 30%;
-  margin-top: -15%;
+  width: 26%;
+  margin-top: -13%;
   aspect-ratio: 1;
+  cursor: pointer;
   transition:
     left 200ms steps(5),
     transform 200ms steps(5),
     opacity 200ms steps(5);
 }
+.gb-sleeve[data-faced="true"] {
+  filter: drop-shadow(0 0 4px rgb(248 216 96 / 0.65));
+}
 .gb-vinyl {
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
-}
-
-/* `animation-fill-mode` deliberately unset: the needle unmounts when its `animationend`
-   lands the press, so there is nothing left to hold in place. */
-.gb-needle {
-  position: absolute;
-  top: 6%;
-  right: 8%;
-  width: 6%;
-  height: 46%;
-  z-index: 9;
-  background: #e0f8cf;
-  border: 2px solid #071821;
-  transform-origin: top center;
-  animation: gb-needle-drop 600ms ease-in;
-}
-@keyframes gb-needle-drop {
-  from {
-    transform: rotate(-38deg);
-  }
-  to {
-    transform: rotate(6deg);
-  }
 }
 
 .gb-jukebox-artist,
@@ -1220,25 +1471,41 @@ button.gb-pill-cap:disabled {
   overflow-wrap: anywhere;
 }
 .gb-jukebox-artist {
+  min-height: 1em;
+  color: #d8a850;
   font-size: 0.7rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
-  min-height: 1em;
+  text-transform: uppercase;
 }
 .gb-jukebox-title {
+  color: #f8d860;
   font-size: 0.95rem;
   font-weight: 700;
 }
 .gb-jukebox-line {
-  font-size: 0.7rem;
   min-height: 1em;
+  font-size: 0.7rem;
 }
 .gb-jukebox-controls {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.4rem;
+}
+
+/* The DROP is exempt on purpose: its `animationend` is what lands a press, so a screen that
+   never fires it has a PLAY button that does nothing. Only the decorative loops stop. */
+@media (prefers-reduced-motion: reduce) {
+  .gb-juke-bulb,
+  .gb-juke-disc,
+  .gb-juke-grille {
+    animation: none;
+  }
+  .gb-juke-cabinet[data-needle="cueing"] .gb-juke-marquee::after {
+    opacity: 0;
+    animation: none;
+  }
 }
 
 /* The arrow is a CHILD of the tap-zone button, not a layer over it — a sibling laid

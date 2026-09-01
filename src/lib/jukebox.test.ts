@@ -4,7 +4,7 @@ import {
   type JukeboxState,
 } from "@shared/jukebox";
 import { describe, expect, it } from "vitest";
-import { isCabinetLit, recordCue } from "./jukebox";
+import { isCabinetLit, needleAt, recordCue } from "./jukebox";
 import type { ShelfRecord } from "./shelf";
 
 const START = 1_700_000_000_000;
@@ -96,5 +96,29 @@ describe("isCabinetLit", () => {
     const state = on();
     expect(recordCue(SHELF, state, START, true)).toBeNull();
     expect(isCabinetLit(state, START)).toBe(true);
+  });
+});
+
+describe("needleAt", () => {
+  it("parks when the town has nothing on, whatever this browser is doing", () => {
+    expect(needleAt(SILENT, START, "silent")).toBe("parked");
+    expect(needleAt(SILENT, START, "loading")).toBe("parked");
+    expect(needleAt(SILENT, START, "playing")).toBe("parked");
+  });
+
+  it("cues while this screen is still downloading the record", () => {
+    expect(needleAt(on(), START, "loading")).toBe("cueing");
+  });
+
+  it("turns for a screen the town says is playing", () => {
+    expect(needleAt(on(), START, "playing")).toBe("playing");
+  });
+
+  it("turns for a MUTED screen too: the disc reads the town, not this browser's audio", () => {
+    expect(needleAt(on(), START, "silent")).toBe("playing");
+  });
+
+  it("parks the moment the record ends, leaving no disc turning over silence", () => {
+    expect(needleAt(on(180_000), START + 180_000, "playing")).toBe("parked");
   });
 });

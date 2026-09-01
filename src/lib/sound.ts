@@ -510,6 +510,32 @@ let voiceCursor = 0;
 
 const RECORD_GAIN = 1.8;
 
+/** What THIS browser is doing with the town's record, which is a different question from
+ * whether a record is on: a muted screen and one whose autoplay was refused are both silent
+ * while the town plays. Only `loading` is a wait worth spelling out on screen. */
+export type RecordStatus = "silent" | "loading" | "playing";
+
+let status: RecordStatus = "silent";
+
+const watchers = new Set<() => void>();
+
+function moveTo(next: RecordStatus): void {
+  if (status === next) return;
+  status = next;
+  for (const notify of watchers) notify();
+}
+
+export function watchRecordStatus(notify: () => void): () => void {
+  watchers.add(notify);
+  return () => {
+    watchers.delete(notify);
+  };
+}
+
+export function recordStatus(): RecordStatus {
+  return status;
+}
+
 /** ONE element with its `src` swapped: `createMediaElementSource` throws on a second call
  * for the same element. */
 let record: HTMLAudioElement | null = null;
@@ -532,7 +558,21 @@ function recordElement(audio: AudioContext, out: AudioNode): HTMLAudioElement {
   // the next press of that same record and stay silent until another one intervened.
   element.addEventListener("error", () => {
     playingUrl = null;
+    moveTo("silent");
   });
+  // `waiting` and `playing` are the download itself, and they fire MID-record too, when a
+  // stall empties the buffer — so the cueing look is not only a first-press affordance.
+  element.addEventListener("waiting", () => {
+    moveTo("loading");
+  });
+  element.addEventListener("playing", () => {
+    moveTo("playing");
+  });
+  for (const quiet of ["pause", "ended"]) {
+    element.addEventListener(quiet, () => {
+      moveTo("silent");
+    });
+  }
   record = element;
   return element;
 }
@@ -545,9 +585,19 @@ export function playRecord(url: string, offsetSeconds: number): void {
       playingUrl = url;
     }
     element.currentTime = offsetSeconds;
-    element.play().catch(() => {
-      // This browser wants a gesture it has not had. Nothing to say about it.
-    });
+    moveTo("loading");
+    element.play().then(
+      () => {
+        // `playing` does NOT fire for an element that was already playing, so re-cueing the
+        // record already on — which a mute toggled back off does — would cue forever.
+        if (!element.paused) moveTo("playing");
+      },
+      () => {
+        // This browser wants a gesture it has not had. Nothing to say about it, but the
+        // cueing look must not outlive the refusal.
+        moveTo("silent");
+      },
+    );
   });
 }
 
