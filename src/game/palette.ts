@@ -94,7 +94,7 @@ const JUKEBOX_OUTLINE = "#200c18";
 // is what makes the lit look a second GLYPH rather than a second drawing path.
 const JUKEBOX_DARK: Ramp = {
   lightest: GRASS_LIGHTEST,
-  light: "#582838",
+  light: "#4c2030",
   dark: JUKEBOX_WOOD,
   darkest: JUKEBOX_OUTLINE,
 };
