@@ -14,7 +14,7 @@ const GLINT = "#8e8498";
 
 /** A radial bar. Rotation is what makes the disc's motion visible at all, and a disc built
  * only from concentric rings turning is indistinguishable from a still one — so the glints
- * and the label's mark are not decoration, they are the whole reason the spin reads. */
+ * are not decoration, they are the whole reason the spin reads. */
 function spoke(
   ctx: CanvasRenderingContext2D,
   middle: number,
