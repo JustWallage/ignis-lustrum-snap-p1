@@ -212,7 +212,7 @@ test("the console counts what the jury can use, and retries one description", as
       return { descriptions, verdicts };
     })
     .toEqual({
-      descriptions: [{ photoId: id, status: "failed" }],
+      descriptions: [{ photoId: id, status: "failed", failure: NO_KEY }],
       verdicts: [{ photoId: id, aiStatus: "failed" }],
     });
 
