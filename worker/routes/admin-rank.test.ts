@@ -6,6 +6,8 @@ import {
   dayRankingSchema,
 } from "../../shared/api";
 import { app } from "../index";
+import { NO_KEY } from "../lib/photo-description";
+import { NO_KEY as NO_JURY_KEY } from "../lib/photo-score";
 import {
   DESCRIBED,
   DESCRIBING,
@@ -94,6 +96,7 @@ describe("the day's jury batch", () => {
       generated: false,
       ranAt: null,
       failed: false,
+      failure: null,
     });
   });
 
@@ -123,6 +126,55 @@ describe("the day's jury batch", () => {
       ai_status: "ok",
     });
     expect(await dayState(cookie, 1)).toMatchObject({ failed: false });
+  });
+
+  it("tells the operator why the jury failed, and forgets it on the next good run", async () => {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withoutGeminiKey() });
+    expect(await dayState(cookie, 1)).toMatchObject({ failure: NO_JURY_KEY });
+
+    stubJuryDown();
+    await describeSnap(cookie, id);
+    expect((await postRank(cookie, 1)).status).toBe(200);
+    expect((await dayState(cookie, 1)).failure).toMatch(
+      /500.*upstream is down/,
+    );
+
+    // The tie the scoring half cannot break is a failure of the RANKING, not of the
+    // call, so it has to read as one too.
+    stubGemini((_url, init) =>
+      DESCRIBING.test(promptOf(init))
+        ? geminiReply(JSON.stringify(DESCRIBED))
+        : geminiReply(
+            JSON.stringify({
+              verdicts: [
+                {
+                  photoId: id,
+                  score: 7,
+                  critique: RANKED_CRITIQUE,
+                  bonusDetected: false,
+                  bonusReason: "",
+                },
+                {
+                  photoId: id + 1000,
+                  score: 7,
+                  critique: RANKED_CRITIQUE,
+                  bonusDetected: false,
+                  bonusReason: "",
+                },
+              ],
+            }),
+          ),
+    );
+    expect((await postRank(cookie, 1)).status).toBe(200);
+    expect((await dayState(cookie, 1)).failure).toMatch(/other photographs/);
+
+    stubGeminiDay();
+    expect((await postRank(cookie, 1)).status).toBe(200);
+    expect(await dayState(cookie, 1)).toMatchObject({
+      failed: false,
+      failure: null,
+    });
   });
 
   it("ranks the day it was pointed at and no other", async () => {
@@ -183,8 +235,8 @@ describe("the day's jury batch", () => {
 
     const body = await dayBody(admin, 1);
     expect(byPhoto(body.descriptions)).toEqual([
-      { photoId: failed, status: "failed" },
-      { photoId: unscored, status: "ok" },
+      { photoId: failed, status: "failed", failure: NO_KEY },
+      { photoId: unscored, status: "ok", failure: null },
     ]);
     expect(byPhoto(body.verdicts)).toEqual([
       { photoId: bare, aiStatus: "failed" },
@@ -209,7 +261,9 @@ describe("the day's jury batch", () => {
     // The describe route ranks nothing, so the fixed description leaves the snap on the
     // fallback verdict until the operator presses Rank the day again.
     const body = await dayBody(cookie, 1);
-    expect(body.descriptions).toEqual([{ photoId: id, status: "ok" }]);
+    expect(body.descriptions).toEqual([
+      { photoId: id, status: "ok", failure: null },
+    ]);
     expect(body.verdicts).toEqual([{ photoId: id, aiStatus: "failed" }]);
     expect(await storedDayScores(1)).toEqual([5]);
   });

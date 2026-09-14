@@ -29,6 +29,7 @@ import {
   withoutGeminiKey,
 } from "../test-helpers";
 import { GEMINI_MODEL } from "./gemini";
+import { NO_KEY } from "./photo-description";
 
 beforeEach(resetWorld);
 
@@ -146,6 +147,70 @@ describe("the photograph's description", () => {
     },
   );
 
+  /** Each of these is a shape that used to reach the console as the same unreadable
+   * Zod issue, which is the whole reason an operator could not tell a blocked
+   * photograph from a spent quota. */
+  const SAID: [string, () => Response, RegExp][] = [
+    [
+      "a refused prompt",
+      () => Response.json({ promptFeedback: { blockReason: "SAFETY" } }),
+      /blockReason SAFETY/,
+    ],
+    [
+      "a stopped generation",
+      () => Response.json({ candidates: [{ finishReason: "IMAGE_SAFETY" }] }),
+      /finishReason IMAGE_SAFETY/,
+    ],
+    [
+      "a spent quota",
+      () =>
+        Response.json(
+          {
+            error: { status: "RESOURCE_EXHAUSTED", message: "Quota exceeded" },
+          },
+          { status: 429 },
+        ),
+      /429.*Quota exceeded/,
+    ],
+    [
+      "prose where JSON was asked for",
+      () => geminiReply("I cannot help with that."),
+      /unparseable JSON.*I cannot help with that/,
+    ],
+  ];
+
+  it.each(SAID)(
+    "stores what Gemini said on %s rather than the fact that it said something",
+    async (_case, reply, expected) => {
+      stubGemini(reply);
+      const cookie = await signIn();
+      const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+      const stored = await storedDescription(id);
+      expect(stored?.status).toBe("failed");
+      expect(stored?.failure).toMatch(expected);
+    },
+  );
+
+  it("names the missing key rather than blaming Gemini for a call nobody made", async () => {
+    stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withoutGeminiKey() });
+
+    expect((await storedDescription(id))?.failure).toBe(NO_KEY);
+  });
+
+  it("clears the reason when a retry works", async () => {
+    stubGemini(() => new Response("upstream is down", { status: 500 }));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    expect((await storedDescription(id))?.failure).toMatch(/500/);
+
+    stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    expect((await describeAgain(cookie, id, withGeminiKey())).status).toBe(200);
+    expect((await storedDescription(id))?.failure).toBeNull();
+  });
+
   it("replaces on a second describe rather than adding a second row", async () => {
     stubGemini(() => new Response("upstream is down", { status: 500 }));
     const cookie = await signIn();
@@ -159,6 +224,7 @@ describe("the photograph's description", () => {
       expect(photoDescriptionSchema.parse(await retried.json())).toEqual({
         photoId: id,
         status: "ok",
+        failure: null,
       });
       expect(await descriptionRowCount()).toBe(1);
     }
@@ -179,7 +245,9 @@ describe("the photograph's description", () => {
     );
     expect(listed.status).toBe(200);
     const day = dayPhotosSchema.parse(await listed.json());
-    expect(day.descriptions).toEqual([{ photoId: id, status: "ok" }]);
+    expect(day.descriptions).toEqual([
+      { photoId: id, status: "ok", failure: null },
+    ]);
     const mine = await app.request(
       `/api/photos/${String(id)}`,
       { headers: { Cookie: cookie } },

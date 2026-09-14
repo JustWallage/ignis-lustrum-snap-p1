@@ -113,6 +113,14 @@
   one the jury scores 5, without the other the avatar machine answers "offline", and local and e2e
   depend on both. Every test helper pins BOTH variables, because the vitest pool reads a
   developer's `.env` and absence is never the default.
+- **A failure STORES what Gemini said, never just that it failed** — `photo_descriptions.failure`
+  and `day_rankings.failure`, both cleared by the next good run, both read straight off the console.
+  `generateContent` is what makes them worth reading: Google's own body on a non-2xx (a 429 names
+  the quota, a 400 the field), and the `finishReason`/`blockReason` where the call SUCCEEDED and
+  answered nothing — the shapes a refusal arrives in, which is why every field of
+  `geminiResponseSchema` is optional. Requiring `parts` turned a safety block, a spent quota and a
+  truncated answer into one unreadable Zod issue. A missing key is its own sentence, because a
+  config fault reads as a Gemini fault otherwise.
 - **The jury never blocks an upload**: `waitUntil`, and a throw leaves the day's PREVIOUS verdicts
   exactly where they were rather than overwriting nine good ones with fives because the tenth
   upload's call timed out. `lib/photo-score.ts` ranks a WHOLE DAY (`rankDay`) — one text-only call

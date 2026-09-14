@@ -118,6 +118,7 @@ adminDayRoutes.get("/:day/photos", async (c) => {
     .select({
       photoId: photoDescriptions.photoId,
       status: photoDescriptions.status,
+      failure: photoDescriptions.failure,
     })
     .from(photoDescriptions)
     .innerJoin(photos, eq(photos.id, photoDescriptions.photoId))

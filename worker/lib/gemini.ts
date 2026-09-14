@@ -85,11 +85,33 @@ const partSchema = z.object({
 });
 type Part = z.infer<typeof partSchema>;
 
+/** Every field OPTIONAL, because the shapes this has to survive are the ones a
+ * refusal arrives in: a blocked prompt answers with `promptFeedback` and no
+ * `candidates` at all, and a stopped generation answers with a candidate carrying a
+ * `finishReason` and a `content` that has no `parts` key. Requiring `parts` here
+ * turned every one of those into the same unreadable Zod issue, which is how a
+ * safety block and a rate limit came to look identical from the console. */
 const geminiResponseSchema = z.object({
   candidates: z
-    .array(z.object({ content: z.object({ parts: z.array(partSchema) }) }))
-    .min(1),
+    .array(
+      z.object({
+        content: z.object({ parts: z.array(partSchema).optional() }).optional(),
+        finishReason: z.string().optional(),
+      }),
+    )
+    .optional(),
+  promptFeedback: z.object({ blockReason: z.string().optional() }).optional(),
 });
+
+/** Long enough for Google's own `error.message`, short enough to sit in a D1 row and
+ * be read on a phone. */
+const REASON_MAX = 400;
+
+export function shortReason(value: unknown): string {
+  const text = value instanceof Error ? value.message : String(value);
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > REASON_MAX ? `${flat.slice(0, REASON_MAX)}…` : flat;
+}
 
 const BONUS_FIELDS =
   "Set bonusDetected from that answer and put what you saw in bonusReason (one short sentence, or an empty string if you saw nothing).";
@@ -128,10 +150,28 @@ async function generateContent(
     }),
   });
   if (!res.ok) {
-    throw new Error(`Gemini answered ${res.status}`);
+    // Google's own body, not just the code: a 429 says WHICH quota ran out and a 400
+    // names the field it choked on, and neither is recoverable from the status alone.
+    throw new Error(`HTTP ${String(res.status)} — ${await res.text()}`);
   }
   const body = geminiResponseSchema.parse(await res.json());
-  return body.candidates[0]?.content.parts ?? [];
+  const first = body.candidates?.[0];
+  const answer = first?.content?.parts;
+  if (answer === undefined || answer.length === 0) {
+    const why = [
+      first?.finishReason === undefined
+        ? null
+        : `finishReason ${first.finishReason}`,
+      body.promptFeedback?.blockReason === undefined
+        ? null
+        : `blockReason ${body.promptFeedback.blockReason}`,
+      body.candidates === undefined ? "no candidates" : null,
+    ].filter((one) => one !== null);
+    throw new Error(
+      `answered with no content${why.length === 0 ? "" : ` — ${why.join(", ")}`}`,
+    );
+  }
+  return answer;
 }
 
 function aboutOne(prompt: string, image: GeminiImage): Part[] {
@@ -142,7 +182,14 @@ function aboutOne(prompt: string, image: GeminiImage): Part[] {
 }
 
 function answered(parts: readonly Part[]): unknown {
-  return JSON.parse(parts.map((part) => part.text ?? "").join(""));
+  const text = parts.map((part) => part.text ?? "").join("");
+  try {
+    return JSON.parse(text);
+  } catch {
+    // The text itself, or a truncated answer is indistinguishable from a refusal
+    // written in prose.
+    throw new Error(`answered unparseable JSON — ${text}`);
+  }
 }
 
 export async function requestEvaluation(

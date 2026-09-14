@@ -145,6 +145,7 @@ describe("image bytes in the bucket", () => {
     expect(photoDescriptionSchema.parse(await res.json())).toEqual({
       photoId: id,
       status: "ok",
+      failure: null,
     });
 
     const call = fetched.mock.calls[0];

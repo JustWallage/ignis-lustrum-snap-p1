@@ -736,11 +736,12 @@ export async function storedRanking(day: number) {
 const storedDescriptionSchema = z.object({
   description: z.string(),
   status: z.enum(["ok", "failed"]),
+  failure: z.string().nullable(),
 });
 
 export async function storedDescription(photoId: number) {
   const row = await env.DB.prepare(
-    "SELECT description, status FROM photo_descriptions WHERE photo_id = ?",
+    "SELECT description, status, failure FROM photo_descriptions WHERE photo_id = ?",
   )
     .bind(photoId)
     .first();

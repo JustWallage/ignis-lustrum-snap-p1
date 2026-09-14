@@ -134,9 +134,13 @@ export const retirementSchema = z.object({
   retired: z.int().nonnegative(),
 });
 
+/** `failure` is what the machine SAID, not a second status: it is the Gemini reason
+ * behind a `failed` row — an HTTP body, a `finishReason`, a blocked prompt — and the
+ * only surface an operator can read one off. Null on every `ok` row. */
 export const photoDescriptionSchema = z.object({
   photoId: z.int(),
   status: aiStatusSchema,
+  failure: z.string().nullable(),
 });
 export type PhotoDescription = z.infer<typeof photoDescriptionSchema>;
 
@@ -149,6 +153,7 @@ export const dayRankingSchema = z.object({
   generated: z.boolean(),
   ranAt: z.iso.datetime().nullable(),
   failed: z.boolean(),
+  failure: z.string().nullable(),
 });
 export type DayRanking = z.infer<typeof dayRankingSchema>;
 

@@ -14,6 +14,10 @@ import {
   TINY_PNG,
 } from "./fixtures";
 
+/** Spelled out rather than imported from the worker: what this asserts is the text an
+ * operator READS, and a spec sharing the constant could not catch it going blank. */
+const NO_KEY = "No GEMINI_API_KEY is set, so nothing was asked.";
+
 async function setDayTo(page: Page, day: number) {
   const panel = await openConsole(page, "Clock");
   await panel.getByTestId("ops-day-input").fill(String(day));
@@ -172,7 +176,9 @@ test("the console says which snaps are described, and describes one again", asyn
     const listed = await page.request.get("/api/admin/days/1/photos");
     return dayPhotosSchema.parse(await listed.json()).descriptions;
   };
-  await expect.poll(described).toEqual([{ photoId: id, status: "failed" }]);
+  await expect
+    .poll(described)
+    .toEqual([{ photoId: id, status: "failed", failure: NO_KEY }]);
 
   const panel = await openConsole(page, "Snaps");
   const state = panel.getByTestId(`ops-described-${String(id)}`);
@@ -183,7 +189,12 @@ test("the console says which snaps are described, and describes one again", asyn
     `Snap #${String(id)} — Description failed`,
   );
   await expect(state).toHaveText("Description failed");
-  expect(await described()).toEqual([{ photoId: id, status: "failed" }]);
+  // What the machine SAID, on the card and not only in the note: a console that prints
+  // "Description failed" and nothing else is the surface this whole row exists to end.
+  await expect(panel.getByTestId(`ops-why-${String(id)}`)).toHaveText(NO_KEY);
+  expect(await described()).toEqual([
+    { photoId: id, status: "failed", failure: NO_KEY },
+  ]);
 });
 
 test("the console counts what the jury can use, and retries one description", async ({
@@ -250,7 +261,7 @@ test("the console counts what the jury can use, and retries one description", as
   // A retry that fails again answers 200 with the failure in its body, so `readApiError`
   // is never reached and no refusal is rendered.
   await expect(panel.getByTestId("ops-snaps-note")).toContainText(
-    "The jury still has no record of it.",
+    `The jury still has no record of it. ${NO_KEY}`,
   );
   await expect(panel.getByTestId("ops-snaps-error")).toHaveCount(0);
   await expect(described).toHaveText("Description failed");

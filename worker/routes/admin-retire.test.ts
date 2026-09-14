@@ -297,7 +297,7 @@ describe("GET /api/admin/days/:day/photos", () => {
       photos: [],
       descriptions: [],
       verdicts: [],
-      ranking: { generated: false, ranAt: null, failed: false },
+      ranking: { generated: false, ranAt: null, failed: false, failure: null },
     });
 
     const friend = await signIn("rival");
