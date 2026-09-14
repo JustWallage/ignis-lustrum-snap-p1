@@ -37,8 +37,12 @@ function describeNote(done: PhotoDescription): string {
   const next =
     done.status === "ok"
       ? "Rank the day to turn it into a verdict."
-      : "The jury still has no record of it.";
+      : `The jury still has no record of it. ${done.failure ?? ""}`.trim();
   return `Snap #${String(done.photoId)} — ${describedText(done.status)}. ${next}`;
+}
+
+function whyFailed(row: PhotoDescription | undefined): string | null {
+  return row?.failure ?? null;
 }
 
 function verdictText(aiStatus: PassState): string {
@@ -76,7 +80,8 @@ function rankedText(ranking: DayRanking | undefined): string {
       ? "never run"
       : `last run ${new Date(ranking.ranAt).toLocaleString()}`;
   const how = ranking.failed ? "the last run failed" : "the last run was fine";
-  return `${ranking.generated ? "Ranked" : "Not ranked"} — ${when}, ${how}.`;
+  const why = ranking.failure === null ? "" : ` ${ranking.failure}`;
+  return `${ranking.generated ? "Ranked" : "Not ranked"} — ${when}, ${how}.${why}`;
 }
 
 export function SnapsPanel({
@@ -151,7 +156,7 @@ export function SnapsPanel({
 
   const photos = list.data?.photos ?? [];
   const described = new Map(
-    (list.data?.descriptions ?? []).map((row) => [row.photoId, row.status]),
+    (list.data?.descriptions ?? []).map((row) => [row.photoId, row]),
   );
   const scored = new Map(
     (list.data?.verdicts ?? []).map((row) => [row.photoId, row.aiStatus]),
@@ -163,10 +168,10 @@ export function SnapsPanel({
       ? undefined
       : {
           total: photos.length,
-          described: countOk(described.values()),
+          described: countOk([...described.values()].map((row) => row.status)),
           scored: countOk(scored.values()),
           usable: photos.filter((photo) =>
-            isUsable(described.get(photo.id), scored.get(photo.id)),
+            isUsable(described.get(photo.id)?.status, scored.get(photo.id)),
           ).length,
         };
 
@@ -246,7 +251,7 @@ export function SnapsPanel({
               key={photo.id}
               data-testid="ops-snap"
               data-usable={
-                isUsable(described.get(photo.id), scored.get(photo.id))
+                isUsable(described.get(photo.id)?.status, scored.get(photo.id))
                   ? "true"
                   : "false"
               }
@@ -259,12 +264,20 @@ export function SnapsPanel({
                   <span>{`Jury ${ratingText(photo.aiScore)}`}</span>
                 )}
                 <span data-testid={`ops-described-${String(photo.id)}`}>
-                  {describedText(described.get(photo.id))}
+                  {describedText(described.get(photo.id)?.status)}
                 </span>
                 <span data-testid={`ops-verdict-${String(photo.id)}`}>
                   {verdictText(scored.get(photo.id))}
                 </span>
               </p>
+              {whyFailed(described.get(photo.id)) !== null && (
+                <p
+                  className="ops-error"
+                  data-testid={`ops-why-${String(photo.id)}`}
+                >
+                  {whyFailed(described.get(photo.id))}
+                </p>
+              )}
               <button
                 type="button"
                 className="ops-btn"

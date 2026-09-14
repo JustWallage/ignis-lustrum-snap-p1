@@ -11,6 +11,7 @@ import type { Bindings } from "../env";
 import { getDb, type Db } from "./db";
 import {
   requestRanking,
+  shortReason,
   type DescribedSnap,
   type RankedVerdict,
 } from "./gemini";
@@ -26,6 +27,15 @@ const FALLBACK_SCORE = 5;
 
 const FALLBACK_CRITIQUE =
   "The jury stared, the machinery coughed, and your photo broke it. Have a 5 and our apologies.";
+
+/** A configuration fault reads as a Gemini fault unless it says so itself, exactly as
+ * in `lib/photo-description.ts`. */
+export const NO_KEY = "No GEMINI_API_KEY is set, so the jury was never asked.";
+
+/** The claim writes it and every ending path overwrites it, so what it survives as is
+ * a run that never returned at all — a worker torn down mid-`waitUntil`, which from
+ * the outside is indistinguishable from a run that failed silently. */
+const NEVER_CAME_BACK = "The jury was asked and never came back.";
 
 export function deletePhotoScore(db: Db, photoId: number) {
   return db.delete(photoScores).where(eq(photoScores.photoId, photoId));
@@ -67,12 +77,19 @@ function describedOnly(snaps: readonly DaySnap[]): DescribedSnap[] {
 async function claimRun(db: Db, day: number): Promise<number> {
   const claimed = await db
     .insert(dayRankings)
-    .values({ day, runStamp: 1, status: "failed", ranAt: null })
+    .values({
+      day,
+      runStamp: 1,
+      status: "failed",
+      failure: NEVER_CAME_BACK,
+      ranAt: null,
+    })
     .onConflictDoUpdate({
       target: dayRankings.day,
       set: {
         runStamp: sql`${dayRankings.runStamp} + 1`,
         status: "failed",
+        failure: NEVER_CAME_BACK,
       },
     })
     .returning({ runStamp: dayRankings.runStamp });
@@ -97,11 +114,12 @@ async function finish(
   day: number,
   run: number,
   status: "ok" | "failed",
+  failure: string | null,
 ): Promise<void> {
   if (!(await stillCurrent(db, day, run))) return;
   await db
     .update(dayRankings)
-    .set({ status, ranAt: new Date() })
+    .set({ status, failure, ranAt: new Date() })
     .where(eq(dayRankings.day, day));
 }
 
@@ -192,7 +210,7 @@ async function rank(
       "failed",
     );
     if (!written) return "overtaken";
-    await finish(db, day, run, "failed");
+    await finish(db, day, run, "failed", NO_KEY);
     return "failed";
   }
 
@@ -200,26 +218,30 @@ async function rank(
   // scores whatever `scoreDay` pays an absent verdict.
   const described = describedOnly(snaps);
   if (described.length === 0) {
-    await finish(db, day, run, "ok");
+    await finish(db, day, run, "ok", null);
     return "ok";
   }
 
   let verdicts: RankedVerdict[];
   try {
     verdicts = await requestRanking(apiKey, juryForDay(day), described);
-  } catch {
-    await finish(db, day, run, "failed");
+  } catch (error) {
+    await finish(db, day, run, "failed", shortReason(error));
     return "failed";
   }
   if (!(await writeVerdicts(db, day, run, verdicts, "ok"))) return "overtaken";
-  await finish(db, day, run, "ok");
+  await finish(db, day, run, "ok", null);
   return "ok";
 }
 
 export async function readDayRanking(db: Db, day: number): Promise<DayRanking> {
   const [state, scored] = await Promise.all([
     db
-      .select({ status: dayRankings.status, ranAt: dayRankings.ranAt })
+      .select({
+        status: dayRankings.status,
+        failure: dayRankings.failure,
+        ranAt: dayRankings.ranAt,
+      })
       .from(dayRankings)
       .where(eq(dayRankings.day, day))
       .limit(1),
@@ -238,5 +260,6 @@ export async function readDayRanking(db: Db, day: number): Promise<DayRanking> {
     generated: scored.length > 0,
     ranAt: row?.ranAt?.toISOString() ?? null,
     failed: row?.status === "failed",
+    failure: row?.status === "failed" ? (row.failure ?? null) : null,
   };
 }

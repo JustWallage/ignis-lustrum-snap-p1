@@ -204,13 +204,13 @@ adminRoutes.post("/photos/:id/describe", async (c) => {
   if (bytes === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  const status = await describePhoto(c.env, {
+  const done = await describePhoto(c.env, {
     id: photo.id,
     data: bytesToBase64(bytes),
     contentType: photo.contentType,
   });
-  if (status === "gone") {
+  if (done === "gone") {
     return c.json({ error: "Not found" }, 404);
   }
-  return c.json(photoDescriptionSchema.parse({ photoId: photo.id, status }));
+  return c.json(photoDescriptionSchema.parse({ photoId: photo.id, ...done }));
 });
