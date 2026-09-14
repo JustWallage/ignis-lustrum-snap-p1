@@ -17,6 +17,7 @@ import {
   DESCRIBING,
   descriptionRowCount,
   geminiCallAsking,
+  geminiCallsAsking,
   geminiReply,
   photoForm,
   resetWorld,
@@ -32,6 +33,12 @@ import { GEMINI_MODEL } from "./gemini";
 import { NO_KEY } from "./photo-description";
 
 beforeEach(resetWorld);
+
+const safetySentSchema = z.object({
+  safetySettings: z.array(
+    z.object({ category: z.string(), threshold: z.string() }),
+  ),
+});
 
 async function describeAgain(cookie: string, id: number, bindings: object) {
   return app.request(
@@ -170,7 +177,7 @@ describe("the photograph's description", () => {
           },
           { status: 429 },
         ),
-      /429.*Quota exceeded/,
+      /RESOURCE_EXHAUSTED: Quota exceeded/,
     ],
     [
       "prose where JSON was asked for",
@@ -191,6 +198,86 @@ describe("the photograph's description", () => {
       expect(stored?.failure).toMatch(expected);
     },
   );
+
+  it("rides out the overload that used to cost a day its description", async () => {
+    let asked = 0;
+    const fetched = stubGemini(() => {
+      asked++;
+      return asked === 1
+        ? new Response("model is overloaded", { status: 503 })
+        : geminiReply(JSON.stringify(DESCRIBED));
+    });
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    const stored = await storedDescription(id);
+    expect(stored?.status).toBe("ok");
+    expect(stored?.failure).toBeNull();
+    expect(geminiCallsAsking(fetched.mock.calls, DESCRIBING)).toHaveLength(2);
+  });
+
+  it("does not spend a button press three times on a quota that reopens on the day", async () => {
+    const fetched = stubGemini(
+      () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              status: "RESOURCE_EXHAUSTED",
+              message: "Quota exceeded for quota metric",
+            },
+          }),
+          { status: 429 },
+        ),
+    );
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    // Google's `error.message` and not the envelope around it: the quota line is the
+    // whole reason an operator reads this row at all.
+    expect((await storedDescription(id))?.failure).toBe(
+      "HTTP 429 — RESOURCE_EXHAUSTED: Quota exceeded for quota metric",
+    );
+    expect(geminiCallsAsking(fetched.mock.calls, DESCRIBING)).toHaveLength(1);
+  });
+
+  it("gives up on a refusal it cannot change by asking twice", async () => {
+    const fetched = stubGemini(
+      () =>
+        new Response(
+          JSON.stringify({ error: { message: "API key not valid" } }),
+          {
+            status: 400,
+          },
+        ),
+    );
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    expect((await storedDescription(id))?.failure).toMatch(
+      /400.*API key not valid/,
+    );
+    expect(geminiCallsAsking(fetched.mock.calls, DESCRIBING)).toHaveLength(1);
+  });
+
+  it("asks with the thresholds this app judges photographs at", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    const { init } = geminiCallAsking(fetched.mock.calls, DESCRIBING);
+    const sent = safetySentSchema.parse(
+      JSON.parse(z.string().parse(init.body)),
+    );
+    expect(sent.safetySettings.map((one) => one.category)).toEqual([
+      "HARM_CATEGORY_HARASSMENT",
+      "HARM_CATEGORY_HATE_SPEECH",
+      "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+      "HARM_CATEGORY_DANGEROUS_CONTENT",
+    ]);
+    for (const one of sent.safetySettings) {
+      expect(one.threshold).toBe("BLOCK_ONLY_HIGH");
+    }
+  });
 
   it("names the missing key rather than blaming Gemini for a call nobody made", async () => {
     stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));

@@ -17,7 +17,7 @@ import { bytesToBase64 } from "../lib/bytes";
 import { getDb, type Db } from "../lib/db";
 import { readGameState } from "../lib/game-state";
 import { readImage } from "../lib/images";
-import { avatarSpend, requestEvaluation } from "../lib/gemini";
+import { avatarSpend, requestEvaluation, shortReason } from "../lib/gemini";
 import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
 import { describePhoto } from "../lib/photo-description";
@@ -188,8 +188,11 @@ adminRoutes.post("/bench", async (c) => {
         ...evaluation,
       }),
     );
-  } catch {
-    return c.json({ error: BENCH_FAILED }, 502);
+  } catch (error) {
+    // The bench is where an operator takes a snap the jury choked on and asks again by
+    // hand, so it is the LAST place that should answer "have another go" and nothing
+    // else. `readApiError` already renders whatever is in `error`.
+    return c.json({ error: `${BENCH_FAILED} ${shortReason(error)}` }, 502);
   }
 });
 

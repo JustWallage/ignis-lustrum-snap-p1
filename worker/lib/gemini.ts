@@ -31,7 +31,55 @@ export function avatarSpend(count: number): {
 const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models";
 
+/** One image in, one short JSON answer out. The whole-day ranking gets its own below:
+ * it is the one call whose work grows with the town. */
 const TIMEOUT_MS = 30_000;
+
+/** Fourteen descriptions in and fourteen Dutch critiques out, on a thinking model —
+ * the shared 30s was sized for a call that reads ONE photograph, and a full evening
+ * is a different length of question. */
+const RANKING_TIMEOUT_MS = 90_000;
+
+/**
+ * A 503 is an overloaded model and a 5xx a bad minute at Google's end: both clear in
+ * seconds, and unretried each one permanently costs a photograph the only description
+ * the jury ever sees. **429 is deliberately NOT here.** A spent quota is a window that
+ * reopens on the minute or on the day, never inside a retry a caller can afford to
+ * wait out, so retrying one buys nothing and spends the operator's button press three
+ * times over. What answers a 429 is the tier, and the console now says which quota it
+ * was.
+ */
+const RETRY_STATUS = new Set([408, 500, 502, 503, 504]);
+
+/** Three tries, not more: the ranking sits behind a button an operator is waiting at. */
+const ATTEMPTS = 3;
+
+const BACKOFF_MS = 1_000;
+
+/** Full jitter. Fourteen uploads landing together retry together otherwise, which is
+ * the same burst that spent the quota, moved half a second later. */
+function backoff(attempt: number): number {
+  return Math.random() * BACKOFF_MS * 2 ** (attempt - 1);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Google's own default thresholds are written for a public product, and the payload
+ * here is fourteen friends' own photographs of each other — beers, swimming, contact
+ * sport and a costume all sit in the band that blocks by default. A block is not a
+ * soft failure either: the photograph gets NO description, so the jury cannot rank it
+ * and the player reads a fallback 5 with no explanation. `BLOCK_ONLY_HIGH` keeps the
+ * top of each category refused and stops the app losing a snap to the middle of it.
+ */
+const SAFETY_SETTINGS = [
+  "HARM_CATEGORY_HARASSMENT",
+  "HARM_CATEGORY_HATE_SPEECH",
+  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  "HARM_CATEGORY_DANGEROUS_CONTENT",
+].map((category) => ({ category, threshold: "BLOCK_ONLY_HIGH" }));
 
 const critiqueSchema = z.string().trim().min(1).max(1000);
 
@@ -103,9 +151,32 @@ const geminiResponseSchema = z.object({
   promptFeedback: z.object({ blockReason: z.string().optional() }).optional(),
 });
 
-/** Long enough for Google's own `error.message`, short enough to sit in a D1 row and
- * be read on a phone. */
-const REASON_MAX = 400;
+/** Long enough for Google's own `error.message` WHOLE — the quota line an operator
+ * needs sits at the end of it, after two documentation URLs — and short enough to sit
+ * in a D1 row and be read on a phone. */
+const REASON_MAX = 700;
+
+const googleErrorSchema = z.object({
+  error: z.object({ message: z.string(), status: z.string().optional() }),
+});
+
+/** Google's `error.message` alone, since the envelope around it is a `code` the status
+ * line already carries and a `details` array of quota bookkeeping. Falls back to the
+ * raw body, which is what an error page from something that is not Google looks like. */
+function saidBy(body: string): string {
+  const parsed = googleErrorSchema.safeParse(safeJson(body));
+  if (!parsed.success) return body;
+  const { status, message } = parsed.data.error;
+  return status === undefined ? message : `${status}: ${message}`;
+}
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 export function shortReason(value: unknown): string {
   const text = value instanceof Error ? value.message : String(value);
@@ -131,28 +202,66 @@ function instructions(jury: Jury): string {
   ].join("\n");
 }
 
-async function generateContent(
+interface Ask {
+  parts: Part[];
+  generationConfig: object;
+  timeoutMs?: number;
+}
+
+async function askOnce(
   apiKey: string,
   model: string,
-  parts: Part[],
-  generationConfig: object,
-): Promise<Part[]> {
-  const res = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
+  ask: Ask,
+): Promise<Response> {
+  return fetch(`${GEMINI_ENDPOINT}/${model}:generateContent`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": apiKey,
     },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(ask.timeoutMs ?? TIMEOUT_MS),
     body: JSON.stringify({
-      contents: [{ role: "user", parts }],
-      generationConfig,
+      contents: [{ role: "user", parts: ask.parts }],
+      generationConfig: ask.generationConfig,
+      safetySettings: SAFETY_SETTINGS,
     }),
   });
+}
+
+/** A timeout and a refused connection are the same kind of loss as a 503 and retry the
+ * same way; anything else — a 400, a bad key — is thrown on the first attempt, since a
+ * request Google will never accept is not made acceptable by sending it again. */
+async function askWithRetries(
+  apiKey: string,
+  model: string,
+  ask: Ask,
+): Promise<Response> {
+  let last: unknown = null;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    if (attempt > 1) await sleep(backoff(attempt - 1));
+    try {
+      const res = await askOnce(apiKey, model, ask);
+      if (res.ok || !RETRY_STATUS.has(res.status)) return res;
+      last = new Error(
+        `HTTP ${String(res.status)} — ${saidBy(await res.text())}`,
+      );
+    } catch (error) {
+      last = error;
+    }
+  }
+  throw last instanceof Error ? last : new Error(String(last));
+}
+
+async function generateContent(
+  apiKey: string,
+  model: string,
+  ask: Ask,
+): Promise<Part[]> {
+  const res = await askWithRetries(apiKey, model, ask);
   if (!res.ok) {
     // Google's own body, not just the code: a 429 says WHICH quota ran out and a 400
     // names the field it choked on, and neither is recoverable from the status alone.
-    throw new Error(`HTTP ${String(res.status)} — ${await res.text()}`);
+    throw new Error(`HTTP ${String(res.status)} — ${saidBy(await res.text())}`);
   }
   const body = geminiResponseSchema.parse(await res.json());
   const first = body.candidates?.[0];
@@ -197,12 +306,13 @@ export async function requestEvaluation(
   jury: Jury,
   image: GeminiImage,
 ): Promise<Evaluation> {
-  const parts = await generateContent(
-    apiKey,
-    GEMINI_MODEL,
-    aboutOne(instructions(jury), image),
-    { responseMimeType: "application/json", responseSchema: RESPONSE_SCHEMA },
-  );
+  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+    parts: aboutOne(instructions(jury), image),
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: RESPONSE_SCHEMA,
+    },
+  });
   return evaluationSchema.parse(answered(parts));
 }
 
@@ -313,15 +423,14 @@ export async function requestRanking(
   jury: Jury,
   snaps: readonly DescribedSnap[],
 ): Promise<RankedVerdict[]> {
-  const parts = await generateContent(
-    apiKey,
-    GEMINI_MODEL,
-    [{ text: rankingInstructions(jury, snaps) }],
-    {
+  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+    parts: [{ text: rankingInstructions(jury, snaps) }],
+    generationConfig: {
       responseMimeType: "application/json",
       responseSchema: RANKING_RESPONSE_SCHEMA,
     },
-  );
+    timeoutMs: RANKING_TIMEOUT_MS,
+  });
   const asked = snaps.map((snap) => snap.photoId);
   return rankingSchema(asked).parse(answered(parts)).verdicts;
 }
@@ -394,15 +503,13 @@ export async function requestDescription(
   apiKey: string,
   image: GeminiImage,
 ): Promise<string> {
-  const parts = await generateContent(
-    apiKey,
-    GEMINI_MODEL,
-    aboutOne(DESCRIPTION_INSTRUCTIONS, image),
-    {
+  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+    parts: aboutOne(DESCRIPTION_INSTRUCTIONS, image),
+    generationConfig: {
       responseMimeType: "application/json",
       responseSchema: DESCRIPTION_RESPONSE_SCHEMA,
     },
-  );
+  });
   const described = describedSchema.parse(answered(parts));
   return DESCRIPTION_FIELDS.map(({ name }) => {
     const answer = described[name];
@@ -424,17 +531,15 @@ export async function requestAvatar(
   apiKey: string,
   photo: GeminiImage,
 ): Promise<DrawnAvatar> {
-  const parts = await generateContent(
-    apiKey,
-    GEMINI_IMAGE_MODEL,
-    aboutOne(AVATAR_INSTRUCTIONS, photo),
-    {
+  const parts = await generateContent(apiKey, GEMINI_IMAGE_MODEL, {
+    parts: aboutOne(AVATAR_INSTRUCTIONS, photo),
+    generationConfig: {
       // Image models answer with prose alongside the picture, so both modalities
       // have to be asked for; the prose is dropped below.
       responseModalities: ["TEXT", "IMAGE"],
       imageConfig: { imageSize: AVATAR_IMAGE_SIZE },
     },
-  );
+  });
   for (const { inlineData } of parts) {
     if (inlineData?.mimeType.startsWith("image/") === true) {
       return {

@@ -772,13 +772,20 @@ export function descriptionRowCount(): Promise<number> {
 /** An upload asks Gemini TWICE — the verdict and the description — so a test about one
  * of them picks its own call out by what it asked rather than by where it landed, and
  * throws unless exactly one call asked it. */
+export function geminiCallsAsking(
+  calls: [string, RequestInit][],
+  asking: RegExp,
+): { url: string; init: RequestInit; prompt: string }[] {
+  return calls
+    .map(([url, init]) => ({ url, init, prompt: promptOf(init) }))
+    .filter(({ prompt }) => asking.test(prompt));
+}
+
 export function geminiCallAsking(
   calls: [string, RequestInit][],
   asking: RegExp,
 ): { url: string; init: RequestInit; prompt: string } {
-  const asked = calls
-    .map(([url, init]) => ({ url, init, prompt: promptOf(init) }))
-    .filter(({ prompt }) => asking.test(prompt));
+  const asked = geminiCallsAsking(calls, asking);
   const [only, ...rest] = asked;
   if (only === undefined || rest.length > 0) {
     throw new Error(
