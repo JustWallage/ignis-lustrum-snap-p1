@@ -10,6 +10,7 @@ import { juryForDay } from "../../shared/juries";
 import type { Bindings } from "../env";
 import { getDb, type Db } from "./db";
 import {
+  juryKeys,
   requestRanking,
   shortReason,
   type DescribedSnap,
@@ -30,7 +31,7 @@ const FALLBACK_CRITIQUE =
 
 /** A configuration fault reads as a Gemini fault unless it says so itself, exactly as
  * in `lib/photo-description.ts`. */
-export const NO_KEY = "No GEMINI_API_KEY is set, so the jury was never asked.";
+export const NO_KEY = "No Gemini key is set, so the jury was never asked.";
 
 /** The claim writes it and every ending path overwrites it, so what it survives as is
  * a run that never returned at all — a worker torn down mid-`waitUntil`, which from
@@ -198,10 +199,10 @@ async function rank(
   const db = getDb(env);
   const snaps = await snapsOfDay(db, day);
   if (snaps.length === 0) return "ok";
-  const apiKey = env.GEMINI_API_KEY;
+  const keys = juryKeys(env);
   const run = await claimRun(db, day);
 
-  if (apiKey === undefined || apiKey === "") {
+  if (keys.length === 0) {
     const written = await writeVerdicts(
       db,
       day,
@@ -224,7 +225,7 @@ async function rank(
 
   let verdicts: RankedVerdict[];
   try {
-    verdicts = await requestRanking(apiKey, juryForDay(day), described);
+    verdicts = await requestRanking(keys, juryForDay(day), described);
   } catch (error) {
     await finish(db, day, run, "failed", shortReason(error));
     return "failed";

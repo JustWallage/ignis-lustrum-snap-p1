@@ -132,9 +132,10 @@ export async function generateAvatar(
     };
   }
 
-  // The BILLED key, and never `GEMINI_API_KEY` as a fallback: falling back either way
-  // round is the bug this split exists to prevent — the paid key spent on evaluations,
-  // or the free one on pictures.
+  // The BILLED key ALONE, and never `juryKeys` here: the jury falling over to this key
+  // is a few cents of text the caps do not need to bound, where a photograph drawn on
+  // the FREE key is 747 image tokens spent off the books — and this machine going quiet
+  // is a player reading "offline", which is a better outcome than a surprise bill.
   const apiKey = env.GEMINI_API_KEY_PAID;
   // No key is how local and e2e always run: a plain "offline", never a crash.
   if (apiKey === undefined || apiKey === "") {

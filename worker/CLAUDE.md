@@ -107,12 +107,18 @@
   object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
   500, and the console's describe REFUSES a row whose object has gone rather than reading an empty
   image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
-- **Two Gemini keys, no fallback between them**: `GEMINI_API_KEY` judges photographs,
-  `GEMINI_API_KEY_PAID` draws avatars, and the billed one is the only thing `lib/avatar.ts` will
-  reach for. Falling back either way spends the wrong key. Both are optional everywhere — without
-  one the jury scores 5, without the other the avatar machine answers "offline", and local and e2e
-  depend on both. Every test helper pins BOTH variables, because the vitest pool reads a
-  developer's `.env` and absence is never the default.
+- **Two Gemini keys, and the fallback runs ONE WAY.** `juryKeys` (`lib/gemini.ts`) returns the
+  keys the jury may spend IN ORDER — `GEMINI_API_KEY` first, `GEMINI_API_KEY_PAID` only where the
+  free one's quota is gone — and the three jury calls take that list. `lib/avatar.ts` still hands
+  `requestAvatar` the billed key ALONE, and the single-element list is the rule rather than a
+  convention: a photograph drawn on the free key is the half of the split that stays, because the
+  billed key going quiet is a player reading "offline" and not a bill. **Only a 429 moves down the
+  list** — the free tier's cap is scoped to a Google PROJECT, so the billed key's own project is the
+  one thing that answers it, where a 400 or a 503 would meet the second key exactly as the first.
+  With only the billed key set the jury now uses it (it used to go dark). Both are still optional —
+  with neither the jury scores 5 and the avatar machine answers "offline" — and every test helper
+  pins BOTH variables, because the vitest pool reads a developer's `.env` and absence is never the
+  default.
 - **A failure STORES what Gemini said, never just that it failed** — `photo_descriptions.failure`
   and `day_rankings.failure`, both cleared by the next good run, both read straight off the console.
   `generateContent` is what makes them worth reading: Google's own body on a non-2xx (a 429 names

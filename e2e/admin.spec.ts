@@ -38,7 +38,7 @@ test("an admin can read the day's jury batch and run it again", async ({
   // fallback and the run says so — the readable answer, not a crash.
   await expect(state).toContainText("Ranked");
   await expect(state).toContainText(/last run failed/i);
-  await expect(state).toContainText(/No GEMINI_API_KEY is set/);
+  await expect(state).toContainText(/No Gemini key is set/);
 
   await panel.getByTestId("ops-rank-day").click();
   await expect(panel.getByTestId("ops-snaps-note")).toContainText(
