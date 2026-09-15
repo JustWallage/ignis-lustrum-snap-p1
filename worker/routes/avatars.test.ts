@@ -16,6 +16,9 @@ import {
 } from "../lib/gemini";
 import {
   geminiDayReply,
+  JURY_KEY,
+  keyOf,
+  PAID_KEY,
   patchAvatarCaps,
   PHOTO_BYTES,
   resetWorld,
@@ -312,11 +315,15 @@ describe("avatar generation", () => {
     expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT);
   });
 
-  // The two keys, one at a time. There is no fallback between them BY DESIGN: either
-  // direction spends the wrong key, so each of these proves the other path went dark
-  // rather than quietly borrowing.
-  it("draws on the billed key alone, and lets the jury go dark", async () => {
-    const fetched = stubGemini(() => avatarReply());
+  // The two keys, one at a time. The fallback runs ONE WAY, so these are no longer
+  // symmetrical: the jury may spend the billed key, and the avatar machine may not
+  // spend the free one.
+  it("draws on the billed key, and lets the jury spend it too", async () => {
+    const fetched = stubGemini((url, init) =>
+      url.includes(GEMINI_IMAGE_MODEL)
+        ? avatarReply()
+        : geminiDayReply(url, init),
+    );
     const cookie = await signIn();
 
     expect((await generateAvatar(cookie, withAvatarKeyOnly())).status).toBe(
@@ -325,11 +332,10 @@ describe("avatar generation", () => {
     expect(await storedAvatar()).toEqual(SPRITE_BYTES);
 
     const id = await uploadPhotoId(cookie, { bindings: withAvatarKeyOnly() });
-    const scored = await storedScore(id);
-    expect(scored?.ai_score).toBe(5);
-    expect(scored?.ai_status).toBe("failed");
-    // One call, the avatar's: the jury never reached for the paid key.
-    expect(fetched).toHaveBeenCalledTimes(1);
+    expect((await storedScore(id))?.ai_status).toBe("ok");
+    for (const [, init] of fetched.mock.calls) {
+      expect(keyOf(init)).toBe(PAID_KEY);
+    }
   });
 
   it("judges on the jury's key alone, and answers offline without spending a slot", async () => {
@@ -350,6 +356,10 @@ describe("avatar generation", () => {
     expect(
       fetched.mock.calls.filter(([url]) => url.includes(GEMINI_IMAGE_MODEL)),
     ).toEqual([]);
+    // The half of the split that stays: nothing drew on the jury's key.
+    for (const [, init] of fetched.mock.calls) {
+      expect(keyOf(init)).toBe(JURY_KEY);
+    }
   });
 
   it("goes dark on both sides when neither key is set", async () => {

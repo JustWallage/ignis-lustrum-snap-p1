@@ -51,6 +51,8 @@ const RANKING_TIMEOUT_MS = 90_000;
  */
 const RETRY_STATUS = new Set([408, 500, 502, 503, 504]);
 
+const QUOTA_SPENT = 429;
+
 /** Three tries, not more: the ranking sits behind a button an operator is waiting at. */
 const ATTEMPTS = 3;
 
@@ -104,6 +106,29 @@ const RESPONSE_SCHEMA = {
   required: ["score", "critique", "bonusDetected", "bonusReason"],
   propertyOrdering: ["score", "critique", "bonusDetected", "bonusReason"],
 };
+
+/** Only the two keys, so `lib/gemini.ts` still imports no env. */
+export interface JuryKeyring {
+  GEMINI_API_KEY?: string;
+  GEMINI_API_KEY_PAID?: string;
+}
+
+/**
+ * The keys the jury may spend, IN THE ORDER IT SPENDS THEM: the free one first, the
+ * billed one only where the free one's daily quota is gone. The free tier's cap is per
+ * Google project, so the billed key's own project is the one thing that answers a 429 —
+ * which is why this is an ordered list and not a choice.
+ *
+ * Only HALF of the old split is gone. Nothing hands these to `requestAvatar`: a
+ * photograph drawn on the free key is still the bug the split exists to prevent, and
+ * that direction has no fallback because the billed key going quiet is a player reading
+ * "offline", not a bill.
+ */
+export function juryKeys(env: JuryKeyring): string[] {
+  return [env.GEMINI_API_KEY, env.GEMINI_API_KEY_PAID].flatMap((key) =>
+    key === undefined || key === "" ? [] : [key],
+  );
+}
 
 /** base64, not bytes: the shape a Gemini inline-data part has to arrive in. */
 export interface GeminiImage {
@@ -231,7 +256,7 @@ async function askOnce(
 /** A timeout and a refused connection are the same kind of loss as a 503 and retry the
  * same way; anything else — a 400, a bad key — is thrown on the first attempt, since a
  * request Google will never accept is not made acceptable by sending it again. */
-async function askWithRetries(
+async function askOneKey(
   apiKey: string,
   model: string,
   ask: Ask,
@@ -252,12 +277,34 @@ async function askWithRetries(
   throw last instanceof Error ? last : new Error(String(last));
 }
 
+/**
+ * A spent quota is the ONE failure a DIFFERENT key can answer, because the free tier's
+ * cap is scoped to a Google PROJECT and the billed key's project has its own. Every
+ * other refusal is a property of the request or of Google, and the second key would
+ * meet it exactly as the first did — so only a 429 moves down the list, and the last
+ * key's answer is the one the caller gets.
+ */
+async function askEveryKey(
+  keys: readonly string[],
+  model: string,
+  ask: Ask,
+): Promise<Response> {
+  let spent: Response | undefined;
+  for (const apiKey of keys) {
+    const res = await askOneKey(apiKey, model, ask);
+    if (res.status !== QUOTA_SPENT) return res;
+    spent = res;
+  }
+  if (spent === undefined) throw new Error("No Gemini key to ask with");
+  return spent;
+}
+
 async function generateContent(
-  apiKey: string,
+  keys: readonly string[],
   model: string,
   ask: Ask,
 ): Promise<Part[]> {
-  const res = await askWithRetries(apiKey, model, ask);
+  const res = await askEveryKey(keys, model, ask);
   if (!res.ok) {
     // Google's own body, not just the code: a 429 says WHICH quota ran out and a 400
     // names the field it choked on, and neither is recoverable from the status alone.
@@ -302,11 +349,11 @@ function answered(parts: readonly Part[]): unknown {
 }
 
 export async function requestEvaluation(
-  apiKey: string,
+  keys: readonly string[],
   jury: Jury,
   image: GeminiImage,
 ): Promise<Evaluation> {
-  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+  const parts = await generateContent(keys, GEMINI_MODEL, {
     parts: aboutOne(instructions(jury), image),
     generationConfig: {
       responseMimeType: "application/json",
@@ -419,11 +466,11 @@ function rankingInstructions(
 }
 
 export async function requestRanking(
-  apiKey: string,
+  keys: readonly string[],
   jury: Jury,
   snaps: readonly DescribedSnap[],
 ): Promise<RankedVerdict[]> {
-  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+  const parts = await generateContent(keys, GEMINI_MODEL, {
     parts: [{ text: rankingInstructions(jury, snaps) }],
     generationConfig: {
       responseMimeType: "application/json",
@@ -500,10 +547,10 @@ const describedSchema = z.record(z.string(), z.string().trim().min(1));
  * failure the console can retry, where a half-description lands as an `ok` row that
  * nothing re-runs on its own. */
 export async function requestDescription(
-  apiKey: string,
+  keys: readonly string[],
   image: GeminiImage,
 ): Promise<string> {
-  const parts = await generateContent(apiKey, GEMINI_MODEL, {
+  const parts = await generateContent(keys, GEMINI_MODEL, {
     parts: aboutOne(DESCRIPTION_INSTRUCTIONS, image),
     generationConfig: {
       responseMimeType: "application/json",
@@ -531,7 +578,7 @@ export async function requestAvatar(
   apiKey: string,
   photo: GeminiImage,
 ): Promise<DrawnAvatar> {
-  const parts = await generateContent(apiKey, GEMINI_IMAGE_MODEL, {
+  const parts = await generateContent([apiKey], GEMINI_IMAGE_MODEL, {
     parts: aboutOne(AVATAR_INSTRUCTIONS, photo),
     generationConfig: {
       // Image models answer with prose alongside the picture, so both modalities

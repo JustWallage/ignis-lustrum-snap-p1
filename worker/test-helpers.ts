@@ -663,6 +663,17 @@ export function stubGeminiDay() {
   return stubGemini(geminiDayReply);
 }
 
+export const JURY_KEY = "test-key";
+
+export const PAID_KEY = "paid-key";
+
+/** WHICH key a call was spent on, read off the header the worker actually sent. The
+ * fallback is entirely a question about key ORDER, so nothing else can prove it. */
+export function keyOf(init: RequestInit): string {
+  const headers = z.record(z.string(), z.string()).parse(init.headers);
+  return headers["x-goog-api-key"] ?? "";
+}
+
 /** Every one of these four pins BOTH variables, the one it wants and the other to
  * `undefined`: wrangler loads a developer's `.env` into local bindings, so absence is
  * never the default and a laptop holding the paid key would make the single-key cases
@@ -670,8 +681,8 @@ export function stubGeminiDay() {
 export function withGeminiKey(): object {
   return {
     ...env,
-    GEMINI_API_KEY: "test-key",
-    GEMINI_API_KEY_PAID: "paid-key",
+    GEMINI_API_KEY: JURY_KEY,
+    GEMINI_API_KEY_PAID: PAID_KEY,
   };
 }
 
@@ -681,12 +692,12 @@ export function withoutGeminiKey(): object {
 
 /** The jury's key alone: photographs are evaluated, avatars answer "offline". */
 export function withJuryKeyOnly(): object {
-  return { ...env, GEMINI_API_KEY: "test-key", GEMINI_API_KEY_PAID: undefined };
+  return { ...env, GEMINI_API_KEY: JURY_KEY, GEMINI_API_KEY_PAID: undefined };
 }
 
 /** The billed key alone: avatars are drawn, the jury takes its failure path. */
 export function withAvatarKeyOnly(): object {
-  return { ...env, GEMINI_API_KEY: undefined, GEMINI_API_KEY_PAID: "paid-key" };
+  return { ...env, GEMINI_API_KEY: undefined, GEMINI_API_KEY_PAID: PAID_KEY };
 }
 
 const storedScoreSchema = z.object({

@@ -17,7 +17,12 @@ import { bytesToBase64 } from "../lib/bytes";
 import { getDb, type Db } from "../lib/db";
 import { readGameState } from "../lib/game-state";
 import { readImage } from "../lib/images";
-import { avatarSpend, requestEvaluation, shortReason } from "../lib/gemini";
+import {
+  avatarSpend,
+  juryKeys,
+  requestEvaluation,
+  shortReason,
+} from "../lib/gemini";
 import { parseJsonBody } from "../lib/http";
 import { readImageFile } from "../lib/image-upload";
 import { describePhoto } from "../lib/photo-description";
@@ -161,13 +166,13 @@ adminRoutes.post("/bench", async (c) => {
   if ("error" in upload) {
     return c.json({ error: upload.error }, 400);
   }
-  const apiKey = c.env.GEMINI_API_KEY;
+  const keys = juryKeys(c.env);
   // No key is how local and e2e always run, and the bench is the avatar machine's
   // kind of surface: a plain "offline" an admin can read, never a crash. ABOVE the
   // limiter, which exists to cap a bill: a press that reaches no model spends
   // nothing, and spending a slot on it is a 429 with no meaning behind it — the same
   // trade the avatar machine makes by refunding every path that stores no sprite.
-  if (apiKey === undefined || apiKey === "") {
+  if (keys.length === 0) {
     return c.json({ error: BENCH_OFFLINE }, 503);
   }
   if (!benchRateLimit.allow(String(c.get("user").id))) {
@@ -177,7 +182,7 @@ adminRoutes.post("/bench", async (c) => {
     );
   }
   try {
-    const evaluation = await requestEvaluation(apiKey, jury, {
+    const evaluation = await requestEvaluation(keys, jury, {
       data: bytesToBase64(new Uint8Array(await upload.file.arrayBuffer())),
       contentType: upload.file.type,
     });

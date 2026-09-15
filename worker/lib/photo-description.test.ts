@@ -18,6 +18,9 @@ import {
   descriptionRowCount,
   geminiCallAsking,
   geminiCallsAsking,
+  JURY_KEY,
+  keyOf,
+  PAID_KEY,
   geminiReply,
   photoForm,
   resetWorld,
@@ -27,12 +30,26 @@ import {
   uploadPhoto,
   uploadPhotoId,
   withGeminiKey,
+  withJuryKeyOnly,
   withoutGeminiKey,
 } from "../test-helpers";
 import { GEMINI_MODEL } from "./gemini";
 import { NO_KEY } from "./photo-description";
 
 beforeEach(resetWorld);
+
+/** The body prod actually answered a spent free tier with, trimmed to its shape. */
+function quotaSpent(): Response {
+  return Response.json(
+    {
+      error: {
+        status: "RESOURCE_EXHAUSTED",
+        message: "Quota exceeded for quota metric",
+      },
+    },
+    { status: 429 },
+  );
+}
 
 const safetySentSchema = z.object({
   safetySettings: z.array(
@@ -216,21 +233,66 @@ describe("the photograph's description", () => {
     expect(geminiCallsAsking(fetched.mock.calls, DESCRIBING)).toHaveLength(2);
   });
 
-  it("does not spend a button press three times on a quota that reopens on the day", async () => {
-    const fetched = stubGemini(
-      () =>
-        new Response(
-          JSON.stringify({
-            error: {
-              status: "RESOURCE_EXHAUSTED",
-              message: "Quota exceeded for quota metric",
-            },
-          }),
-          { status: 429 },
-        ),
+  it("moves to the billed key when the free one's quota is gone, and not before", async () => {
+    const fetched = stubGemini((_url, init) =>
+      keyOf(init) === JURY_KEY
+        ? quotaSpent()
+        : geminiReply(JSON.stringify(DESCRIBED)),
     );
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    const stored = await storedDescription(id);
+    expect(stored?.status).toBe("ok");
+    expect(stored?.failure).toBeNull();
+    // The free key FIRST and exactly once, then the billed one: an order, not a choice.
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
+        keyOf(init),
+      ),
+    ).toEqual([JURY_KEY, PAID_KEY]);
+  });
+
+  it("keeps the billed key out of every refusal a second key cannot answer", async () => {
+    for (const [why, reply] of [
+      ["a 400", () => new Response("{}", { status: 400 })],
+      ["a 503 on every attempt", () => new Response("busy", { status: 503 })],
+    ] as const) {
+      const fetched = stubGemini(reply);
+      const cookie = await signIn();
+      const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+      expect((await storedDescription(id))?.status, why).toBe("failed");
+      const spent = new Set(
+        geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
+          keyOf(init),
+        ),
+      );
+      expect([...spent], why).toEqual([JURY_KEY]);
+      vi.unstubAllGlobals();
+      await resetWorld();
+    }
+  });
+
+  it("reports the spent quota when BOTH keys are out", async () => {
+    const fetched = stubGemini(quotaSpent);
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    expect((await storedDescription(id))?.failure).toBe(
+      "HTTP 429 — RESOURCE_EXHAUSTED: Quota exceeded for quota metric",
+    );
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
+        keyOf(init),
+      ),
+    ).toEqual([JURY_KEY, PAID_KEY]);
+  });
+
+  it("does not spend a button press three times on a quota that reopens on the day", async () => {
+    const fetched = stubGemini(quotaSpent);
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withJuryKeyOnly() });
 
     // Google's `error.message` and not the envelope around it: the quota line is the
     // whole reason an operator reads this row at all.

@@ -16,7 +16,7 @@ import {
 
 /** Spelled out rather than imported from the worker: what this asserts is the text an
  * operator READS, and a spec sharing the constant could not catch it going blank. */
-const NO_KEY = "No GEMINI_API_KEY is set, so nothing was asked.";
+const NO_KEY = "No Gemini key is set, so nothing was asked.";
 
 async function setDayTo(page: Page, day: number) {
   const panel = await openConsole(page, "Clock");
