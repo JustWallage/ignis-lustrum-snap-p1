@@ -35,6 +35,7 @@ votesRoutes.get("/candidates", async (c) => {
   const rows = await db
     .select({
       id: photos.id,
+      caption: photos.caption,
       mine: sql<number>`(${photos.userId} = ${userId})`,
     })
     .from(photos)

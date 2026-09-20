@@ -54,7 +54,12 @@ deploys a schema without the column while everything stays green.
   so whatever deletes a subject deletes its comments — `purgePhoto` does, and a sprite is never
   deleted, which is why nothing sweeps those.
 - `photos.day`'s default exists only so its migration could backfill; every insert stamps it from
-  `game_state.day`. `photos` has no `x`/`y` and no `caption`.
+  `game_state.day`. `photos` has no `x`/`y`. It has a `caption` again (`0023`), and it is not the one
+  `0010` dropped: that was the JURY's line, which lives on `photo_scores.critique`, and this is the
+  PHOTOGRAPHER's. Nullable because null is "nothing written" and an empty save clears it — a reader
+  cannot tell a blank from an absence, so the two must not be different rows. It sits on `photos`
+  rather than in a table of its own precisely because it belongs to the picture for the picture's
+  whole life: `purgePhoto` takes it with the row and has no statement to forget.
 - **`photo_scores.ai_score` is a REAL, and within a day those reals are DISTINCT** — the jury ranks
   the whole day in one call and the score IS that order, so nothing stores a rank beside it and two
   fields cannot disagree about the same photograph. `src/lib/rating.ts` rounds every readout, which

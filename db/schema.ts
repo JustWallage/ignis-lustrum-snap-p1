@@ -65,6 +65,7 @@ export const photos = sqliteTable(
     r2Key: text("r2_key"),
     contentType: text("content_type").notNull(),
     day: integer("day").notNull().default(1),
+    caption: text("caption"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (t) => [

@@ -380,7 +380,11 @@ export async function operate(
     .getByTestId("dialogue-choices")
     .getByRole("button", { name: item })
     .click();
-  await expect(page.getByTestId("dialogue-text")).toContainText(/event/i);
+  // Waited for BEFORE anything is pressed, because START reads the jury's gap off the
+  // console first and the box is gone for that round trip — an A press into the gap is
+  // one the shell takes as walking. `JURY:` is that gap's own page, which comes in
+  // FRONT of the question, so either opening word means the box is back.
+  await expect(page.getByTestId("dialogue-text")).toContainText(/event|jury:/i);
   const choices = await readDialogue(page);
   await choices.getByRole("button", { name: confirm }).click();
 }

@@ -12,6 +12,13 @@ play continues.
   however good it was — a position keeps it in the game and lets the jury's favourite win the day.
 - **Photos are anonymous until their day is revealed** — that is the game, not a privacy feature. The
   counterpart is that walking is public: an anonymous visitor sees the town and everybody in it.
+- **A photograph gets a caption because a comment costs its photographer the game.** Comments are
+  signed on every day, deliberately; a photographer who wanted to say where the shot was taken had
+  only the thread, and using it told the town whose snap it was. The caption is the one line they
+  may put under an anonymous picture — theirs to edit, theirs to delete, and printed with no name.
+  Written at the jury, the NPC they hand the photograph to, and read at the ballot, where the
+  picture is being judged. It is not the jury's critique, which is what the machine made of the
+  photograph and appears only once the day is out.
 - **Players pass straight through each other**, so nobody can body-block the door or the jury. Names
   are painted over the sprites, because a shared town where you cannot tell which friend walked past is
   scenery rather than company.
@@ -28,6 +35,11 @@ play continues.
 - **Below `MIN_ENABLED_PRIZES` the START button refuses**, with the reason: an event that could not be
   finished is worse than one that never began, and the admin is standing right there to be told. Three
   phases later, on an alarm, there is no request left to answer.
+- **An unranked snap WARNS the host and never refuses them.** A snap the jury never scored still
+  scores — it takes the field's middle place — so an evening can run without one, and a host at the
+  wheel cannot make a third party answer. What they must not do is find out afterwards, so START
+  says how many of tonight's snaps have no verdict before it asks the question. A fallback 5 counts
+  as one of them: it is a row, but it is the machine breaking, not the jury judging.
 - **Game Boy Color screen, DMG shell.** Per-tile 4-colour ramps over the existing DMG art is how the
   real hardware colourised DMG games, and far smaller than repainting every sprite. **The ramps do
   not move with the day** — the town is the thing fourteen people recognise, and a jury-wide tint

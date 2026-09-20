@@ -35,7 +35,16 @@
   felt: **no surface here prints a remaining-generations number**, because what the town may spend is
   a money decision and belongs on the admin's screen (#112).
 - **Cancel is always the FIRST choice of `confirmChain`**, so A-ing through a question cannot end a
-  session, destroy a snap or drop fourteen screens into a countdown.
+  session, destroy a snap or drop fourteen screens into a countdown. It takes PAGES rather than one
+  page for a single reason: **START puts the jury's gap in front of its question** — how many of
+  today's snaps have no verdict the jury stands behind, counting a `failed` row (the fallback 5)
+  with a missing one, because `scoreDay` pays both the field's middle place. A WARNING and never a
+  refusal: the median is a real answer, and a host standing at the wheel cannot fix Gemini. The
+  count is read when START is PICKED and before the box opens, never into an open one — a page
+  arriving late restarts the chain and can take the choices out from under the press landing on
+  them — which is why `operate` in `e2e/fixtures.ts` waits for the box to come BACK before it
+  presses anything. It is an admin read (`juryGapOn`, off the console's own day listing rather than
+  a second route), and one that fails opens the plain question rather than refusing.
 - A dialogue chain carries an **`id`** and restarts only when that changes — never on object
   identity, or a menu label reading its own state back throws the cursor home.
 - **The SELECT menu is a registry** (`game/menu.ts`): an id without a handler is a type error. An
@@ -169,6 +178,20 @@
   not. The gallery calls `onWorn` because `useMyAvatar` listens to no socket event: `avatar_changed`
   reaches the wearer's own tab and refreshes nothing, so their corner and walking sprite move only
   when something asks for them.
+- **`SayBox` is the ONE in-screen text field** — the town's speech, the neighbour's free-text reply
+  and a photographer's CAPTION all type into it, so what the shell does with a keystroke (and what
+  Escape does) is decided once and a second field cannot forget `stopPropagation`. Its empty submit
+  means two things by design: a no-op for a box that opened empty, a CLEAR for one that did not, so
+  the same Save takes a caption off that put it on.
+- **A caption is written at the JURY and read at the BALLOT**, which is the whole shape of it: the
+  thread under a photograph is signed, so a photographer explaining their own snap during voting
+  hands the town their name — the caption is the line they can put there instead. The jury's
+  conversation carries the pen (`Caption it` / `Change the caption`, on the submitted branch beside
+  `See my snap`), the `caption` dialog holds the text it OPENED on rather than re-reading `mine`,
+  which refetches under the typing, and there is no page on the way out: the choice's own label
+  flipping is the receipt and only a refusal is worth a box. It is NOT the jury's critique — that
+  one is the photograph's title after the reveal (bullet above) and this one is the photographer's
+  own words before it, so the two never print on the same screen.
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
   nowhere else, so the modern look is quarantined by naming — with ONE crossing, the artist's

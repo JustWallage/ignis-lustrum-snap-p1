@@ -32,6 +32,11 @@ export function SnapDialog({
             alt="Snap"
             className="max-h-56 w-full border-2 border-[#071821] bg-[#071821] object-contain"
           />
+          {current.caption !== null && (
+            <p className="text-xs italic" data-testid="snap-caption">
+              {current.caption}
+            </p>
+          )}
           <p className="text-xs">
             {/* Null while the day is still being voted on: the server does not
                 say whose snap this is, so neither does the screen. */}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AvatarState, DayResult } from "@shared/api";
+import { CAPTION_MAX, type AvatarState, type DayResult } from "@shared/api";
 import { eventStageKey, isBeastOn, isEventRunning } from "@shared/events";
 import { SILENT, type JukeboxState } from "@shared/jukebox";
 import { juryForDay, type Jury } from "@shared/juries";
@@ -99,11 +99,12 @@ import { useSnapUpload } from "@/hooks/useSnapUpload";
 import { useTownAvatars } from "@/hooks/useTownAvatars";
 import { useVoice, type Voice } from "@/hooks/useVoice";
 import { ADMIN_PATH } from "@/lib/admin";
+import { readApiError } from "@/lib/api";
 import { noVoteWarning } from "@/lib/ballot";
 import { IMAGE_ACCEPT } from "@/lib/image";
 import { isCabinetLit } from "@/lib/jukebox";
 import { SAY_MY_OWN } from "@/lib/npc-chat";
-import { deleteSnap } from "@/lib/photos";
+import { deleteSnap, juryGapOn } from "@/lib/photos";
 import { installInstructions, promptInstall } from "@/lib/pwa";
 import {
   footstepCue,
@@ -134,8 +135,13 @@ type Dialog =
   | { kind: "jukebox" }
   | { kind: "chat" }
   | { kind: "chat-say" }
-  | { kind: "confirm"; action: HostAction }
+  /** `warning` is the jury's gap, read once when the host picks START rather than held
+   * live: it is an admin read, and the only moment it changes anything is this one. */
+  | { kind: "confirm"; action: HostAction; warning?: string }
   | { kind: "confirm-replace" }
+  /** The caption the box OPENS on, carried rather than re-read: `mine` refetches while the
+   * box is up, and a field that reset itself under the typing would be worse than stale. */
+  | { kind: "caption"; id: number; caption: string }
   /** Where a cancelled question puts the reader back: the snap they were looking at, or
    * the archive they opened it from. The viewer itself cannot stay on screen while the
    * question is asked — the dialogue box lives under the modal layer. */
@@ -162,6 +168,7 @@ const SURVIVES_EVENT: Record<Dialog["kind"], boolean> = {
   "chat-say": false,
   "confirm-replace": false,
   "confirm-delete": false,
+  caption: false,
 };
 
 interface Figure {
@@ -216,6 +223,9 @@ const REMOVED_PAGE =
 const REMOVE_FAILED_PAGE =
   "AVATAR ARTIST: The rubber would not take. Have another go.";
 
+const CAPTION_FAILED_PAGE =
+  "That caption would not stick. Have another go in a moment.";
+
 const VOTING_PAGES = [
   "Pick a top three out of today's snaps, best first. No names until the reveal, and you cannot vote for your own.",
   noVoteWarning(NO_VOTE_MULTIPLIER),
@@ -269,14 +279,14 @@ function submittedPages(jury: Jury): string[] {
 
 function confirmChain(
   id: string,
-  page: string,
+  pages: readonly string[],
   label: string,
   onPick: () => void,
   onCancel: () => void,
 ): DialogueChain {
   return {
     id,
-    pages: [page],
+    pages,
     choices: [
       { label: "Cancel", onPick: onCancel },
       { label, onPick },
@@ -595,6 +605,30 @@ export function Overworld() {
     [refreshMine],
   );
 
+  // No page on the way out: the box closes, and the jury's own choice flipping between
+  // "Caption it" and "Change the caption" is the receipt. A refusal is the one thing
+  // worth a page, and it lands AFTER `SayBox`'s own close because it is awaited.
+  const saveCaption = useCallback(
+    (id: number, caption: string) => {
+      void (async () => {
+        const res = await fetch(`/api/photos/${String(id)}/caption`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ caption }),
+        });
+        if (!res.ok) {
+          setDialog({
+            kind: "note",
+            pages: [await readApiError(res, CAPTION_FAILED_PAGE)],
+          });
+          return;
+        }
+        await refreshMine();
+      })();
+    },
+    [refreshMine],
+  );
+
   const speak = useCallback(() => {
     if (eventRef.current) return;
     if (user === null) return;
@@ -708,7 +742,20 @@ export function Overworld() {
         window.location.assign(ADMIN_PATH);
       },
       eventStart: () => {
-        setDialog({ kind: "confirm", action: "start" });
+        void (async () => {
+          // Read BEFORE the box opens, never into an open one: a page arriving late
+          // restarts the chain under a host who is already on the question, and can
+          // take the choices away from under the press that was landing on them. The
+          // cost is one admin query's worth of empty LCD, once an evening, and a read
+          // that cannot be made opens the plain question rather than refusing.
+          const day = gameState?.day;
+          const warning = day === undefined ? null : await juryGapOn(day);
+          setDialog({
+            kind: "confirm",
+            action: "start",
+            ...(warning === null ? {} : { warning }),
+          });
+        })();
       },
       eventSpin: () => {
         setDialog({ kind: "confirm", action: "spin" });
@@ -717,7 +764,7 @@ export function Overworld() {
         setDialog({ kind: "confirm", action: "abort" });
       },
     }),
-    [toggleMuted, user],
+    [gameState?.day, toggleMuted, user],
   );
 
   const chain = useMemo<DialogueChain | null>(() => {
@@ -747,6 +794,19 @@ export function Overworld() {
               label: "Replace photo",
               onPick: () => {
                 setDialog({ kind: "confirm-replace" });
+              },
+            },
+            {
+              label:
+                submitted.caption === null
+                  ? "Caption it"
+                  : "Change the caption",
+              onPick: () => {
+                setDialog({
+                  kind: "caption",
+                  id: submitted.id,
+                  caption: submitted.caption ?? "",
+                });
               },
             },
             {
@@ -871,7 +931,7 @@ export function Overworld() {
       case "signout":
         return confirmChain(
           "signout",
-          SIGN_OUT_PAGE,
+          [SIGN_OUT_PAGE],
           "Sign out",
           () => {
             void logout();
@@ -882,7 +942,7 @@ export function Overworld() {
       case "confirm-replace":
         return confirmChain(
           "confirm-replace",
-          REPLACE_PAGE,
+          [REPLACE_PAGE],
           "Replace it",
           () => {
             openSnapPicker(true);
@@ -893,7 +953,7 @@ export function Overworld() {
         const { id, back } = dialog;
         return confirmChain(
           `confirm-delete:${id}`,
-          DELETE_PAGE,
+          [DELETE_PAGE],
           "Delete it",
           () => {
             tearUpSnap(id, back);
@@ -906,11 +966,13 @@ export function Overworld() {
         );
       }
       case "confirm": {
-        const { action } = dialog;
+        const { action, warning } = dialog;
         const { page, label } = EVENT_CONFIRM[action];
         return confirmChain(
-          `confirm-${action}`,
-          page,
+          // The warning is in the ID as well as the pages: without it a chain already
+          // on the question would keep its place while a page appeared in front of it.
+          `confirm-${action}:${warning ?? ""}`,
+          warning === undefined ? [page] : [warning, page],
           label,
           () => {
             runEvent(action);
@@ -1239,12 +1301,24 @@ export function Overworld() {
                   onResults={showResults}
                 />
               )}
-              {/* One slot at the bottom of the LCD, four things that can be
-                  in it: the message field, an open dialogue, the hint for
-                  whatever the player is standing in front of, or the bar's
-                  refusal — the one of the four an event does not displace. */}
+              {/* One slot at the bottom of the LCD, five things that can be
+                  in it: the message field, the caption field, an open dialogue,
+                  the hint for whatever the player is standing in front of, or
+                  the bar's refusal — the one of the five an event does not
+                  displace. */}
               {splash ? null : dialog?.kind === "say" ? (
                 <SayBox onSay={onSay} onClose={closeDialog} />
+              ) : dialog?.kind === "caption" ? (
+                <SayBox
+                  initial={dialog.caption}
+                  maxLength={CAPTION_MAX}
+                  label="A line under your snap — your words, never your name"
+                  action="Save"
+                  onSay={(text) => {
+                    saveCaption(dialog.id, text);
+                  }}
+                  onClose={closeDialog}
+                />
               ) : dialog?.kind === "chat-say" ? (
                 <SayBox
                   onSay={chat.send}

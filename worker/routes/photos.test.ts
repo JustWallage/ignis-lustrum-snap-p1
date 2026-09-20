@@ -6,10 +6,12 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   apiErrorSchema,
+  CAPTION_MAX,
   commentListSchema,
   likeResultSchema,
   mySubmissionSchema,
   photoSchema,
+  voteCandidateListSchema,
 } from "../../shared/api";
 import { gameStateSchema } from "../../shared/state";
 import { app } from "../index";
@@ -106,12 +108,14 @@ describe("snaps", () => {
     });
   });
 
-  it("has nowhere to put a caption a stale client still sends", async () => {
+  // The column is back, the upload form's field is still not: a caption is written
+  // afterwards through its own route, so a snap always lands uncaptioned.
+  it("drops a caption the upload form still carries", async () => {
     const cookie = await signIn();
     const created = await uploadPhoto(cookie, { caption: "wrote it myself" });
     expect(created.status).toBe(201);
     const fresh = photoSchema.parse(await created.json());
-    expect(JSON.stringify(fresh)).not.toContain("caption");
+    expect(fresh.caption).toBeNull();
     expect(JSON.stringify(fresh)).not.toContain("wrote it myself");
 
     const stored = await getJson(`/api/photos/${fresh.id}`, cookie);
@@ -312,5 +316,98 @@ describe("snaps", () => {
   it("keeps a caller's own submission behind the session cookie", async () => {
     const res = await app.request("/api/photos/mine", {}, env);
     expect(res.status).toBe(401);
+  });
+});
+
+async function putCaption(
+  cookie: string,
+  id: number,
+  caption: string,
+): Promise<Response> {
+  return app.request(
+    `/api/photos/${String(id)}/caption`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ caption }),
+    },
+    env,
+  );
+}
+
+describe("captions", () => {
+  it("shows the photographer's line to a voter without showing the photographer", async () => {
+    const mine = await signIn();
+    const id = await uploadPhotoId(mine);
+    expect((await putCaption(mine, id, "Taken from the roof")).status).toBe(
+      200,
+    );
+
+    const theirs = await signIn("voter");
+    const listed = voteCandidateListSchema.parse(
+      await getJson("/api/votes/candidates", theirs),
+    );
+    expect(listed.candidates).toEqual([
+      {
+        id,
+        url: `/api/photos/${String(id)}/image`,
+        caption: "Taken from the roof",
+        isMine: false,
+      },
+    ]);
+    // The whole point: the line is on the wire and the name is not, which is what a
+    // comment could not do.
+    expect(JSON.stringify(listed)).not.toContain("tester");
+  });
+
+  it("clears the line on an empty save rather than storing a blank", async () => {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie);
+    await putCaption(cookie, id, "Taken from the roof");
+    expect((await putCaption(cookie, id, "   ")).status).toBe(200);
+    expect(
+      mySubmissionSchema.parse(await getJson("/api/photos/mine", cookie)).photo
+        ?.caption,
+    ).toBeNull();
+  });
+
+  // Unlike DELETE, which an admin may drive: retiring a snap is moderation, and
+  // rewriting its caption is putting words in somebody's mouth. The pool pins
+  // `ADMIN_NAMES` to `tester`, so `tester` here IS the admin.
+  it("is the photographer's alone — even the admin gets a 403", async () => {
+    const theirs = await signIn("voter");
+    const id = await uploadPhotoId(theirs);
+    const admin = await signIn();
+    expect((await putCaption(admin, id, "not yours to write")).status).toBe(
+      403,
+    );
+    expect(
+      mySubmissionSchema.parse(await getJson("/api/photos/mine", theirs)).photo
+        ?.caption,
+    ).toBeNull();
+  });
+
+  it("refuses one too long instead of trimming it to fit", async () => {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie);
+    const res = await putCaption(cookie, id, "x".repeat(CAPTION_MAX + 1));
+    expect(res.status).toBe(400);
+    expect(apiErrorSchema.parse(await res.json()).error).toMatch(/too long/i);
+  });
+
+  it("refuses while the live event is on, the way the upload does", async () => {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie);
+    await setPhase(cookie, "countdown");
+    try {
+      expect((await putCaption(cookie, id, "too late")).status).toBe(409);
+    } finally {
+      await setPhase(cookie, "submission");
+    }
+  });
+
+  it("404s for a snap nobody took", async () => {
+    const cookie = await signIn();
+    expect((await putCaption(cookie, 9999, "nothing there")).status).toBe(404);
   });
 });

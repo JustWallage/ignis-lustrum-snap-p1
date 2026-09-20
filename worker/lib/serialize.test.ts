@@ -20,6 +20,7 @@ function photoRow(overrides: Partial<PhotoAggregate> = {}): PhotoAggregate {
     uploaderId: 3,
     uploaderName: "tester",
     createdAt: CREATED_AT,
+    caption: null,
     likeCount: 2,
     commentCount: 1,
     likedByMe: 0,
@@ -40,6 +41,7 @@ describe("toPhoto", () => {
         uploader: { id: 3, name: "tester" },
         url: "/api/photos/7/image",
         createdAt: CREATED_AT.toISOString(),
+        caption: null,
         likeCount: 2,
         likedByMe: false,
         commentCount: 1,
@@ -73,6 +75,16 @@ describe("toPhoto", () => {
     expect(() => toPhoto(photoRow({ aiScore: 0 }), OUT)).toThrow();
   });
 
+  // The caption is the photographer's own words and the ONE thing on an anonymous
+  // snap they chose to publish, so it rides both maskings rather than either.
+  it("carries the caption through both maskings", () => {
+    const row = photoRow({ caption: "Taken from the roof" });
+    expect(toPhoto(row, { uploader: false, score: false }).caption).toBe(
+      "Taken from the roof",
+    );
+    expect(toPhoto(row, OUT).caption).toBe("Taken from the roof");
+  });
+
   it("turns the SQL 0/1 like flag into a boolean", () => {
     expect(toPhoto(photoRow({ likedByMe: 0 }), OUT).likedByMe).toBe(false);
     expect(toPhoto(photoRow({ likedByMe: 1 }), OUT).likedByMe).toBe(true);
@@ -88,25 +100,47 @@ describe("toPhoto", () => {
 
 describe("toVoteCandidate", () => {
   it("carries no uploader at all, by construction", () => {
-    const candidate = toVoteCandidate({ id: 7, mine: 0 });
+    const candidate = toVoteCandidate({ id: 7, caption: null, mine: 0 });
 
     expect(candidate).toEqual(
       voteCandidateSchema.parse({
         id: 7,
         url: "/api/photos/7/image",
+        caption: null,
         isMine: false,
       }),
     );
-    expect(Object.keys(candidate).sort()).toEqual(["id", "isMine", "url"]);
+    expect(Object.keys(candidate).sort()).toEqual([
+      "caption",
+      "id",
+      "isMine",
+      "url",
+    ]);
+  });
+
+  it("carries the photographer's own line and still no name", () => {
+    const candidate = toVoteCandidate({
+      id: 7,
+      caption: "Taken from the roof",
+      mine: 0,
+    });
+    expect(candidate.caption).toBe("Taken from the roof");
+    expect(JSON.stringify(candidate)).not.toContain("tester");
   });
 
   it("turns the query's 0/1 into the flag the ballot reads", () => {
-    expect(toVoteCandidate({ id: 7, mine: 1 }).isMine).toBe(true);
-    expect(toVoteCandidate({ id: 8, mine: 0 }).isMine).toBe(false);
+    expect(toVoteCandidate({ id: 7, caption: null, mine: 1 }).isMine).toBe(
+      true,
+    );
+    expect(toVoteCandidate({ id: 8, caption: null, mine: 0 }).isMine).toBe(
+      false,
+    );
   });
 
   it("rejects a malformed id instead of coercing it", () => {
-    expect(() => toVoteCandidate({ id: 1.5, mine: 0 })).toThrow();
+    expect(() =>
+      toVoteCandidate({ id: 1.5, caption: null, mine: 0 }),
+    ).toThrow();
   });
 });
 
