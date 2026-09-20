@@ -8,6 +8,7 @@ import { GbPlaceholder } from "@/components/GbPending";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LikeButton } from "@/components/LikeButton";
 import { Modal } from "@/components/Modal";
+import { PublicToggle } from "@/components/PublicToggle";
 import { ScoresTable } from "@/components/ScoresTable";
 import { SnapViewer } from "@/components/SnapViewer";
 import { useRealtimeEvents } from "@/context/WebSocketContext";
@@ -211,6 +212,7 @@ export function ArchiveDialog({
           list={paging}
           onOpen={setOpen}
           onDelete={onDelete}
+          onShared={archive.mutate}
           onClose={() => {
             setOpen(null);
           }}
@@ -225,12 +227,14 @@ function ArchiveViewer({
   list,
   onOpen,
   onDelete,
+  onShared,
   onClose,
 }: {
   entry: ArchiveEntry;
   list: readonly ViewerSnap[];
   onOpen: (photoId: number) => void;
   onDelete: (photoId: number) => void;
+  onShared: () => void;
   onClose: () => void;
 }) {
   return (
@@ -263,12 +267,22 @@ function ArchiveViewer({
       // that unlikes the snap you just paged onto.
       controls={<SnapLike key={result.photoId} id={result.photoId} />}
       trailing={
-        <DeleteSnapButton
-          uploaderId={result.uploader.id}
-          onDelete={() => {
-            onDelete(result.photoId);
-          }}
-        />
+        <>
+          <PublicToggle
+            photoId={result.photoId}
+            uploaderId={result.uploader.id}
+            shared={result.shared}
+            vetoed={result.vetoed}
+            onPublicPage={result.onPublicPage}
+            onChanged={onShared}
+          />
+          <DeleteSnapButton
+            uploaderId={result.uploader.id}
+            onDelete={() => {
+              onDelete(result.photoId);
+            }}
+          />
+        </>
       }
     />
   );

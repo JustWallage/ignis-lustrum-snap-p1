@@ -858,6 +858,17 @@ describe("day results", () => {
     expect((await putVotes(voter, [first, second])).status).toBe(200);
     expect((await putVotes(judge, [first])).status).toBe(200);
     expect((await putVotes(mine, [second])).status).toBe(200);
+    // Two friends short of the roster, so the upload ranked nothing: the operator's
+    // own rank is what gives this day its verdicts, keyless like the rest of the file.
+    expect(
+      (
+        await app.request(
+          "/api/admin/days/1/rank",
+          { method: "POST", headers: { Cookie: mine } },
+          env,
+        )
+      ).status,
+    ).toBe(200);
     expect((await setPhase(voter, "reveal")).status).toBe(200);
 
     const { day, results: ranked } = await results(voter);

@@ -1,13 +1,18 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
   likes,
   photos,
+  users,
   type NewPhotoRow,
   type PhotoRow,
 } from "../../db/schema";
-import { captionSetSchema, mySubmissionSchema } from "../../shared/api";
+import {
+  captionSetSchema,
+  mySubmissionSchema,
+  shareSetSchema,
+} from "../../shared/api";
 import type { AppEnv, Bindings } from "../env";
 import { isAdmin } from "../lib/auth";
 import { broadcast, pushGameState } from "../lib/broadcast";
@@ -99,14 +104,41 @@ async function likeState(
   };
 }
 
-/** A snap that has gone needs no ranking: its row went with it, and where it was
- * REPLACED rather than deleted, the replacement brought its own upload. */
-async function describeThenRank(
+/**
+ * The day is FULL when it holds a snap for every friend on the roster. Counted rather
+ * than a constant, because the roster is the town and `users` is the roster; `>=`
+ * rather than `===` so a town that shrank still finishes its days.
+ */
+async function isDayFull(db: Db, day: number): Promise<boolean> {
+  const [snaps, friends] = await Promise.all([
+    db.select({ value: count() }).from(photos).where(eq(photos.day, day)),
+    db.select({ value: count() }).from(users),
+  ]);
+  const handed = snaps[0]?.value ?? 0;
+  const roster = friends[0]?.value ?? 0;
+  return roster > 0 && handed >= roster;
+}
+
+/**
+ * Describing is per upload; RANKING is not. It used to be, and a day of fourteen
+ * uploads then claimed fourteen run stamps: `rankDay` stops the moment a newer run
+ * claims one, so the first thirteen wrote nothing and the whole day rode on whether
+ * the last one happened to succeed. The ranking now runs when the day is COMPLETE —
+ * the last friend handing in, or anybody swapping their snap once it already is — and
+ * otherwise waits for the operator's own button, which is the other caller of
+ * `rankDay`. Ranking a field of thirteen and a field of fourteen are different
+ * questions anyway, so the partial runs were never answers worth keeping.
+ *
+ * A snap that has GONE needs neither: its row went with it, and where it was replaced
+ * rather than deleted, the replacement brought its own upload.
+ */
+async function describeThenRankFullDay(
   env: Bindings,
   image: { id: number; data: string; contentType: string },
   day: number,
 ): Promise<void> {
   if ((await describePhoto(env, image)) === "gone") return;
+  if (!(await isDayFull(getDb(env), day))) return;
   await rankDay(env, day);
 }
 
@@ -165,15 +197,16 @@ photosRoutes.post("/", async (c) => {
   await broadcast(c.env, { type: "photo_created", id: row.id });
   await pushGameState(c.env, await readGameState(db));
   // NEVER on the upload's critical path: a slow model must not be something the
-  // uploader waits for, and a broken one must not be something they see. The ranking
-  // is CHAINED behind the description rather than beside it — it reads the day's
-  // descriptions, so starting it first would rank a day this snap is not yet in.
+  // uploader waits for, and a broken one must not be something they see. The ranking,
+  // where the day is full enough to earn one, is CHAINED behind the description rather
+  // than beside it — it reads the day's descriptions, so starting it first would rank a
+  // day this snap is not yet in.
   const image = {
     id: row.id,
     data: bytesToBase64(bytes),
     contentType: file.type,
   };
-  c.executionCtx.waitUntil(describeThenRank(c.env, image, day));
+  c.executionCtx.waitUntil(describeThenRankFullDay(c.env, image, day));
   return c.json(
     toPhoto(
       {
@@ -186,6 +219,8 @@ photosRoutes.post("/", async (c) => {
         commentCount: 0,
         likedByMe: 0,
         aiScore: null,
+        sharedPublicly: false,
+        publicVeto: false,
       },
       { uploader: true, score: false },
     ),
@@ -303,6 +338,35 @@ photosRoutes.put("/:id/caption", async (c) => {
   const caption = parsed.data.caption === "" ? null : parsed.data.caption;
   await db.update(photos).set({ caption }).where(eq(photos.id, id));
   await broadcast(c.env, { type: "photo_captioned", id });
+  return c.json({ ok: true });
+});
+
+/**
+ * Puts a photograph on the public page, or takes it off. The PHOTOGRAPHER's to decide,
+ * and the admin's too — unlike the caption above, which is somebody speaking: choosing
+ * what leaves the cookie is curation, and the operator is the one who answers for the
+ * page. The veto is a separate column and a separate route, so an admin lifting a
+ * photographer's share and an admin blocking one are two different acts on the record.
+ */
+photosRoutes.put("/:id/public", async (c) => {
+  const user = c.get("user");
+  const parsed = shareSetSchema.safeParse(await parseJsonBody(c.req.raw));
+  if (!parsed.success) {
+    return c.json({ error: "Say shared true or false" }, 400);
+  }
+  const db = getDb(c.env);
+  const id = Number(c.req.param("id"));
+  const photo = await findPhoto(db, id);
+  if (photo === null) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  if (photo.userId !== user.id && !isAdmin(user.name, c.env.ADMIN_NAMES)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  await db
+    .update(photos)
+    .set({ sharedPublicly: parsed.data.shared })
+    .where(eq(photos.id, id));
   return c.json({ ok: true });
 });
 

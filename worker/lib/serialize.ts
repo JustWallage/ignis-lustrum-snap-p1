@@ -5,6 +5,7 @@ import {
   dayResultSchema,
   photoSchema,
   prizeSchema,
+  publicPhotoSchema,
   standingSchema,
   voteCandidateSchema,
   type AvatarState,
@@ -13,6 +14,7 @@ import {
   type DayResult,
   type Photo,
   type Prize,
+  type PublicPhoto,
   type Standing,
   type VoteCandidate,
 } from "../../shared/api";
@@ -32,6 +34,23 @@ export interface PhotoAggregate {
   commentCount: number;
   likedByMe: number;
   aiScore: number | null;
+  sharedPublicly: boolean;
+  publicVeto: boolean;
+}
+
+/** The public page's gate, in the ONE place both payloads read it from: shared, not
+ * vetoed, and the day out. `revealed` is passed rather than re-derived because the two
+ * callers already know it — and it must stay the same day-is-out question the rest of
+ * the masking asks, never a second answer to it. */
+function publicState(
+  row: { sharedPublicly: boolean; publicVeto: boolean },
+  revealed: boolean,
+) {
+  return {
+    shared: row.sharedPublicly,
+    vetoed: row.publicVeto,
+    onPublicPage: revealed && row.sharedPublicly && !row.publicVeto,
+  };
 }
 
 /**
@@ -60,6 +79,9 @@ export function toPhoto(row: PhotoAggregate, view: PhotoView): Photo {
     likedByMe: row.likedByMe > 0,
     commentCount: row.commentCount,
     aiScore: view.score ? row.aiScore : null,
+    // `view.score` IS "the day is revealed" — this interface's own doc above says so —
+    // and the gallery's gate asks that same question, so it reads the same flag.
+    ...publicState(row, view.score),
   });
 }
 
@@ -83,6 +105,8 @@ export interface DayResultRow {
   critique: string | null;
   aiScore: number | null;
   aiStatus: "ok" | "failed" | null;
+  sharedPublicly: boolean;
+  publicVeto: boolean;
 }
 
 export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
@@ -103,6 +127,33 @@ export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
     bonus: scored.bonus,
     critique: row.critique,
     noVotePenalty: scored.penalised,
+    // A `DayResult` only ever describes a REVEALED day — an unrevealed one is a 403,
+    // not an empty list — so the reveal half of the gate is already answered here.
+    ...publicState(row, true),
+  });
+}
+
+export interface PublicPhotoRow {
+  id: number;
+  day: number;
+  theme: string;
+  photographer: string;
+  aiScore: number | null;
+  aiStatus: "ok" | "failed" | null;
+}
+
+export function toPublicPhoto(row: PublicPhotoRow): PublicPhoto {
+  return publicPhotoSchema.parse({
+    id: row.id,
+    url: `/api/public/photos/${row.id}/image`,
+    day: row.day,
+    theme: row.theme,
+    photographer: row.photographer,
+    // A `failed` verdict is the fallback 5 the machine leaves when it breaks. The town
+    // reads that as the machine breaking, because the archive says so beside it; a
+    // family member reading this page has no such line and would read it as a mark out
+    // of ten the jury meant.
+    score: row.aiStatus === "ok" ? row.aiScore : null,
   });
 }
 

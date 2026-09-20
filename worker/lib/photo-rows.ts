@@ -37,6 +37,8 @@ export function photoAggregates(db: Db, viewerId: number, where: SQL) {
       day: photos.day,
       createdAt: photos.createdAt,
       caption: photos.caption,
+      sharedPublicly: photos.sharedPublicly,
+      publicVeto: photos.publicVeto,
       likeCount: sql<number>`count(distinct ${likes.id})`,
       commentCount: sql<number>`count(distinct ${comments.id})`,
       likedByMe: sql<number>`coalesce(max(case when ${likes.userId} = ${viewerId} then 1 else 0 end), 0)`,

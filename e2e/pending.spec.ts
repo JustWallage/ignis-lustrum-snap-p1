@@ -1,12 +1,16 @@
 import type { Page, Route } from "@playwright/test";
 import {
   apiSignIn,
+  apiUpload,
   expect,
   handSnapToJury,
+  openBallot,
+  openSnapViewer,
   pressStart,
   test,
   TINY_PNG,
   walkToShelf,
+  walkToVotingNpc,
 } from "./fixtures";
 
 // `initPwa` registers a worker that `clients.claim()`s this page, and Playwright does
@@ -60,6 +64,25 @@ async function openOwnSnap(page: Page) {
   await pressStart(page);
   await handSnapToJury(page, SNAP);
   const dialog = page.locator(".gb-window");
+  await expect(dialog.getByTestId("caption-field")).toBeVisible();
+  return dialog;
+}
+
+/**
+ * The BALLOT's viewer, which is where a comment can still be TYPED: `SnapDialog` shows
+ * your own snap and nothing else, so its field is a caption and its thread only reads.
+ * Your own snap is on the ballot — visible and commentable, never rankable — so one
+ * upload is the whole fixture.
+ */
+async function openCommentableSnap(page: Page) {
+  await apiUpload(page, "tester");
+  await apiSignIn(page, "tester");
+  await page.goto("/");
+  await pressStart(page);
+  await walkToVotingNpc(page);
+  await openBallot(page);
+  await openSnapViewer(page, 1);
+  const dialog = page.locator(".gb-window");
   await expect(dialog.getByTestId("comment-thread")).toBeVisible();
   return dialog;
 }
@@ -67,7 +90,7 @@ async function openOwnSnap(page: Page) {
 test("a slow comment says it is sending, and stops once it has", async ({
   page,
 }) => {
-  const dialog = await openOwnSnap(page);
+  const dialog = await openCommentableSnap(page);
 
   const post = await hold(page, "**/api/photos/*/comments", "POST");
   const send = dialog.getByRole("button", { name: "Send" });
@@ -84,7 +107,7 @@ test("a slow comment says it is sending, and stops once it has", async ({
 });
 
 test("two taps of Send post one comment", async ({ page }) => {
-  const dialog = await openOwnSnap(page);
+  const dialog = await openCommentableSnap(page);
 
   const post = await hold(page, "**/api/photos/*/comments", "POST");
   const field = dialog.getByPlaceholder("Add a comment…");

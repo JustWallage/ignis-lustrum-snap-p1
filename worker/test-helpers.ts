@@ -822,10 +822,28 @@ export const geminiRequestSchema = z.object({
   generationConfig: z.object({ responseMimeType: z.string() }),
 });
 
-export async function postRank(cookie: string, day: number): Promise<Response> {
+/**
+ * The operator's own rank. It is how most of this suite gets verdicts at all: the
+ * UPLOAD only ranks a day once every friend on the roster has handed one in, so a test
+ * standing a field of two up has to ask for the ranking the way the console does.
+ * `bindings` is a parameter because which key the jury spent, and whether it had one,
+ * are themselves under test.
+ */
+export async function postRank(
+  cookie: string,
+  day: number,
+  bindings: object = withGeminiKey(),
+): Promise<Response> {
   return app.request(
     `/api/admin/days/${String(day)}/rank`,
     { method: "POST", headers: { Cookie: cookie } },
-    withGeminiKey(),
+    bindings,
   );
+}
+
+/** The roster's size, which is what makes a day FULL. Read rather than written down,
+ * so a fifth seeded friend does not quietly stop the auto-ranking tests testing it. */
+export async function rosterSize(): Promise<number> {
+  const row = await env.DB.prepare("SELECT count(*) AS n FROM users").first();
+  return z.object({ n: z.int() }).parse(row).n;
 }

@@ -484,6 +484,19 @@ export async function apiUpload(
   return photoSchema.parse(await res.json()).id;
 }
 
+/**
+ * The operator's own rank, through the real route. The UPLOAD only ranks a day once
+ * every friend on the roster has handed one in, and no spec stands the whole town up —
+ * so a spec that needs verdicts asks for them here, AFTER that day's last upload. It
+ * signs in as `tester`, this environment's admin, which is also why it is called before
+ * whatever sign-in the test itself wants.
+ */
+export async function apiRankDay(page: Page, day = 1): Promise<void> {
+  await apiSignIn(page, "tester");
+  const res = await page.request.post(`/api/admin/days/${String(day)}/rank`);
+  expect(res.ok()).toBeTruthy();
+}
+
 /** A ballot cast through the real route. POSITION IS THE RANK, so `[a, b]` is a 1st for
  * `a` and a 2nd for `b` — and whoever never calls this is a player whose own snap takes
  * the no-ballot ×0.5. */

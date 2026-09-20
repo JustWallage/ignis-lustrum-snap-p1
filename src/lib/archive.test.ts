@@ -20,6 +20,9 @@ function result(photoId: number, name: string, rank: number): DayResult {
     bonus: false,
     critique: null,
     noVotePenalty: false,
+    shared: false,
+    vetoed: false,
+    onPublicPage: false,
   };
 }
 

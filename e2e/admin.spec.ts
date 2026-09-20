@@ -23,8 +23,14 @@ test("an admin can read the day's jury batch and run it again", async ({
   });
   expect(upload.status()).toBe(201);
 
-  // The ranking runs in `waitUntil` behind the description, so it lands after the 201:
-  // poll the API for it rather than the screen.
+  // One snap on a roster of four, so the upload ranked NOTHING: the day is not ranked
+  // until this press, which is the first thing the panel below has to say.
+  const panel = await openConsole(page, "Snaps");
+  await expect(panel.getByTestId("ops-ranked")).toContainText("Not ranked");
+  await panel.getByTestId("ops-rank-day").click();
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    /Day 1 — Ranked/,
+  );
   await expect
     .poll(async () => {
       const res = await page.request.get("/api/admin/days/1/photos");
@@ -32,7 +38,6 @@ test("an admin can read the day's jury batch and run it again", async ({
     })
     .toBe(true);
 
-  const panel = await openConsole(page, "Snaps");
   const state = panel.getByTestId("ops-ranked");
   // No Playwright environment has a GEMINI_API_KEY, so the day is ranked by the
   // fallback and the run says so — the readable answer, not a crash.

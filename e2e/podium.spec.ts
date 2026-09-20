@@ -1,6 +1,7 @@
 import type { Browser, Page } from "@playwright/test";
 import { NO_VOTE_MULTIPLIER } from "../shared/scoring";
 import {
+  apiRankDay,
   apiSignIn,
   apiUpload,
   dropSocket,
@@ -56,6 +57,9 @@ async function aDay(
 ): Promise<number[]> {
   const ids: number[] = [];
   for (const name of who) ids.push(await apiUpload(page, name));
+  // The field is short of the roster, so nothing has ranked it: the jury runs on a FULL
+  // day or on the operator's press, and this is the press.
+  await apiRankDay(page);
   for (const [at, name] of who.entries()) {
     await apiSignIn(page, name);
     const res = await page.request.put("/api/votes", {
@@ -324,6 +328,7 @@ test("the podium shows the no-vote penalty, and the jury's line", async ({
   test.setTimeout(PODIUM_TIMEOUT_MS);
   await apiUpload(page, "tester");
   const theirs = await apiUpload(page, "rival");
+  await apiRankDay(page);
   await apiSignIn(page, "tester");
   const voted = await page.request.put("/api/votes", {
     data: { photoIds: [theirs] },

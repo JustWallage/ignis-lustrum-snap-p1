@@ -19,6 +19,20 @@ play continues.
   Written at the jury, the NPC they hand the photograph to, and read at the ballot, where the
   picture is being judged. It is not the jury's critique, which is what the machine made of the
   photograph and appears only once the day is out.
+- **Friends and family get a page of their own, and every photograph on it was put there one at a
+  time.** They are not in the town and were being shown nothing; a gallery is the smallest thing
+  that fixes that without turning the contest into a public feed. So: private by default, the
+  photographer decides, the operator can veto, and nothing appears before its day is revealed —
+  otherwise the page answers the question the ballot exists to keep. It shows the picture, who took
+  it, the day's theme and the jury's mark, and none of the town's talk: a caption is a player
+  speaking to their friends and a comment is a conversation, neither of which was written for
+  strangers. It is **not a Game Boy** — the people reading it have never seen the town — which makes
+  it the third surface to break that look, after the archive and the console.
+- **The jury is asked once a day, not once an upload.** Ranking is a question about a FIELD, so
+  asking it fourteen times as the field grows is fourteen different questions and only the last
+  answer survives. It runs when the day is complete, and otherwise when the operator asks. Each
+  photograph is still DESCRIBED as it arrives, because that one is about the picture alone and
+  waiting for the day would only mean losing it.
 - **Players pass straight through each other**, so nobody can body-block the door or the jury. Names
   are painted over the sprites, because a shared town where you cannot tell which friend walked past is
   scenery rather than company.

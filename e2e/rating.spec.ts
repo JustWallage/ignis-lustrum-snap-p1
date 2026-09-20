@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { HALF_WEIGHT } from "../shared/scoring";
 import {
+  apiRankDay,
   apiSignIn,
   apiUpload,
   expect,
@@ -38,6 +39,9 @@ async function aDay(
 ): Promise<number[]> {
   const ids: number[] = [];
   for (const name of who) ids.push(await apiUpload(page, name));
+  // The field is short of the roster, so nothing has ranked it: the jury runs on a FULL
+  // day or on the operator's press, and this is the press.
+  await apiRankDay(page);
   for (const [at, name] of who.entries()) {
     await apiSignIn(page, name);
     const res = await page.request.put("/api/votes", {
@@ -181,6 +185,7 @@ test("the rating survives the reveal: it is in the archive and on the snap", asy
 }) => {
   await apiUpload(page, "tester");
   await apiUpload(page, "rival");
+  await apiRankDay(page);
   await setDay(page, 2);
   await apiSignIn(page, "tester");
 
@@ -225,6 +230,7 @@ test("no rating anywhere before the day is revealed, your own snap included", as
   page,
 }) => {
   const mine = await apiUpload(page, "tester");
+  await apiRankDay(page);
   await apiSignIn(page, "tester");
 
   const own = await page.request.get(`/api/photos/${String(mine)}`);

@@ -102,9 +102,11 @@ describe("the day's jury batch", () => {
 
   it("reads the batch beside the descriptions, and re-runs it on demand", async () => {
     const cookie = await signIn();
-    // No key, so the upload's own run is the day-level fallback: rows for everybody
-    // and a run that says it failed.
+    // No key, so the operator's own run is the day-level fallback: rows for everybody
+    // and a run that says it failed. It has to be ASKED for — a day one friend short
+    // of the roster ranks itself never.
     const id = await uploadPhotoId(cookie);
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     const broken = await dayState(cookie, 1);
     expect(broken).toMatchObject({ generated: true, failed: true });
     expect(broken.ranAt).not.toBeNull();
@@ -131,6 +133,7 @@ describe("the day's jury batch", () => {
   it("tells the operator why the jury failed, and forgets it on the next good run", async () => {
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withoutGeminiKey() });
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     expect(await dayState(cookie, 1)).toMatchObject({ failure: NO_JURY_KEY });
 
     stubJuryDown();
@@ -180,6 +183,7 @@ describe("the day's jury batch", () => {
   it("ranks the day it was pointed at and no other", async () => {
     const cookie = await signIn();
     await uploadPhotoId(cookie);
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     await setDay(2);
     const later = await uploadPhotoId(cookie);
 
@@ -196,6 +200,7 @@ describe("the day's jury batch", () => {
   it("refuses while an event is live, and the day keeps its verdicts", async () => {
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie);
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     stubGeminiDay();
     await describeSnap(cookie, id);
     expect((await eventAction(cookie, "start")).status).toBe(200);
@@ -222,6 +227,9 @@ describe("the day's jury batch", () => {
     const failed = await uploadPhotoId(await signIn("rival"), {
       bindings: withoutGeminiKey(),
     });
+    // The fallback verdicts the two keyless snaps carry below, asked for rather than a
+    // side effect of the uploads: a field of two on a roster of four ranks itself never.
+    expect((await postRank(admin, 1, withoutGeminiKey())).status).toBe(200);
 
     stubJuryDown();
     const unscored = await uploadPhotoId(await signIn("voter"), {
@@ -255,6 +263,7 @@ describe("the day's jury batch", () => {
   it("moves a described snap out of the broken set without giving it a verdict", async () => {
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withoutGeminiKey() });
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
 
     stubGeminiDay();
     await describeSnap(cookie, id);

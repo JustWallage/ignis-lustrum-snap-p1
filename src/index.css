@@ -2259,6 +2259,273 @@ button.gb-pill-cap:disabled {
   opacity: 0.45;
   cursor: default;
 }
+/* A ring rather than the game's marching pixels: the console is not a Game Boy, and a
+   button that says it is working has to look like it on THIS surface. It sits inside
+   the button beside its label, so a press is visibly running rather than merely
+   disabled — which is what an operator waiting on a model call needs to see. */
+.ops-pending {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-left: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: ops-spin 0.7s linear infinite;
+}
+@keyframes ops-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ops-pending {
+    animation: none;
+  }
+}
+/* The one control the archive's quarantine lets through as a `gb-` button, because the
+   viewer it sits in is `SnapViewer` and its whole row is already `gb-btn`: the `arc-`
+   classes here are the layout around them, not a second look. */
+.arc-public {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.arc-public-note {
+  font-size: 0.65rem;
+  line-height: 1.2;
+  max-width: 22rem;
+  opacity: 0.75;
+}
+
+/* ---- the public gallery -------------------------------------------------
+   The THIRD surface with a look of its own, quarantined by naming exactly as the
+   archive's `arc-` and the console's `ops-` are: every class below is `pub-` and used
+   nowhere else. It is not a Game Boy and must not become one — the people reading it
+   have never seen the town, and the photographs are the whole page. It carries its own
+   dark scheme rather than borrowing either of the others', because a gallery is read on
+   whatever a phone is set to. */
+.pub-page,
+.pub-page :where(*) {
+  /* The third surface outside `.gb-stage`, so it carries its own copy of the
+     double-tap-zoom kill: the value is not inherited and `src/CLAUDE.md` says the
+     descendant half is what puts it on each surface itself. */
+  touch-action: manipulation;
+}
+.pub-page {
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  max-width: 72rem;
+  background: #fbfaf8;
+  color: #16181c;
+  font-family:
+    "Geist Variable",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+.pub-head {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+.pub-title {
+  margin: 0 0 0.6rem;
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.pub-blurb {
+  margin: 0 auto;
+  max-width: 34rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.7;
+}
+.pub-empty {
+  margin: 4rem auto;
+  max-width: 28rem;
+  text-align: center;
+  font-size: 1rem;
+  opacity: 0.7;
+}
+.pub-day {
+  margin-bottom: 3rem;
+}
+.pub-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  border-bottom: 1px solid #e3e0d9;
+  padding-bottom: 0.5rem;
+}
+.pub-day-no {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.pub-theme {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.pub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pub-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.pub-open {
+  display: block;
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  background: #eceae4;
+  overflow: hidden;
+  cursor: zoom-in;
+  /* A fixed ratio, so a column of portraits and landscapes is a grid rather than a
+     staircase. `cover` is the crop that costs the least of a photograph at this size;
+     the lightbox shows the whole of it. */
+  aspect-ratio: 4 / 3;
+}
+.pub-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 220ms ease;
+}
+.pub-open:hover .pub-photo,
+.pub-open:focus-visible .pub-photo {
+  transform: scale(1.03);
+}
+.pub-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.pub-who {
+  font-weight: 600;
+}
+.pub-score {
+  border-radius: 999px;
+  background: #16181c;
+  color: #fbfaf8;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.pub-light {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(10 10 12 / 0.92);
+}
+.pub-light-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  max-width: min(64rem, 100%);
+  max-height: 100%;
+}
+.pub-light-photo {
+  min-height: 0;
+  max-width: 100%;
+  max-height: 72dvh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.pub-light-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0;
+  color: #fbfaf8;
+  font-size: 0.9rem;
+}
+.pub-light-meta .pub-score {
+  background: #fbfaf8;
+  color: #16181c;
+}
+.pub-light-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pub-btn {
+  border: 1px solid rgb(251 250 248 / 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #fbfaf8;
+  padding: 0.4rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.pub-btn:hover {
+  background: rgb(251 250 248 / 0.12);
+}
+@media (prefers-color-scheme: dark) {
+  .pub-page {
+    background: #121316;
+    color: #f2f1ee;
+  }
+  .pub-day-head {
+    border-bottom-color: #2b2d32;
+  }
+  .pub-open {
+    background: #1e2025;
+  }
+  .pub-score {
+    background: #f2f1ee;
+    color: #121316;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-photo {
+    transition: none;
+  }
+  .pub-open:hover .pub-photo,
+  .pub-open:focus-visible .pub-photo {
+    transform: none;
+  }
+}
+
+.ops-warning {
+  margin: 0;
+  border: 1px solid #d8a23a;
+  border-radius: 8px;
+  background: #fdf5e4;
+  color: #6b4a08;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
 .ops-btn-danger {
   background: #a3231f;
   border-color: #a3231f;

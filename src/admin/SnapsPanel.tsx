@@ -10,8 +10,10 @@ import {
 } from "@shared/api";
 import type { GameState } from "@shared/state";
 import { ConfirmButton } from "@/admin/ConfirmButton";
+import { OpsPending } from "@/admin/OpsPending";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { readApiError } from "@/lib/api";
+import { unjudgedCount } from "@/lib/photos";
 import { isFallbackRating, ratingText } from "@/lib/rating";
 
 const REFUSED = "Nothing was retired.";
@@ -71,7 +73,19 @@ function evaluatedText(tally: Tally | undefined): string {
 }
 
 const JURY_HINT =
-  "A verdict only comes out of ranking the whole day: describe the broken snaps one at a time, then rank the day once.";
+  "A verdict only comes out of ranking the whole day: describe the broken snaps one at a time, then rank the day once. The jury ranks by itself only when the last friend hands in — every other run is this button.";
+
+/** Read through `unjudgedCount`, the same function the host's START warning counts
+ * with, so the two surfaces cannot disagree about what "not ranked" means. */
+function unjudgedNote(
+  total: number,
+  verdicts: readonly PhotoVerdict[],
+): string | null {
+  const unjudged = unjudgedCount(total, verdicts);
+  if (unjudged <= 0) return null;
+  const many = unjudged === 1 ? "snap has" : "snaps have";
+  return `${String(unjudged)} of the day's ${String(total)} ${many} no verdict the jury stands behind. Rank the day before the event starts, or each of them takes the field's middle place.`;
+}
 
 function rankedText(ranking: DayRanking | undefined): string {
   if (ranking === undefined) return READING;
@@ -92,7 +106,10 @@ export function SnapsPanel({
   onRetired: () => void;
 }) {
   const [picked, setPicked] = useState("");
-  const [busy, setBusy] = useState(false);
+  // WHICH press is running, not merely that one is: a spinner on every button at once
+  // says the console is busy, where an operator waiting on a model call needs to know
+  // it is THEIR snap being read. Null is idle, and idle is what re-enables the rest.
+  const [running, setRunning] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
 
@@ -109,8 +126,14 @@ export function SnapsPanel({
   );
   const { mutate } = list;
 
-  const press = async (path: string, refused: string): Promise<unknown> => {
-    setBusy(true);
+  const busy = running !== null;
+
+  const press = async (
+    key: string,
+    path: string,
+    refused: string,
+  ): Promise<unknown> => {
+    setRunning(key);
     setNote(null);
     setRefusal(null);
     try {
@@ -119,12 +142,12 @@ export function SnapsPanel({
       setRefusal(await readApiError(res, refused));
       return null;
     } finally {
-      setBusy(false);
+      setRunning(null);
     }
   };
 
   const retire = async (path: string) => {
-    const body = await press(path, REFUSED);
+    const body = await press(`retire:${path}`, path, REFUSED);
     if (body === null) return;
     const done = retirementSchema.parse(body);
     setNote(retiredText(done.retired, done.day));
@@ -134,6 +157,7 @@ export function SnapsPanel({
 
   const describe = async (id: number) => {
     const body = await press(
+      `describe:${String(id)}`,
       `/api/admin/photos/${String(id)}/describe`,
       DESCRIBE_REFUSED,
     );
@@ -144,6 +168,7 @@ export function SnapsPanel({
 
   const rank = async () => {
     const body = await press(
+      "rank",
       `/api/admin/days/${String(shown)}/rank`,
       RANK_REFUSED,
     );
@@ -174,6 +199,11 @@ export function SnapsPanel({
             isUsable(described.get(photo.id)?.status, scored.get(photo.id)),
           ).length,
         };
+
+  const unjudged =
+    list.data === undefined
+      ? null
+      : unjudgedNote(photos.length, list.data.verdicts);
 
   return (
     <section className="ops-panel" data-testid="ops-snaps-panel">
@@ -217,15 +247,21 @@ export function SnapsPanel({
           type="button"
           className="ops-btn"
           data-testid="ops-rank-day"
-          aria-busy={busy}
+          aria-busy={running === "rank"}
           disabled={busy || photos.length === 0}
           onClick={() => {
             void rank();
           }}
         >
-          Rank the day again
+          {running === "rank" ? "Asking the jury" : "Rank the day again"}
+          {running === "rank" && <OpsPending label="Asking the jury" />}
         </button>
       </div>
+      {unjudged !== null && (
+        <p className="ops-warning" role="status" data-testid="ops-unjudged">
+          {unjudged}
+        </p>
+      )}
       <p className="ops-note" data-testid="ops-jury-hint">
         {JURY_HINT}
       </p>
@@ -282,13 +318,18 @@ export function SnapsPanel({
                 type="button"
                 className="ops-btn"
                 data-testid={`ops-describe-${String(photo.id)}`}
-                aria-busy={busy}
+                aria-busy={running === `describe:${String(photo.id)}`}
                 disabled={busy}
                 onClick={() => {
                   void describe(photo.id);
                 }}
               >
-                Describe
+                {running === `describe:${String(photo.id)}`
+                  ? "Reading it"
+                  : "Describe"}
+                {running === `describe:${String(photo.id)}` && (
+                  <OpsPending label="Reading the photograph" />
+                )}
               </button>
               <ConfirmButton
                 label="Retire"

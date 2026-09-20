@@ -61,9 +61,16 @@ test("talking to the jury requires sign-in, then shares a snap in one tap", asyn
   await dialog.getByRole("button", { name: "♥ 1" }).click();
   await expect(dialog.getByRole("button", { name: "♡ 0" })).toBeVisible();
 
-  await dialog.getByPlaceholder("Add a comment…").fill("great shot");
-  await dialog.getByRole("button", { name: "Send" }).click();
-  await expect(dialog.getByText("great shot")).toBeVisible();
+  // The box that used to hold a comment field holds the CAPTION: this window only ever
+  // shows your own snap, so commenting on it here would sign it.
+  await expect(dialog.getByPlaceholder("Add a comment…")).toHaveCount(0);
+  await dialog.getByTestId("caption-input").fill("From the roof");
+  await dialog.getByTestId("caption-save").click();
+  const mine = await page.request.get("/api/photos/mine");
+  expect(mine.ok()).toBeTruthy();
+  expect(await mine.json()).toMatchObject({
+    photo: { caption: "From the roof" },
+  });
 });
 
 test("dismissing the picker sends nothing at all", async ({ page }) => {

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { juryForDay } from "../shared/juries";
 import { HALF_WEIGHT, NO_VOTE_MULTIPLIER } from "../shared/scoring";
 import {
+  apiRankDay,
   apiSignIn,
   apiUpload,
   apiVote,
@@ -59,8 +60,10 @@ test("the archive is a full-screen photo feed, and the jury signs every card", a
 }) => {
   await apiUpload(page, "tester");
   await apiUpload(page, "rival");
+  await apiRankDay(page, 1);
   await setDay(page, 2);
   await apiUpload(page, "tester");
+  await apiRankDay(page, 2);
   await setDay(page, 3);
   await apiSignIn(page, "tester");
 
@@ -122,6 +125,7 @@ test("a card opens one big photograph over the archive, with the jury's line on 
 }) => {
   await apiUpload(page, "tester");
   await apiUpload(page, "rival");
+  await apiRankDay(page);
   await setDay(page, 2);
   await apiSignIn(page, "tester");
 
@@ -344,8 +348,10 @@ async function twoScoredDays(page: Page): Promise<void> {
   await apiVote(page, "voter", [mine, theirs]);
   await apiVote(page, "judge", [mine]);
   await apiVote(page, "tester", [theirs]);
+  await apiRankDay(page, 1);
   await setDay(page, 2);
   await apiUpload(page, "tester");
+  await apiRankDay(page, 2);
   await setDay(page, 3);
   await apiSignIn(page, "tester");
 }

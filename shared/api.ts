@@ -39,6 +39,20 @@ export const captionSetSchema = z.object({
   caption: z.string().trim().max(CAPTION_MAX),
 });
 
+/**
+ * The public page's three fields, on both photo payloads. `shared` and `vetoed` are the
+ * two SWITCHES — see `dayResultSchema` for why they are two — and `onPublicPage` is
+ * what is actually TRUE right now, computed in the worker because it also folds in the
+ * day's reveal. A client that ANDed the two switches itself would tell a photographer
+ * their snap was public the moment they pressed the button, which on an unrevealed day
+ * it is not; the gate is one rule and the worker owns it.
+ */
+const publicStateSchema = {
+  shared: z.boolean(),
+  vetoed: z.boolean(),
+  onPublicPage: z.boolean(),
+};
+
 export const photoSchema = z.object({
   id: z.int(),
   uploader: userSchema.nullable(),
@@ -49,6 +63,7 @@ export const photoSchema = z.object({
   likedByMe: z.boolean(),
   commentCount: z.int(),
   aiScore: aiRatingSchema,
+  ...publicStateSchema,
 });
 export type Photo = z.infer<typeof photoSchema>;
 
@@ -114,8 +129,18 @@ export const dayResultSchema = z.object({
   bonus: z.boolean(),
   critique: z.string().nullable(),
   noVotePenalty: z.boolean(),
+  /** TWO people's decisions and never one tri-state, because they must not overwrite
+   * each other: `shared` is the photographer (or the admin) putting a picture on the
+   * public page, `vetoed` is the admin taking it off. A vetoed photograph stays shared
+   * — the veto only outranks it — so lifting one restores what its photographer chose
+   * rather than making them choose again. */
+  ...publicStateSchema,
 });
 export type DayResult = z.infer<typeof dayResultSchema>;
+
+export const shareSetSchema = z.object({ shared: z.boolean() });
+
+export const vetoSetSchema = z.object({ vetoed: z.boolean() });
 
 export const dayResultsSchema = z.object({
   day: z.int().positive(),
@@ -330,6 +355,30 @@ export const avatarCountsSchema = avatarCapsSchema.extend({
   allTime: z.int().nonnegative(),
   estimate: spendSchema,
   players: z.array(z.object({ user: userSchema, used: z.int().min(0) })),
+});
+
+/**
+ * The ONE payload that leaves the auth boundary carrying a photograph, and every field
+ * of it is a deliberate yes. `photographer` is a name because the page exists to show
+ * friends and family who took what — which is also why nothing here is served before
+ * its day is revealed, or the public page would answer the question the ballot is
+ * built to keep. There is no caption and no description: the caption is a player
+ * talking to the town, and the description is machine notes for the jury. `score` is
+ * the jury's rating and NULL wherever the machine fell back, since a fallback 5 is the
+ * jury breaking rather than judging and is not a figure to publish.
+ */
+export const publicPhotoSchema = z.object({
+  id: z.int(),
+  url: z.string(),
+  day: z.int().positive(),
+  theme: z.string(),
+  photographer: z.string(),
+  score: aiRatingSchema,
+});
+export type PublicPhoto = z.infer<typeof publicPhotoSchema>;
+
+export const publicGallerySchema = z.object({
+  photos: z.array(publicPhotoSchema),
 });
 
 export const commentSubjectSchema = z.enum(["photo", "avatar"]);

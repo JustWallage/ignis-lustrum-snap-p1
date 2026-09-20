@@ -1,7 +1,9 @@
 # worker/
 
 - **Registration order in `index.ts` is load-bearing.** `app.use("/api/*", authMiddleware)` is the
-  public/private boundary; above it only `/api/ws`, the auth routes, `/api/state`, `/api/event`.
+  public/private boundary; above it only `/api/ws`, the auth routes, `/api/state`, `/api/event` and
+  `/api/public` — the last one the only thing in front of the cookie that serves a photograph, and
+  the root `CLAUDE.md` states what it may serve and why.
   `/api/photos/:id/comments` before `/api/photos` and `/api/avatars/:id/comments` before
   `/api/avatars`; `/api/photos/mine` before `/api/photos/:id`
   (else `Number("mine")` 404s); `/api/event` twice — public `GET`, then `POST /spin` below.
@@ -26,6 +28,22 @@
   and the console has no pen. An empty body CLEARS the column rather than storing a blank, because a
   reader cannot tell the two apart. The upload form still carries no caption field (#72): a snap
   lands uncaptioned and is captioned afterwards, so the one write path cannot be two.
+- **`photos.shared_publicly` and `photos.public_veto` are two routes because they are two people.**
+  `PUT /api/photos/:id/public` is the photographer's AND the admin's — choosing what leaves the
+  cookie is curation, not speech, so unlike the caption the console does hold a pen here — and
+  `PUT /api/admin/photos/:id/veto` is the operator's alone. Neither writes the other's column, so a
+  veto outranks a share without erasing it. Nothing is broadcast: a share is not news, and
+  `routes/public.ts` is read by people with no socket at all. Both payloads carry the pair AND
+  `onPublicPage`, the AND of them with the day's reveal, computed in `serialize.ts` by one function:
+  a client that worked it out itself would tell a photographer sharing at upload time that their
+  snap was already public, and the gate has to have one owner. `toPhoto` folds in `view.score`,
+  which that interface's own doc defines as "a revealed day and nothing else"; `toDayResult` passes
+  `true`, because an unrevealed day is a 403 there rather than an empty list.
+- **`routes/public.ts` re-asks the WHOLE question for the bytes, not just the listing.** Shared,
+  un-vetoed and revealed are ANDed in one place; the image route repeats all three rather than
+  trusting a URL, because a link shared onwards outlives the answer that produced it. It is the one
+  image route whose `Cache-Control` is `public` and NOT `immutable` — five minutes, because these
+  bytes can be withdrawn where every other image URL's cannot.
 - **Anonymity is server-side.** `uploader: null` unless it is yours or the day is revealed;
   `/api/votes/candidates` selects no uploader column at all. `toPhoto` masks name and verdict as
   TWO decisions — your own snap always carries your name, and no verdict until the day is out,
@@ -135,6 +153,14 @@
   `geminiResponseSchema` is optional. Requiring `parts` turned a safety block, a spent quota and a
   truncated answer into one unreadable Zod issue. A missing key is its own sentence, because a
   config fault reads as a Gemini fault otherwise.
+- **An upload DESCRIBES and only sometimes RANKS.** `describeThenRankFullDay` runs the ranking when
+  `isDayFull` says every friend on the roster has handed one in — counted off `users`, `>=` so a
+  town that shrank still finishes its days — and a swap on an already-full day counts, because the
+  purge-and-insert leaves the count where it was and the FIELD is a different one to rank. Every
+  other run is `POST /api/admin/days/:day/rank`. Ranking per upload is what the old code did and it
+  was self-defeating: `claimRun` bumps a stamp each time and `rankDay` stops the moment a newer run
+  claims one, so fourteen uploads meant thirteen runs that wrote nothing and one that had to
+  succeed. Most of the worker suite therefore asks for its verdicts through `postRank`.
 - **The jury never blocks an upload**: `waitUntil`, and a throw leaves the day's PREVIOUS verdicts
   exactly where they were rather than overwriting nine good ones with fives because the tenth
   upload's call timed out. `lib/photo-score.ts` ranks a WHOLE DAY (`rankDay`) — one text-only call
@@ -164,7 +190,8 @@
   it when the jury or theme changes, so every later reader gets that same text. It judges
   photographs, so it reads `GEMINI_API_KEY` and never the billed key. The upload's ONE `waitUntil`
   chains the ranking BEHIND it, since the ranking reads the day's descriptions and starting it first
-  would rank a day this snap is not yet in — but the upload still waits on neither; a failure stores
+  would rank a day this snap is not yet in, on the days it ranks at all — but the upload still waits
+  on neither; a failure stores
   a row that SAYS it failed (`lib/photo-description.ts`), since a missing one reads as "not described
   yet" forever. It UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are
   one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`

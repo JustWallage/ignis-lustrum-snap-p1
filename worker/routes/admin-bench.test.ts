@@ -12,6 +12,7 @@ import {
   PHOTO_BASE64,
   PHOTO_BYTES,
   photoRowCount,
+  postRank,
   resetWorld,
   scoreRowCount,
   signIn,
@@ -126,6 +127,9 @@ describe("the jury bench", () => {
     // A snap of somebody's own, so the counts below are the upload's and the bench
     // adds to neither table.
     await uploadPhotoId(cookie);
+    // Keyless, so the day takes the fallback verdict without spending the stub above
+    // on a reply shaped for the bench rather than for a ranking.
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     expect(await photoRowCount()).toBe(1);
     expect(await scoreRowCount()).toBe(1);
 

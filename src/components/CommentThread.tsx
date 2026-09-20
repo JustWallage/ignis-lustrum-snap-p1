@@ -13,9 +13,14 @@ import { useCachedFetch } from "@/hooks/useCachedFetch";
 export function CommentThread({
   subject,
   id,
+  canPost = true,
 }: {
   subject: CommentSubject;
   id: number;
+  /** The one surface that says no is `SnapDialog`, which only ever shows your OWN
+   * snap: a comment there is signed, so it is the caption's job and not the thread's.
+   * Reading stays, because what your friends said about it is still worth having. */
+  canPost?: boolean;
 }) {
   const { user, isAdmin } = useAuth();
   const path = commentsPath(subject, id);
@@ -91,35 +96,37 @@ export function CommentThread({
           </li>
         ))}
       </ul>
-      <form
-        onSubmit={(event) => {
-          void addComment(event);
-        }}
-        className="flex gap-2"
-      >
-        <input
-          className="gb-input flex-1"
-          value={body}
-          onChange={(event) => {
-            setBody(event.target.value);
+      {canPost && (
+        <form
+          onSubmit={(event) => {
+            void addComment(event);
           }}
-          placeholder="Add a comment…"
-          maxLength={1000}
-        />
-        {/* Busy through the refetch as well as the POST: the comment is not on
+          className="flex gap-2"
+        >
+          <input
+            className="gb-input flex-1"
+            value={body}
+            onChange={(event) => {
+              setBody(event.target.value);
+            }}
+            placeholder="Add a comment…"
+            maxLength={1000}
+          />
+          {/* Busy through the refetch as well as the POST: the comment is not on
             screen until the list comes back, and that gap is the half of the
             wait that used to be invisible. Not the FIRST fetch though — the
             thread arriving is what the list itself is waiting for, and a Send
             button that spins before anyone has typed says nothing useful. */}
-        <GbButton
-          type="submit"
-          className="gb-btn px-3"
-          busy={sending || (comments.busy && !comments.loading)}
-          disabled={body.trim() === ""}
-        >
-          Send
-        </GbButton>
-      </form>
+          <GbButton
+            type="submit"
+            className="gb-btn px-3"
+            busy={sending || (comments.busy && !comments.loading)}
+            disabled={body.trim() === ""}
+          >
+            Send
+          </GbButton>
+        </form>
+      )}
     </section>
   );
 }

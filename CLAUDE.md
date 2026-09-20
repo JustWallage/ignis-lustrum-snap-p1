@@ -33,16 +33,33 @@ Each is a failure that happened:
 
 ## What every directory agrees on
 
-- **Walking is public, content is not.** `/api/state` and `/api/event` are the ENTIRE public read
-  surface. Every image, ballot, scoreboard, sprite, comment, mutation and the town's VOICE is behind
-  the cookie — the voice in both directions, since a channel only signed-in friends may transmit on
-  is still public if anybody with the URL can listen.
-- **The jukebox's audio files are the ONE public payload**, and that is a decision rather than the
-  invariant leaking. They are served off the SPA at cacheable unauthenticated URLs, so anybody with
-  a URL can listen — and this repo is public (`.gitignore` says so in its own words, which is why the
+- **Walking is public, content is not.** `/api/state`, `/api/event` and `/api/public/*` are the
+  ENTIRE public read surface. Every image, ballot, scoreboard, sprite, comment, mutation and the
+  town's VOICE is behind the cookie — the voice in both directions, since a channel only signed-in
+  friends may transmit on is still public if anybody with the URL can listen.
+- **`/api/public/*` is the ONE way a photograph leaves the cookie, and it is a decision the
+  photographer makes one picture at a time.** It exists because friends and family are not in the
+  town and were being shown nothing. Three conditions, ANDed in one function so the listing and the
+  bytes cannot disagree: **shared** by its photographer (or the operator) from the archive,
+  **not vetoed** by the operator, and **on a day already revealed**. Default is private, and a day
+  being revealed publishes nothing on its own. The reveal gate is not politeness — the ballot's
+  whole game is that a photograph is anonymous until its day is out, and a public page naming
+  photographers before then is that game answered from outside. What crosses is the picture, the
+  name, the day, its theme and the jury's rating; **never the caption, the AI description, a
+  comment, a ballot or a figure from the scoring**, and never a fallback 5, which is the machine
+  breaking rather than the jury judging. The share and the veto are TWO columns because they are two
+  people's decisions: a veto outranks a share without rewriting it, so lifting one restores what the
+  photographer chose. This is the invariant above being WIDENED on purpose and by one door, not
+  leaking; a copy somebody already downloaded cannot be recalled, which is what the archive's toggle
+  says before it is pressed.
+- **The jukebox's audio files are the one public payload NOBODY CHOSE**, and that is a decision
+  rather than the invariant leaking. Unlike a shared photograph, which its photographer put on the
+  page one picture at a time, these are public because they ship with the SPA — served at cacheable
+  unauthenticated URLs, so anybody with a URL can listen — and this repo is public (`.gitignore` says so in its own words, which is why the
   roster is not in it), so a song is published twice: in the git history and at that URL. Accepted
   because the payload is **shipped app art, like the tile atlas and the pixel font — not a player's
-  photograph, ballot, comment or voice**: nothing about a person is in an mp3 somebody committed. The
+  photograph, ballot, comment or voice**: nothing about a person is in an mp3 somebody committed, and
+  nothing about the roster can be read off one. The
   alternative — the Worker serving every byte behind the cookie out of `IMAGES`, like every other
   picture — was considered and rejected, because the authoring story is a file dropped into a
   directory and a redeploy. What is on the WIRE still carries no identity: the track and when it
@@ -51,6 +68,12 @@ Each is a failure that happened:
 - **The bucket and D1 cannot be atomic**, so the object is written BEFORE its row and deleted
   AFTER it: what leaks is an orphan nobody references, never a row whose image 404s. The Worker
   serves every byte itself — no public bucket, no signed URL.
+- **The jury ranks a WHOLE day, and only twice**: when the day is full — every friend on the roster
+  has handed one in, counted off `users` rather than a constant — and when the operator presses the
+  console's button. It used to rank on every upload, and a day of fourteen then claimed fourteen run
+  stamps: `rankDay` stops the moment a newer run claims one, so the first thirteen wrote nothing and
+  the day rode on whether the last one happened to succeed. DESCRIBING is still per upload, because
+  a description is about one photograph and nothing else has to be true for it to be worth having.
 - **The clock is one `game_state` row.** A day is an integer unrelated to wall-clock time, and it has
   exactly TWO writers: the wheel's landing, which is the only one IN PLAY, and the operator's console
   (`POST /api/admin/day`), which refuses while an event is live. `phase` is a mirror only
