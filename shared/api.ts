@@ -24,11 +24,27 @@ const aiStatusSchema = z.enum(["ok", "failed"]);
  * as a photograph the jury hated. On the wire, absence. */
 const aiRatingSchema = z.number().positive().nullable();
 
+export const CAPTION_MAX = 140;
+
+/** The POSTER's own line under their photograph, and the reason it exists is that the
+ * thread below the picture cannot carry one: a comment is signed, so a photographer
+ * explaining their own snap during voting hands the town their name. This is not
+ * `photoDescriptionSchema`, which is what Gemini read in the picture and never leaves the
+ * console, and not `dayResultSchema.critique`, which is the jury's. Null is "nothing
+ * written" — the same thing to a reader as written and then emptied, which is why an
+ * empty save clears the row rather than storing a blank. */
+const captionSchema = z.string().nullable();
+
+export const captionSetSchema = z.object({
+  caption: z.string().trim().max(CAPTION_MAX),
+});
+
 export const photoSchema = z.object({
   id: z.int(),
   uploader: userSchema.nullable(),
   url: z.string(),
   createdAt: z.iso.datetime(),
+  caption: captionSchema,
   likeCount: z.int(),
   likedByMe: z.boolean(),
   commentCount: z.int(),
@@ -51,10 +67,13 @@ export type MySubmission = z.infer<typeof mySubmissionSchema>;
 export const apiErrorSchema = z.object({ error: z.string() });
 
 /** Deliberately NOT a `photoSchema`: no uploader field to leave null, so the browser
- * cannot leak an identity even if the UI asked it to. */
+ * cannot leak an identity even if the UI asked it to. The caption is the one thing the
+ * photographer says here, and it is theirs to write — whatever it gives away is what they
+ * chose to give away, which is exactly the choice a signed comment took from them. */
 export const voteCandidateSchema = z.object({
   id: z.int(),
   url: z.string(),
+  caption: captionSchema,
   isMine: z.boolean(),
 });
 export type VoteCandidate = z.infer<typeof voteCandidateSchema>;

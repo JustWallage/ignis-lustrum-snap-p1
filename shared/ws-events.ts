@@ -9,6 +9,7 @@ export const wsEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("photo_created"), id: z.int() }),
   z.object({ type: z.literal("photo_deleted"), id: z.int() }),
   z.object({ type: z.literal("photo_liked"), id: z.int() }),
+  z.object({ type: z.literal("photo_captioned"), id: z.int() }),
   z.object({
     type: z.literal("comment_created"),
     subjectType: commentSubjectSchema,

@@ -1465,7 +1465,8 @@ button.gb-pill-cap:disabled {
 
 .gb-jukebox-artist,
 .gb-jukebox-title,
-.gb-jukebox-line {
+.gb-jukebox-line,
+.gb-juke-count {
   max-width: 100%;
   text-align: center;
   overflow-wrap: anywhere;
@@ -1486,6 +1487,12 @@ button.gb-pill-cap:disabled {
 .gb-jukebox-line {
   min-height: 1em;
   font-size: 0.7rem;
+}
+.gb-juke-count {
+  color: #d8a850;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
 }
 .gb-jukebox-controls {
   display: flex;

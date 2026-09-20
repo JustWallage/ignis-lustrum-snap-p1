@@ -28,7 +28,12 @@ describe("voting", () => {
     const { candidates } = voteCandidateListSchema.parse(raw);
     expect(candidates.map((candidate) => candidate.id)).toEqual([own, other]);
     for (const candidate of candidates) {
-      expect(Object.keys(candidate).sort()).toEqual(["id", "isMine", "url"]);
+      expect(Object.keys(candidate).sort()).toEqual([
+        "caption",
+        "id",
+        "isMine",
+        "url",
+      ]);
       expect(candidate.isMine).toBe(false);
     }
     expect(JSON.stringify(raw)).not.toContain("tester");

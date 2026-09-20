@@ -20,11 +20,19 @@
   goes after the batch, never inside it. **Retiring is that same purge with a
   `retired_photos` insert in FRONT of it and no object delete at all**, which is what leaves the
   picture in the bucket; the row dying rather than gaining a flag is also what frees the player's
-  `photos_user_day_idx` slot to re-shoot the day. Nothing writes a photo caption (#72).
+  `photos_user_day_idx` slot to re-shoot the day. **`photos.caption` is written by ONE route and
+  only by its photographer** — `PUT /api/photos/:id/caption`, which 403s everybody else, the admin
+  included: retiring a snap is moderation, rewriting its line is putting words in a player's mouth,
+  and the console has no pen. An empty body CLEARS the column rather than storing a blank, because a
+  reader cannot tell the two apart. The upload form still carries no caption field (#72): a snap
+  lands uncaptioned and is captioned afterwards, so the one write path cannot be two.
 - **Anonymity is server-side.** `uploader: null` unless it is yours or the day is revealed;
   `/api/votes/candidates` selects no uploader column at all. `toPhoto` masks name and verdict as
   TWO decisions — your own snap always carries your name, and no verdict until the day is out,
-  admins included. Commenters ARE named on any day: the secret is whose snap it is.
+  admins included. Commenters ARE named on any day: the secret is whose snap it is — which is
+  exactly why `photos.caption` exists and is NOT behind either masking: a photographer explaining
+  their own snap in the thread signs it, so the caption is the one line they can put under an
+  anonymous picture. It rides `voteCandidateSchema` too, which still selects no uploader column.
 - **The self-exclusion lives only in `PUT /api/votes`**, never in `candidates`. **Do not unify the
   two queries** — a shared "today's photos" helper is exactly how self-voting comes back.
 - `lib/day-results.ts` is the only place a `DayResult`'s rows are gathered — its three callers are

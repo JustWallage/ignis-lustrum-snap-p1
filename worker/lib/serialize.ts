@@ -27,6 +27,7 @@ export interface PhotoAggregate {
   uploaderId: number;
   uploaderName: string;
   createdAt: Date;
+  caption: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: number;
@@ -51,6 +52,10 @@ export function toPhoto(row: PhotoAggregate, view: PhotoView): Photo {
       : null,
     url: `/api/photos/${row.id}/image`,
     createdAt: row.createdAt.toISOString(),
+    // NOT behind `view.uploader`: the caption is what the photographer chose to say
+    // while nobody knows it is theirs, so hiding it until the reveal would be hiding
+    // the one thing it exists to show.
+    caption: row.caption,
     likeCount: row.likeCount,
     likedByMe: row.likedByMe > 0,
     commentCount: row.commentCount,
@@ -60,11 +65,13 @@ export function toPhoto(row: PhotoAggregate, view: PhotoView): Photo {
 
 export function toVoteCandidate(row: {
   id: number;
+  caption: string | null;
   mine: number;
 }): VoteCandidate {
   return voteCandidateSchema.parse({
     id: row.id,
     url: `/api/photos/${row.id}/image`,
+    caption: row.caption,
     isMine: row.mine !== 0,
   });
 }

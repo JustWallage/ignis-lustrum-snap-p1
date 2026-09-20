@@ -7,13 +7,14 @@ import {
   type NewPhotoRow,
   type PhotoRow,
 } from "../../db/schema";
-import { mySubmissionSchema } from "../../shared/api";
+import { captionSetSchema, mySubmissionSchema } from "../../shared/api";
 import type { AppEnv, Bindings } from "../env";
 import { isAdmin } from "../lib/auth";
 import { broadcast, pushGameState } from "../lib/broadcast";
 import { bytesToBase64 } from "../lib/bytes";
 import { getDb, type Db } from "../lib/db";
 import { isDayRevealed, readGameState } from "../lib/game-state";
+import { parseJsonBody } from "../lib/http";
 import { deleteImage, newSnapKey, putImage, readImage } from "../lib/images";
 import { readImageFile } from "../lib/image-upload";
 import { describePhoto } from "../lib/photo-description";
@@ -180,6 +181,7 @@ photosRoutes.post("/", async (c) => {
         uploaderId: user.id,
         uploaderName: user.name,
         createdAt: row.createdAt,
+        caption: null,
         likeCount: 0,
         commentCount: 0,
         likedByMe: 0,
@@ -267,6 +269,40 @@ photosRoutes.delete("/:id", async (c) => {
   await deleteImage(c.env, photo.r2Key);
   await broadcast(c.env, { type: "photo_deleted", id });
   await pushGameState(c.env, await readGameState(db));
+  return c.json({ ok: true });
+});
+
+/**
+ * The photographer's own line under their picture. THEIRS alone — not an admin's, unlike
+ * the delete below, because this is somebody speaking and not somebody moderating; the
+ * console retires a snap it objects to rather than putting words in a player's mouth.
+ * An empty caption CLEARS the column: a reader cannot tell a blank from nothing written,
+ * so the two must not be different rows.
+ */
+photosRoutes.put("/:id/caption", async (c) => {
+  const user = c.get("user");
+  const parsed = captionSetSchema.safeParse(await parseJsonBody(c.req.raw));
+  if (!parsed.success) {
+    return c.json({ error: "That caption is too long" }, 400);
+  }
+  const db = getDb(c.env);
+  const id = Number(c.req.param("id"));
+  const photo = await findPhoto(db, id);
+  if (photo === null) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  if (photo.userId !== user.id) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  if ((await readGameState(db)).phase !== "submission") {
+    return c.json(
+      { error: "Captions are closed — the live event has started" },
+      409,
+    );
+  }
+  const caption = parsed.data.caption === "" ? null : parsed.data.caption;
+  await db.update(photos).set({ caption }).where(eq(photos.id, id));
+  await broadcast(c.env, { type: "photo_captioned", id });
   return c.json({ ok: true });
 });
 

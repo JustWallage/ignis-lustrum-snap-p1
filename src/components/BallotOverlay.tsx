@@ -138,6 +138,13 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
         header={<Podium picks={picks} list={list} onJump={jumpTo} />}
         note={
           <>
+            {/* The photographer's OWN line, and the reason the thread below cannot be
+                where they put it: a comment is signed. */}
+            {current.caption !== null && (
+              <p className="text-xs italic" data-testid="viewer-caption">
+                {current.caption}
+              </p>
+            )}
             {note !== null && (
               <p
                 className="text-xs font-bold uppercase tracking-widest"
