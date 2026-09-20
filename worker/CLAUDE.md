@@ -33,7 +33,12 @@
   cookie is curation, not speech, so unlike the caption the console does hold a pen here — and
   `PUT /api/admin/photos/:id/veto` is the operator's alone. Neither writes the other's column, so a
   veto outranks a share without erasing it. Nothing is broadcast: a share is not news, and
-  `routes/public.ts` is read by people with no socket at all.
+  `routes/public.ts` is read by people with no socket at all. Both payloads carry the pair AND
+  `onPublicPage`, the AND of them with the day's reveal, computed in `serialize.ts` by one function:
+  a client that worked it out itself would tell a photographer sharing at upload time that their
+  snap was already public, and the gate has to have one owner. `toPhoto` folds in `view.score`,
+  which that interface's own doc defines as "a revealed day and nothing else"; `toDayResult` passes
+  `true`, because an unrevealed day is a 403 there rather than an empty list.
 - **`routes/public.ts` re-asks the WHOLE question for the bytes, not just the listing.** Shared,
   un-vetoed and revealed are ANDed in one place; the image route repeats all three rather than
   trusting a URL, because a link shared onwards outlives the answer that produced it. It is the one

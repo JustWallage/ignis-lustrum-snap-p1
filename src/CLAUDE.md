@@ -242,11 +242,17 @@
   and does not cross. `lib/gallery.ts` holds the only two decisions worth testing — grouping the
   feed by day, and stepping ACROSS days so the ‹ › do not stop at the end of one — and
   `ratingText` crosses here for the reason it crosses to the console.
-- **The share toggle lives in the archive's viewer, never on its cards** (`PublicToggle`): it is the
-  surface where you are looking at the one photograph you are deciding about. It renders NOTHING for
-  a friend who is neither the photographer nor the operator — a switch somebody cannot flip is noise
-  on a card they are only reading — and it says in words what the greyed state cannot: a published
-  copy cannot be recalled.
+- **`PublicToggle` is the ONE switch for the public page, on the two surfaces that carry it**: the
+  archive's VIEWER (never its cards — the viewer is where you are looking at the one photograph you
+  are deciding about) and `SnapDialog`, the window an upload lands on, because a photographer knows
+  whether a snap is for the family the moment they hand it in and the archive is days away. It
+  renders NOTHING for a friend who is neither the photographer nor the operator — a switch somebody
+  cannot flip is noise on a card they are only reading. It reads **`onPublicPage` off the worker**
+  rather than ANDing `shared` and `vetoed` itself: the third condition is the day's reveal, that
+  gate has one owner, and a client doing its own arithmetic would tell an uploading photographer
+  their snap was public the moment they pressed. Its note says which of the four states it is in,
+  including the upload's own — shared, and waiting for the reveal — and that a published copy
+  cannot be recalled.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner

@@ -39,6 +39,20 @@ export const captionSetSchema = z.object({
   caption: z.string().trim().max(CAPTION_MAX),
 });
 
+/**
+ * The public page's three fields, on both photo payloads. `shared` and `vetoed` are the
+ * two SWITCHES — see `dayResultSchema` for why they are two — and `onPublicPage` is
+ * what is actually TRUE right now, computed in the worker because it also folds in the
+ * day's reveal. A client that ANDed the two switches itself would tell a photographer
+ * their snap was public the moment they pressed the button, which on an unrevealed day
+ * it is not; the gate is one rule and the worker owns it.
+ */
+const publicStateSchema = {
+  shared: z.boolean(),
+  vetoed: z.boolean(),
+  onPublicPage: z.boolean(),
+};
+
 export const photoSchema = z.object({
   id: z.int(),
   uploader: userSchema.nullable(),
@@ -49,6 +63,7 @@ export const photoSchema = z.object({
   likedByMe: z.boolean(),
   commentCount: z.int(),
   aiScore: aiRatingSchema,
+  ...publicStateSchema,
 });
 export type Photo = z.infer<typeof photoSchema>;
 
@@ -119,8 +134,7 @@ export const dayResultSchema = z.object({
    * public page, `vetoed` is the admin taking it off. A vetoed photograph stays shared
    * — the veto only outranks it — so lifting one restores what its photographer chose
    * rather than making them choose again. */
-  shared: z.boolean(),
-  vetoed: z.boolean(),
+  ...publicStateSchema,
 });
 export type DayResult = z.infer<typeof dayResultSchema>;
 

@@ -219,6 +219,8 @@ photosRoutes.post("/", async (c) => {
         commentCount: 0,
         likedByMe: 0,
         aiScore: null,
+        sharedPublicly: false,
+        publicVeto: false,
       },
       { uploader: true, score: false },
     ),

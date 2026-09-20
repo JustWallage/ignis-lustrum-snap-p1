@@ -25,6 +25,8 @@ function photoRow(overrides: Partial<PhotoAggregate> = {}): PhotoAggregate {
     commentCount: 1,
     likedByMe: 0,
     aiScore: 8,
+    sharedPublicly: false,
+    publicVeto: false,
     ...overrides,
   };
 }
@@ -46,6 +48,9 @@ describe("toPhoto", () => {
         likedByMe: false,
         commentCount: 1,
         aiScore: 8,
+        shared: false,
+        vetoed: false,
+        onPublicPage: false,
       }),
     );
   });
@@ -83,6 +88,22 @@ describe("toPhoto", () => {
       "Taken from the roof",
     );
     expect(toPhoto(row, OUT).caption).toBe("Taken from the roof");
+  });
+
+  // The gate is one rule and the worker owns it, so the switch being on is NOT the
+  // answer: an unrevealed day says no however the photographer set it.
+  it("answers the public page with the reveal folded in, never the switch alone", () => {
+    const row = photoRow({ sharedPublicly: true });
+    expect(toPhoto(row, { uploader: true, score: false })).toMatchObject({
+      shared: true,
+      vetoed: false,
+      onPublicPage: false,
+    });
+    expect(toPhoto(row, OUT).onPublicPage).toBe(true);
+    expect(
+      toPhoto(photoRow({ sharedPublicly: true, publicVeto: true }), OUT)
+        .onPublicPage,
+    ).toBe(false);
   });
 
   it("turns the SQL 0/1 like flag into a boolean", () => {

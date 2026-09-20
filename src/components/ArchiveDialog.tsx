@@ -268,7 +268,14 @@ function ArchiveViewer({
       controls={<SnapLike key={result.photoId} id={result.photoId} />}
       trailing={
         <>
-          <PublicToggle result={result} onChanged={onShared} />
+          <PublicToggle
+            photoId={result.photoId}
+            uploaderId={result.uploader.id}
+            shared={result.shared}
+            vetoed={result.vetoed}
+            onPublicPage={result.onPublicPage}
+            onChanged={onShared}
+          />
           <DeleteSnapButton
             uploaderId={result.uploader.id}
             onDelete={() => {

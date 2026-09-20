@@ -4,6 +4,7 @@ import { GbPlaceholder } from "@/components/GbPending";
 import { GbWindow } from "@/components/GbWindow";
 import { LikeButton } from "@/components/LikeButton";
 import { CommentThread } from "@/components/CommentThread";
+import { PublicToggle } from "@/components/PublicToggle";
 import { usePhotoLike } from "@/hooks/usePhotoLike";
 import { relativeTime } from "@/lib/format";
 import { ratingText } from "@/lib/rating";
@@ -54,6 +55,18 @@ export function SnapDialog({
               Jury {ratingText(current.aiScore)}
             </p>
           )}
+          {/* The decision belongs HERE as well as in the archive: a photographer knows
+              whether a snap is for the family the moment they hand it in, and the
+              archive is days away. It simply waits for the reveal, which the note under
+              it says. */}
+          <PublicToggle
+            photoId={id}
+            uploaderId={current.uploader?.id ?? null}
+            shared={current.shared}
+            vetoed={current.vetoed}
+            onPublicPage={current.onPublicPage}
+            onChanged={like.photo.mutate}
+          />
           <div className="flex items-center gap-2">
             <LikeButton {...like} />
             <DeleteSnapButton

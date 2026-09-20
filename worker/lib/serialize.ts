@@ -34,6 +34,23 @@ export interface PhotoAggregate {
   commentCount: number;
   likedByMe: number;
   aiScore: number | null;
+  sharedPublicly: boolean;
+  publicVeto: boolean;
+}
+
+/** The public page's gate, in the ONE place both payloads read it from: shared, not
+ * vetoed, and the day out. `revealed` is passed rather than re-derived because the two
+ * callers already know it — and it must stay the same day-is-out question the rest of
+ * the masking asks, never a second answer to it. */
+function publicState(
+  row: { sharedPublicly: boolean; publicVeto: boolean },
+  revealed: boolean,
+) {
+  return {
+    shared: row.sharedPublicly,
+    vetoed: row.publicVeto,
+    onPublicPage: revealed && row.sharedPublicly && !row.publicVeto,
+  };
 }
 
 /**
@@ -62,6 +79,9 @@ export function toPhoto(row: PhotoAggregate, view: PhotoView): Photo {
     likedByMe: row.likedByMe > 0,
     commentCount: row.commentCount,
     aiScore: view.score ? row.aiScore : null,
+    // `view.score` IS "the day is revealed" — this interface's own doc above says so —
+    // and the gallery's gate asks that same question, so it reads the same flag.
+    ...publicState(row, view.score),
   });
 }
 
@@ -107,8 +127,9 @@ export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
     bonus: scored.bonus,
     critique: row.critique,
     noVotePenalty: scored.penalised,
-    shared: row.sharedPublicly,
-    vetoed: row.publicVeto,
+    // A `DayResult` only ever describes a REVEALED day — an unrevealed one is a 403,
+    // not an empty list — so the reveal half of the gate is already answered here.
+    ...publicState(row, true),
   });
 }
 

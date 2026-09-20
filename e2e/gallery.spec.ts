@@ -2,11 +2,13 @@ import {
   apiSignIn,
   apiUpload,
   expect,
+  handSnapToJury,
   openArchive,
   openConsole,
   pressStart,
   setDay,
   test,
+  TINY_PNG,
   walkToShelf,
 } from "./fixtures";
 import type { Page } from "@playwright/test";
@@ -54,6 +56,41 @@ test("a snap reaches the public page only when its photographer puts it there", 
   await expect(page.getByTestId("gallery-lightbox")).toBeVisible();
   await page.getByTestId("gallery-close").click();
   await expect(page.getByTestId("gallery-lightbox")).toBeHidden();
+});
+
+test("a photographer can share the moment they hand it in, and it waits for the reveal", async ({
+  page,
+}) => {
+  await apiSignIn(page, "tester");
+  await page.goto("/");
+  await pressStart(page);
+  await handSnapToJury(page, {
+    name: "snap.png",
+    mimeType: "image/png",
+    buffer: TINY_PNG,
+  });
+
+  // The window the upload lands on, on the day it was taken — so the switch is live and
+  // the page is not, and the note has to say which.
+  const dialog = page.locator(".gb-window");
+  await expect(dialog.getByTestId("public-share")).toHaveText("PRIVATE");
+  await dialog.getByTestId("public-share").click();
+  await expect(dialog.getByTestId("public-share")).toHaveText("PUBLIC");
+  await expect(dialog.getByTestId("public-note")).toContainText(
+    /goes on the public page when this day is revealed/i,
+  );
+
+  await page.context().clearCookies();
+  await page.goto(GALLERY);
+  await expect(page.getByTestId("gallery-empty")).toBeVisible();
+
+  // The day turns over and the decision made at upload time takes effect with no
+  // second press.
+  await apiSignIn(page, "tester");
+  await setDay(page, 2);
+  await page.context().clearCookies();
+  await page.goto(GALLERY);
+  await expect(page.getByTestId("gallery-tile")).toHaveCount(1);
 });
 
 test("the operator's veto takes it back off, and lifting the veto puts it back", async ({
