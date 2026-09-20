@@ -169,6 +169,9 @@ export function JukeboxDialog({
                 <p className="gb-jukebox-title" data-testid="jukebox-title">
                   {faced.title}
                 </p>
+                <p className="gb-juke-count" data-testid="jukebox-count">
+                  {`${String(at + 1)}/${String(count)}`}
+                </p>
               </>
             )}
           </div>

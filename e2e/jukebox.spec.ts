@@ -103,14 +103,22 @@ test("steps the shelf the same way from the buttons, the arrow keys and a sleeve
   await openSelector(page);
 
   const title = page.getByTestId("jukebox-title");
+  const counter = page.getByTestId("jukebox-count");
   const faced = await title.textContent();
+  // The shelf opens on its FIRST record, so the count's left half is a constant here while
+  // its right half is however many files the repo ships.
+  const shelved = (await counter.textContent())?.split("/")[1] ?? "";
+  expect(Number(shelved)).toBeGreaterThan(1);
+  await expect(counter).toHaveText(`1/${shelved}`);
 
   await page.getByRole("button", { name: "Next record" }).click();
   const next = await title.textContent();
   expect(next).not.toBe(faced);
+  await expect(counter).toHaveText(`2/${shelved}`);
 
   await page.getByRole("button", { name: "Previous record" }).click();
   await expect(title).toHaveText(faced ?? "");
+  await expect(counter).toHaveText(`1/${shelved}`);
 
   await page.keyboard.press("ArrowRight");
   await expect(title).toHaveText(next ?? "");
