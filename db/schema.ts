@@ -66,6 +66,12 @@ export const photos = sqliteTable(
     contentType: text("content_type").notNull(),
     day: integer("day").notNull().default(1),
     caption: text("caption"),
+    sharedPublicly: integer("shared_publicly", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    publicVeto: integer("public_veto", { mode: "boolean" })
+      .notNull()
+      .default(false),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (t) => [

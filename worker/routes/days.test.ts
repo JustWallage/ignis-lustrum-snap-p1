@@ -12,6 +12,7 @@ import {
   getJson,
   PHOTO_BASE64,
   playToLanding,
+  postRank,
   putVotes,
   resetWorld,
   setDay,
@@ -69,6 +70,9 @@ describe("day results", () => {
     expect((await putVotes(voter, [first, second])).status).toBe(200);
     expect((await putVotes(judge, [first])).status).toBe(200);
     expect((await putVotes(mine, [second])).status).toBe(200);
+    // The day is two friends short of the roster, so nothing has ranked it. Keyless on
+    // purpose: the fallback verdict is what every figure below is arithmetic over.
+    expect((await postRank(mine, 1, env)).status).toBe(200);
     expect((await setPhase(voter, "reveal")).status).toBe(200);
 
     const { day, results: ranked } = await results(voter);
@@ -99,6 +103,7 @@ describe("day results", () => {
   it("serves the jury's line, and only once the day is revealed", async () => {
     const cookie = await signIn();
     await uploadPhotoId(cookie);
+    expect((await postRank(cookie, 1, env)).status).toBe(200);
 
     const early = await app.request(
       RESULTS,
@@ -177,8 +182,10 @@ describe("the archive", () => {
     const theirs = await signIn("rival");
     const first = await uploadPhotoId(mine);
     try {
+      expect((await postRank(mine, 1, env)).status).toBe(200);
       await setDay(2);
       const second = await uploadPhotoId(theirs);
+      expect((await postRank(mine, 2, env)).status).toBe(200);
       await setDay(3);
 
       const [dayTwo, dayOne] = (await archive(mine)).days;

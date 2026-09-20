@@ -5,6 +5,7 @@ import {
   dayResultSchema,
   photoSchema,
   prizeSchema,
+  publicPhotoSchema,
   standingSchema,
   voteCandidateSchema,
   type AvatarState,
@@ -13,6 +14,7 @@ import {
   type DayResult,
   type Photo,
   type Prize,
+  type PublicPhoto,
   type Standing,
   type VoteCandidate,
 } from "../../shared/api";
@@ -83,6 +85,8 @@ export interface DayResultRow {
   critique: string | null;
   aiScore: number | null;
   aiStatus: "ok" | "failed" | null;
+  sharedPublicly: boolean;
+  publicVeto: boolean;
 }
 
 export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
@@ -103,6 +107,32 @@ export function toDayResult(row: DayResultRow, scored: DayScore): DayResult {
     bonus: scored.bonus,
     critique: row.critique,
     noVotePenalty: scored.penalised,
+    shared: row.sharedPublicly,
+    vetoed: row.publicVeto,
+  });
+}
+
+export interface PublicPhotoRow {
+  id: number;
+  day: number;
+  theme: string;
+  photographer: string;
+  aiScore: number | null;
+  aiStatus: "ok" | "failed" | null;
+}
+
+export function toPublicPhoto(row: PublicPhotoRow): PublicPhoto {
+  return publicPhotoSchema.parse({
+    id: row.id,
+    url: `/api/public/photos/${row.id}/image`,
+    day: row.day,
+    theme: row.theme,
+    photographer: row.photographer,
+    // A `failed` verdict is the fallback 5 the machine leaves when it breaks. The town
+    // reads that as the machine breaking, because the archive says so beside it; a
+    // family member reading this page has no such line and would read it as a mark out
+    // of ten the jury meant.
+    score: row.aiStatus === "ok" ? row.aiScore : null,
   });
 }
 

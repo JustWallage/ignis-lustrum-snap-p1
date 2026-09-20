@@ -19,6 +19,7 @@ import { leaderboardRoutes } from "./routes/leaderboard";
 import { npcRoutes } from "./routes/npc";
 import { photosRoutes } from "./routes/photos";
 import { prizesRoutes } from "./routes/prizes";
+import { publicRoutes } from "./routes/public";
 import { SPRITE_PATH, spriteRoutes, spriteUrl } from "./routes/sprites";
 import { stateRoute } from "./routes/state";
 import { testAvatarRoute } from "./routes/test-avatar";
@@ -52,6 +53,11 @@ app.route("/api", authRoutes);
 app.route("/api/state", stateRoute);
 
 app.route("/api/event", eventRoute);
+
+// The THIRD public read, and the only one that carries a photograph. Everything it
+// serves is opted in by its photographer, un-vetoed, and on a day already revealed —
+// see the root `CLAUDE.md`, which states the boundary this widens and why.
+app.route("/api/public", publicRoutes);
 
 app.use("/api/*", authMiddleware);
 

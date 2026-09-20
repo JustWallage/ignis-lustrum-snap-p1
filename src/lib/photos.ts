@@ -18,7 +18,7 @@ export async function deleteSnap(id: number): Promise<void> {
  * as it prices a MISSING one — the field's median — so to the day's order the two are
  * one thing and this counts them together.
  */
-function unjudgedCount(
+export function unjudgedCount(
   photoCount: number,
   verdicts: readonly PhotoVerdict[],
 ): number {

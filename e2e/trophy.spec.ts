@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import {
+  apiRankDay,
   apiSignIn,
   apiUpload,
   expect,
@@ -55,6 +56,8 @@ test("an anonymous walker is asked to sign in", async ({ page }) => {
 
 test("a finished day puts its winner on the plinth", async ({ page }) => {
   await apiUpload(page, "rival");
+  // The jury runs on a full day or on the operator's press, and one snap is neither.
+  await apiRankDay(page);
   await apiSignIn(page);
   await setDay(page, 2);
 

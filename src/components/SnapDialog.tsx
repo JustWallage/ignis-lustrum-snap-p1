@@ -1,3 +1,4 @@
+import { CaptionField } from "@/components/CaptionField";
 import { DeleteSnapButton } from "@/components/DeleteSnapButton";
 import { GbPlaceholder } from "@/components/GbPending";
 import { GbWindow } from "@/components/GbWindow";
@@ -32,11 +33,6 @@ export function SnapDialog({
             alt="Snap"
             className="max-h-56 w-full border-2 border-[#071821] bg-[#071821] object-contain"
           />
-          {current.caption !== null && (
-            <p className="text-xs italic" data-testid="snap-caption">
-              {current.caption}
-            </p>
-          )}
           <p className="text-xs">
             {/* Null while the day is still being voted on: the server does not
                 say whose snap this is, so neither does the screen. */}
@@ -67,7 +63,18 @@ export function SnapDialog({
               }}
             />
           </div>
-          <CommentThread subject="photo" id={id} />
+          {/* The caption takes the box the comment field used to have. This window is
+              only ever your OWN snap — the jury's `See my snap`, or the one you have
+              just handed in — so a field to comment on it was a field to sign your own
+              photograph with, which is the thing the caption exists to spare you. The
+              thread still READS: what your friends said about it is worth having. */}
+          <CaptionField
+            key={id}
+            id={id}
+            caption={current.caption}
+            onSaved={like.photo.mutate}
+          />
+          <CommentThread subject="photo" id={id} canPost={false} />
         </div>
       )}
     </GbWindow>

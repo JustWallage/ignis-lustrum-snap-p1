@@ -67,6 +67,30 @@ test("the photographer's line reaches a voter and their name does not", async ({
   await expect(page.getByText("tester")).toHaveCount(0);
 });
 
+test("the snap window captions instead of commenting", async ({ page }) => {
+  await apiUpload(page, "tester");
+  await apiSignIn(page, "tester");
+  await page.goto("/");
+  await pressStart(page);
+
+  const choices = await openJuryChoices(page);
+  await choices.getByRole("button", { name: "See my snap" }).click();
+  await expect(page.getByTestId("caption-field")).toBeVisible();
+  // Your own snap, so the thread reads and does not write: a comment here would be the
+  // signature the caption exists to spare you.
+  await expect(page.getByTestId("comment-thread")).toBeVisible();
+  await expect(page.getByPlaceholder("Add a comment…")).toHaveCount(0);
+
+  await page.getByTestId("caption-input").fill(LINE);
+  await page.getByTestId("caption-save").click();
+  await expect(page.getByTestId("caption-input")).toHaveValue(LINE);
+
+  // Read back off the route, because the field would hold what was typed either way.
+  const mine = await page.request.get("/api/photos/mine");
+  expect(mine.ok()).toBeTruthy();
+  expect(await mine.json()).toMatchObject({ photo: { caption: LINE } });
+});
+
 test("clearing the line takes it off rather than storing a blank", async ({
   page,
 }) => {

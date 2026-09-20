@@ -191,7 +191,14 @@
   which refetches under the typing, and there is no page on the way out: the choice's own label
   flipping is the receipt and only a refusal is worth a box. It is NOT the jury's critique — that
   one is the photograph's title after the reveal (bullet above) and this one is the photographer's
-  own words before it, so the two never print on the same screen.
+  own words before it, so the two never print on the same screen. There are TWO ways in and one
+  route out: the jury's `SayBox` is the D-pad path, and `CaptionField` is the same field on
+  `SnapDialog` — the window you land on the moment you hand a snap in, which is when a photographer
+  actually has something to say. `SayBox` cannot serve that one: it lives in the LCD's dialogue box
+  and `SnapDialog` is a `GbWindow` the modal layer paints over the shell. **`SnapDialog` is also the
+  one surface that passes `CommentThread` `canPost={false}`**, because it only ever shows your OWN
+  snap and a comment there is signed — which is the thing the caption exists to spare you. The
+  thread still reads.
 - `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
   nowhere else, so the modern look is quarantined by naming — with ONE crossing, the artist's
@@ -219,7 +226,27 @@
   the SELECT menu are rewritten, not moved: `GbWindow`, `GbButton` and `gb-input` stay behind with
   their other callers. No COMPONENT crosses; the hooks and `lib/` helpers do — `useFilePicker`
   because it is the one picker primitive, and `ratingText` because `lib/rating.ts` is the one place
-  the jury's rating is worded.
+  the jury's rating is worded — and `unjudgedCount`, so the console's warning and the host's START
+  warning cannot disagree about what "not ranked" means. Its spinner is its OWN (`OpsPending`, a
+  ring) rather than `GbPending`'s marching pixels, and it is per PRESS: `running` holds which action
+  is going, not merely that one is, because an operator waiting on a model call needs to see that it
+  is their snap being read rather than that the console is busy.
+- **The public gallery is the THIRD** (`/gallery`, `gallery/PublicGallery.tsx`), quarantined the
+  same way under `pub-`, and it is the strictest of the three: `App` mounts it with **no
+  `AuthProvider` at all**, so a page that never asks `/api/me` cannot start showing more to somebody
+  who happens to hold a cookie. It reads one route, `/api/public/gallery`, and shows the
+  photographer, the day, its theme and the jury's rating — never the caption, never a comment,
+  never a figure out of the scoring, all of which the worker declines to send rather than this page
+  declining to print. It has a look of its own (its own dark scheme, because a gallery is read on
+  whatever a phone is set to) and a lightbox of its own rather than `Modal.tsx`, which is the game's
+  and does not cross. `lib/gallery.ts` holds the only two decisions worth testing — grouping the
+  feed by day, and stepping ACROSS days so the ‹ › do not stop at the end of one — and
+  `ratingText` crosses here for the reason it crosses to the console.
+- **The share toggle lives in the archive's viewer, never on its cards** (`PublicToggle`): it is the
+  surface where you are looking at the one photograph you are deciding about. It renders NOTHING for
+  a friend who is neither the photographer nor the operator — a switch somebody cannot flip is noise
+  on a card they are only reading — and it says in words what the greyed state cannot: a published
+  copy cannot be recalled.
 - **`cqw` is 1% of the SHELL, never of the LCD** (`container-type` sits on `.gb-shell`), and the
   frame the badges are offset against pads the canvas with bezel — so a fraction of the screen is
   `--gb-face`, not `30cqw` and not a bare percentage. Your own avatar takes the top-left corner
@@ -235,7 +262,8 @@
   included: they are the stage's DOM children however the top layer paints them, and nothing new has
   to remember to opt in. The console is the one surface that rule cannot reach, being a PAGE outside
   the stage, and carries the same pair under `.ops-screen` (#41) — the second copy is the whole net,
-  so a third surface outside `.gb-stage` needs its own. The value is `manipulation`, never `none`
+  so a third surface outside `.gb-stage` needs its own, which `.pub-page` duly carries. The value is
+  `manipulation`, never `none`
   (which stops the feeds, rails and comment lists scrolling), and **`user-scalable=no` is out**: the
   archive exists to be read. **`maximum-scale=1` on the viewport meta is the other half**, and the
   only thing that stops iOS Safari zooming a focused field under 16px — no `touch-action` value

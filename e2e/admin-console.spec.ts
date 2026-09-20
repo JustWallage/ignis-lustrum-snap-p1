@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { clockSchema, dayPhotosSchema } from "../shared/api";
 import {
   ADMIN_PATH,
+  apiRankDay,
   apiSignIn,
   apiUpload,
   expect,
@@ -201,6 +202,9 @@ test("the console counts what the jury can use, and retries one description", as
   page,
 }) => {
   const id = await apiUpload(page, "rival");
+  // The UPLOAD describes and, one snap into a roster of four, ranks nothing — so the
+  // fallback verdict below is the operator's press and not a side effect.
+  await apiRankDay(page);
   await apiSignIn(page);
 
   await expect

@@ -7,6 +7,7 @@ import {
   avatarCountsSchema,
   juryBenchSchema,
   photoDescriptionSchema,
+  vetoSetSchema,
 } from "../../shared/api";
 import { JURIES, type Jury } from "../../shared/juries";
 import type { AppEnv } from "../env";
@@ -199,6 +200,29 @@ adminRoutes.post("/bench", async (c) => {
     // else. `readApiError` already renders whatever is in `error`.
     return c.json({ error: `${BENCH_FAILED} ${shortReason(error)}` }, 502);
   }
+});
+
+/**
+ * The operator's VETO over the public page. A column of its own beside the
+ * photographer's own `shared_publicly`, never the same one: an admin taking a
+ * photograph off the page must not silently rewrite what its photographer asked for,
+ * so lifting the veto restores their choice instead of making them choose again.
+ */
+adminRoutes.put("/photos/:id/veto", async (c) => {
+  const parsed = vetoSetSchema.safeParse(await parseJsonBody(c.req.raw));
+  if (!parsed.success) {
+    return c.json({ error: "Say vetoed true or false" }, 400);
+  }
+  const db = getDb(c.env);
+  const photo = await pickPhoto(db, c.req.param("id"));
+  if (photo === undefined) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  await db
+    .update(photos)
+    .set({ publicVeto: parsed.data.vetoed })
+    .where(eq(photos.id, photo.id));
+  return c.json({ ok: true });
 });
 
 /** Broadcasts nothing: a description is not news, and no player-facing surface renders

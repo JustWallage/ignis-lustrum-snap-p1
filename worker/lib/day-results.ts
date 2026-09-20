@@ -33,6 +33,8 @@ export async function resultsForDays(
       aiStatus: photoScores.aiStatus,
       critique: photoScores.critique,
       bonusDetected: photoScores.bonusDetected,
+      sharedPublicly: photos.sharedPublicly,
+      publicVeto: photos.publicVeto,
     })
     .from(photos)
     .innerJoin(users, eq(users.id, photos.userId))

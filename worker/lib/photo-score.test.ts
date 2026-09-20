@@ -20,10 +20,12 @@ import {
   RANKING,
   rankedScore,
   resetWorld,
+  rosterSize,
   scoreRowCount,
   setDay,
   signIn,
   storedDayScores,
+  storedDescription,
   storedRanking,
   storedScore,
   stubGemini,
@@ -38,14 +40,28 @@ import { GEMINI_MODEL } from "./gemini";
 beforeEach(resetWorld);
 
 /** Two snaps on one day, both described and both ranked — the smallest field an order
- * exists in at all. The second upload re-ranks the day the first one was alone on. */
+ * exists in at all. The RANK is asked for: a day two friends short of the roster ranks
+ * itself never, so the operator's button is what puts an order on this field. */
 async function aDescribedDay() {
   const mine = await signIn();
   const theirs = await signIn("rival");
   const fetched = stubGeminiDay();
   const first = await uploadPhotoId(mine, { bindings: withGeminiKey() });
   const second = await uploadPhotoId(theirs, { bindings: withGeminiKey() });
+  expect((await postRank(mine, 1)).status).toBe(200);
   return { mine, first, second, fetched };
+}
+
+/** Every friend on the roster hands one in, which is the ONE thing that makes an upload
+ * rank the day by itself. */
+async function aFullDay(bindings: object = withGeminiKey()) {
+  const names = ["tester", "rival", "voter", "judge"] as const;
+  const ids: number[] = [];
+  for (const name of names) {
+    ids.push(await uploadPhotoId(await signIn(name), { bindings }));
+  }
+  expect(ids).toHaveLength(await rosterSize());
+  return ids;
 }
 
 /** A ranking reply the test wrote itself, for the cases the well-formed stub cannot
@@ -84,9 +100,9 @@ describe("the AI jury", () => {
     });
     expect(await storedDayScores(1)).toEqual([rankedScore(0), rankedScore(1)]);
 
-    // The LAST ranking call: the first upload was ranked alone, this one is the field
-    // of two.
+    // The ONE ranking call, which is the operator's: neither upload made one.
     const ranked = fetched.mock.calls.filter(([, init]) => isRanking(init));
+    expect(ranked).toHaveLength(1);
     const [url, init] = ranked[ranked.length - 1] ?? ["", {}];
     const prompt = promptOf(init);
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
@@ -101,12 +117,50 @@ describe("the AI jury", () => {
     expect(prompt).toMatch(/critique in Dutch/i);
   });
 
-  it("re-ranks the whole field rather than scoring the snap that arrived", async () => {
-    const { fetched } = await aDescribedDay();
+  // The old rule ranked on EVERY upload, and a day of fourteen then claimed fourteen
+  // run stamps: `rankDay` stops the moment a newer run claims one, so all but the last
+  // wrote nothing and the day rode on whether that one happened to succeed.
+  it("describes an arriving snap and ranks nothing while the day is short", async () => {
+    const mine = await signIn();
+    const theirs = await signIn("rival");
+    const fetched = stubGeminiDay();
+
+    const first = await uploadPhotoId(mine, { bindings: withGeminiKey() });
+    await uploadPhotoId(theirs, { bindings: withGeminiKey() });
+
+    expect(fetched.mock.calls.filter(([, init]) => isRanking(init))).toEqual(
+      [],
+    );
+    expect(await storedScore(first)).toBeNull();
+    expect(await storedRanking(1)).toBeNull();
+  });
+
+  it("ranks itself the moment the last friend hands one in", async () => {
+    const fetched = stubGeminiDay();
+    const ids = await aFullDay();
 
     const ranked = fetched.mock.calls.filter(([, init]) => isRanking(init));
-    expect(ranked).toHaveLength(2);
-    expect(await storedDayScores(1)).toEqual([rankedScore(0), rankedScore(1)]);
+    expect(ranked).toHaveLength(1);
+    expect(await storedDayScores(1)).toEqual(
+      ids.map((_id, at) => rankedScore(at)),
+    );
+    expect((await storedRanking(1))?.run_stamp).toBe(1);
+  });
+
+  // A swap purges one row and inserts another, so the day is full before and after —
+  // and the field it is full OF has changed, which is a different question to ask.
+  it("ranks again when somebody swaps a snap on a full day", async () => {
+    const fetched = stubGeminiDay();
+    await aFullDay();
+    const again = await uploadPhoto(await signIn("rival"), {
+      replace: true,
+      bindings: withGeminiKey(),
+    });
+    expect(again.status).toBe(201);
+
+    expect(
+      fetched.mock.calls.filter(([, init]) => isRanking(init)),
+    ).toHaveLength(2);
     expect((await storedRanking(1))?.run_stamp).toBe(2);
   });
 
@@ -202,13 +256,12 @@ describe("the AI jury", () => {
 
   it("still produces a verdict for every snap with no GEMINI_API_KEY", async () => {
     const fetched = stubGeminiDay();
-    const mine = await signIn();
-    const theirs = await signIn("rival");
     const bindings = withoutGeminiKey();
-    const first = await uploadPhotoId(mine, { bindings });
-    const second = await uploadPhotoId(theirs, { bindings });
+    const ids = await aFullDay(bindings);
 
-    for (const id of [first, second]) {
+    // EVERY snap of the day, not a sample: the fallback's whole claim is that a day
+    // with no key still leaves nobody out of its own scoring.
+    for (const id of ids) {
       const score = await storedScore(id);
       expect(score).toMatchObject({ ai_score: 5, ai_status: "failed" });
       expect(score?.critique).toMatch(/broke it/i);
@@ -231,12 +284,13 @@ describe("the AI jury", () => {
     const undescribed = await uploadPhotoId(theirs, {
       bindings: withGeminiKey(),
     });
+    expect((await postRank(mine, 1)).status).toBe(200);
 
     expect((await storedScore(described))?.ai_score).toBe(8.2);
     expect(await storedScore(undescribed)).toBeNull();
   });
 
-  it("answers the upload before the jury does", async () => {
+  it("answers the upload before the describer does", async () => {
     let answer: () => void = () => undefined;
     const thinking = new Promise<void>((resolve) => {
       answer = resolve;
@@ -256,11 +310,14 @@ describe("the AI jury", () => {
     );
     expect(res.status).toBe(201);
     const id = photoSchema.parse(await res.json()).id;
-    expect(await storedScore(id)).toBeNull();
+    // The DESCRIPTION is what an upload now waits on nothing for; the ranking is not
+    // this snap's to trigger at all, one friend in on a roster of four.
+    expect(await storedDescription(id)).toBeNull();
 
     answer();
     await waitOnExecutionContext(ctx);
-    expect(await storedScore(id)).toMatchObject({ ai_status: "ok" });
+    expect(await storedDescription(id)).toMatchObject({ status: "ok" });
+    expect(await storedScore(id)).toBeNull();
   });
 
   it("drops a verdict with the snap it belongs to", async () => {
@@ -272,6 +329,7 @@ describe("the AI jury", () => {
     const replaced = await uploadPhoto(cookie, { replace: true, bindings });
     expect(replaced.status).toBe(201);
     const second = photoSchema.parse(await replaced.json()).id;
+    expect((await postRank(cookie, 1)).status).toBe(200);
 
     expect(await storedScore(first)).toBeNull();
     expect(await storedScore(second)).toMatchObject({ ai_status: "ok" });
@@ -290,8 +348,10 @@ describe("the AI jury", () => {
     stubGeminiDay();
     const cookie = await signIn();
     const first = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    expect((await postRank(cookie, 1)).status).toBe(200);
     await setDay(2);
     const later = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    expect((await postRank(cookie, 2)).status).toBe(200);
 
     expect(await storedDayScores(1)).toEqual([rankedScore(0)]);
     expect(await storedDayScores(2)).toEqual([rankedScore(0)]);
@@ -304,6 +364,7 @@ describe("the AI jury", () => {
     stubGeminiDay();
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    expect((await postRank(cookie, 1)).status).toBe(200);
 
     const responses = await Promise.all([
       app.request(

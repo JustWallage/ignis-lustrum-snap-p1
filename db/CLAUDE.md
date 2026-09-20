@@ -59,7 +59,12 @@ deploys a schema without the column while everything stays green.
   PHOTOGRAPHER's. Nullable because null is "nothing written" and an empty save clears it — a reader
   cannot tell a blank from an absence, so the two must not be different rows. It sits on `photos`
   rather than in a table of its own precisely because it belongs to the picture for the picture's
-  whole life: `purgePhoto` takes it with the row and has no statement to forget.
+  whole life: `purgePhoto` takes it with the row and has no statement to forget. `shared_publicly`
+  and `public_veto` (`0024`) ride there for the same reason, and are TWO columns rather than one
+  tri-state because they record two different people's decisions: the photographer's and the
+  operator's. Either alone is meaningless — the public page reads them ANDed, with the day's reveal
+  — and a veto that overwrote a share would make lifting it ask the photographer again. Both are
+  `NOT NULL DEFAULT false`, so a snap is private until somebody says otherwise.
 - **`photo_scores.ai_score` is a REAL, and within a day those reals are DISTINCT** — the jury ranks
   the whole day in one call and the score IS that order, so nothing stores a rank beside it and two
   fields cannot disagree about the same photograph. `src/lib/rating.ts` rounds every readout, which

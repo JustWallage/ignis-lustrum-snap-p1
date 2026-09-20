@@ -20,6 +20,7 @@ import {
   keyOf,
   PAID_KEY,
   patchAvatarCaps,
+  postRank,
   PHOTO_BYTES,
   resetWorld,
   setDay,
@@ -332,6 +333,9 @@ describe("avatar generation", () => {
     expect(await storedAvatar()).toEqual(SPRITE_BYTES);
 
     const id = await uploadPhotoId(cookie, { bindings: withAvatarKeyOnly() });
+    // The upload described it; the RANKING now waits for a full day or the operator,
+    // and the jury spending a key is what this test is about, so it asks.
+    expect((await postRank(cookie, 1, withAvatarKeyOnly())).status).toBe(200);
     expect((await storedScore(id))?.ai_status).toBe("ok");
     for (const [, init] of fetched.mock.calls) {
       expect(keyOf(init)).toBe(PAID_KEY);
@@ -343,6 +347,7 @@ describe("avatar generation", () => {
     const cookie = await signIn();
 
     const id = await uploadPhotoId(cookie, { bindings: withJuryKeyOnly() });
+    expect((await postRank(cookie, 1, withJuryKeyOnly())).status).toBe(200);
     expect((await storedScore(id))?.ai_status).toBe("ok");
 
     for (const attempt of [1, 2]) {
@@ -368,6 +373,7 @@ describe("avatar generation", () => {
 
     expect((await generateAvatar(cookie, withoutGeminiKey())).status).toBe(503);
     const id = await uploadPhotoId(cookie, { bindings: withoutGeminiKey() });
+    expect((await postRank(cookie, 1, withoutGeminiKey())).status).toBe(200);
     expect((await storedScore(id))?.ai_status).toBe("failed");
     expect(fetched).not.toHaveBeenCalled();
     expect((await avatarState(cookie)).remaining).toBe(AVATAR_DAILY_LIMIT);
