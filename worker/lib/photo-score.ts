@@ -184,9 +184,10 @@ function fallbackFor(snaps: readonly DaySnap[]): RankedVerdict[] {
 export async function rankDay(
   env: Bindings,
   day: number,
+  model?: string,
 ): Promise<"ok" | "failed" | "overtaken"> {
   try {
-    return await rank(env, day);
+    return await rank(env, day, model);
   } catch {
     return "failed";
   }
@@ -195,6 +196,7 @@ export async function rankDay(
 async function rank(
   env: Bindings,
   day: number,
+  model?: string,
 ): Promise<"ok" | "failed" | "overtaken"> {
   const db = getDb(env);
   const snaps = await snapsOfDay(db, day);
@@ -225,7 +227,7 @@ async function rank(
 
   let verdicts: RankedVerdict[];
   try {
-    verdicts = await requestRanking(keys, juryForDay(day), described);
+    verdicts = await requestRanking(keys, juryForDay(day), described, model);
   } catch (error) {
     await finish(db, day, run, "failed", shortReason(error));
     return "failed";

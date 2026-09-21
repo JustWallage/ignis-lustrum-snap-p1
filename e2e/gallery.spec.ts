@@ -11,7 +11,33 @@ import {
   TINY_PNG,
   walkToShelf,
 } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+
+interface Held {
+  release: () => void;
+}
+
+/** Holds every matching request until released, so a progress readout can be read on a
+ * server that would otherwise answer faster than the assertion. */
+async function holdRoute(page: Page, pattern: string): Promise<Held> {
+  let open = () => {
+    // Replaced below, before any route can reach it.
+  };
+  const gate = new Promise<void>((resolve) => {
+    open = () => {
+      resolve();
+    };
+  });
+  await page.route(pattern, async (route: Route) => {
+    await gate;
+    await route.continue();
+  });
+  return {
+    release: () => {
+      open();
+    },
+  };
+}
 
 const GALLERY = "/gallery";
 
@@ -163,7 +189,9 @@ test("the console's spinner says which press is running", async ({ page }) => {
     await route.continue();
   });
 
-  const describe = panel.getByTestId(/ops-describe-/);
+  // The ONE snap's own button, not the sweep beside it: `ops-describe-all` matches a
+  // loose `ops-describe-` too, and it is the per-press spinner under test here.
+  const describe = panel.getByTestId(/^ops-describe-\d+$/);
   await describe.first().click();
   await expect(describe.first()).toContainText("Reading it");
   await expect(panel.getByTestId("ops-pending")).toBeVisible();
@@ -171,6 +199,55 @@ test("the console's spinner says which press is running", async ({ page }) => {
   await expect(panel.getByTestId("ops-pending")).toHaveCount(0, {
     timeout: 20_000,
   });
+});
+
+test("the console sweeps the day's unread snaps one at a time, live", async ({
+  page,
+}) => {
+  await apiUpload(page, "tester");
+  await apiUpload(page, "rival");
+  await apiUpload(page, "voter");
+  await apiSignIn(page, "tester");
+  const panel = await openConsole(page, "Snaps");
+
+  const sweep = panel.getByTestId("ops-describe-all");
+  await expect(sweep).toContainText("Describe the 3 the jury cannot read");
+
+  // Held open so the progress can be READ: a local worker answers faster than a
+  // human, and "one at a time, live" is the claim being made.
+  const held = await holdRoute(page, "**/api/admin/photos/*/describe");
+  await sweep.click();
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    /Reading 1 of 3/,
+  );
+  await expect(panel.getByTestId("ops-describe-stop")).toBeVisible();
+  held.release();
+
+  // No Gemini key in e2e, so all three come back FAILED — and the sweep finishes them
+  // rather than stopping, because one photograph Gemini refused says nothing about the
+  // next. Each row ends up carrying its own reason instead of a blank.
+  await expect(panel.getByTestId("ops-snaps-note")).toContainText(
+    /Read 3 of 3/,
+    { timeout: 20_000 },
+  );
+  const failed = panel.getByText("Description failed");
+  await expect(failed).toHaveCount(3);
+});
+
+test("the console offers the jury's models and defaults to none", async ({
+  page,
+}) => {
+  await apiUpload(page, "tester");
+  await apiSignIn(page, "tester");
+  const panel = await openConsole(page, "Snaps");
+
+  const model = panel.getByTestId("ops-model");
+  await expect(model).toHaveValue("");
+  // The allowlist is `JURY_MODELS`, which the e2e project cannot import from `shared/`
+  // — so this names the default the repo actually runs on and nothing more.
+  await expect(model.locator("option")).toContainText(["Default"]);
+  await model.selectOption("gemini-3.6-flash");
+  await expect(model).toHaveValue("gemini-3.6-flash");
 });
 
 test("the console warns about the day's unjudged snaps", async ({ page }) => {

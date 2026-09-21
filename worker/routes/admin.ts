@@ -6,6 +6,7 @@ import {
   avatarCapsSchema,
   avatarCountsSchema,
   juryBenchSchema,
+  juryRunSchema,
   photoDescriptionSchema,
   vetoSetSchema,
 } from "../../shared/api";
@@ -228,6 +229,10 @@ adminRoutes.put("/photos/:id/veto", async (c) => {
 /** Broadcasts nothing: a description is not news, and no player-facing surface renders
  * one. */
 adminRoutes.post("/photos/:id/describe", async (c) => {
+  const asked = juryRunSchema.safeParse(await parseJsonBody(c.req.raw));
+  if (!asked.success) {
+    return c.json({ error: "That is not a model the jury may spend" }, 400);
+  }
   const photo = await pickPhoto(getDb(c.env), c.req.param("id"));
   if (photo === undefined) {
     return c.json({ error: "Not found" }, 404);
@@ -236,11 +241,15 @@ adminRoutes.post("/photos/:id/describe", async (c) => {
   if (bytes === null) {
     return c.json({ error: "Not found" }, 404);
   }
-  const done = await describePhoto(c.env, {
-    id: photo.id,
-    data: bytesToBase64(bytes),
-    contentType: photo.contentType,
-  });
+  const done = await describePhoto(
+    c.env,
+    {
+      id: photo.id,
+      data: bytesToBase64(bytes),
+      contentType: photo.contentType,
+    },
+    asked.data.model,
+  );
   if (done === "gone") {
     return c.json({ error: "Not found" }, 404);
   }

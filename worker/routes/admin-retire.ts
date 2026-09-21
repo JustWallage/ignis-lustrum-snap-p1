@@ -11,6 +11,7 @@ import {
 import {
   dayPhotosSchema,
   dayRankingSchema,
+  juryRunSchema,
   retirementSchema,
 } from "../../shared/api";
 import { isEventRunning } from "../../shared/events";
@@ -19,6 +20,7 @@ import { broadcast, pushGameState } from "../lib/broadcast";
 import { getDb, type Db } from "../lib/db";
 import { readEventState } from "../lib/event";
 import { isDayRevealed, readGameState } from "../lib/game-state";
+import { parseJsonBody } from "../lib/http";
 import { photoAggregates, purgePhoto } from "../lib/photo-rows";
 import { rankDay, readDayRanking } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
@@ -158,10 +160,14 @@ adminDayRoutes.get("/:day/photos", async (c) => {
 adminDayRoutes.post("/:day/rank", async (c) => {
   const asked = daySchema.safeParse(c.req.param("day"));
   if (!asked.success) return c.json({ error: "Not found" }, 404);
+  const run = juryRunSchema.safeParse(await parseJsonBody(c.req.raw));
+  if (!run.success) {
+    return c.json({ error: "That is not a model the jury may spend" }, 400);
+  }
   if (isEventRunning(await readEventState(c.env))) {
     return c.json({ error: EVENT_IS_LIVE }, 409);
   }
   const db = getDb(c.env);
-  await rankDay(c.env, asked.data);
+  await rankDay(c.env, asked.data, run.data.model);
   return c.json(dayRankingSchema.parse(await readDayRanking(db, asked.data)));
 });

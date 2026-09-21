@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
   dayPhotosSchema,
+  JURY_MODELS,
   photoDescriptionSchema,
   photoSchema,
 } from "../../shared/api";
@@ -34,9 +35,13 @@ import {
   withoutGeminiKey,
 } from "../test-helpers";
 import { GEMINI_MODEL } from "./gemini";
-import { NO_KEY } from "./photo-description";
+import { NEVER_CAME_BACK, NO_KEY } from "./photo-description";
 
 beforeEach(resetWorld);
+
+/** Any GA model off the allowlist that is NOT the default, so the two are being told
+ * apart rather than agreeing by accident. */
+const PICKED_MODEL = JURY_MODELS.find((one) => one !== GEMINI_MODEL) ?? "";
 
 /** The body prod actually answered a spent free tier with, trimmed to its shape. */
 function quotaSpent(): Response {
@@ -57,10 +62,19 @@ const safetySentSchema = z.object({
   ),
 });
 
-async function describeAgain(cookie: string, id: number, bindings: object) {
+async function describeAgain(
+  cookie: string,
+  id: number,
+  bindings: object,
+  model?: string,
+) {
   return app.request(
     `/api/admin/photos/${String(id)}/describe`,
-    { method: "POST", headers: { Cookie: cookie } },
+    {
+      method: "POST",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      ...(model === undefined ? {} : { body: JSON.stringify({ model }) }),
+    },
     bindings,
   );
 }
@@ -131,7 +145,10 @@ describe("the photograph's description", () => {
     );
     expect(res.status).toBe(201);
     const id = photoSchema.parse(await res.json()).id;
-    expect(await storedDescription(id)).toBeNull();
+    // The 201 is already out while the describer is still reading — and the row is
+    // already there, CLAIMED, so a console opened at this moment reads a reason rather
+    // than a blank. What it must not yet say is `ok`.
+    expect((await storedDescription(id))?.status).toBe("failed");
 
     answer();
     await waitOnExecutionContext(ctx);
@@ -419,5 +436,108 @@ describe("the photograph's description", () => {
     expect((await describeAgain(cookie, 4321, withGeminiKey())).status).toBe(
       404,
     );
+  });
+});
+
+describe("the claim a describe leaves behind", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /**
+   * The console showed a row of snaps reading "Not described" with no error beside
+   * them, which is what a pass torn down mid-call used to leave: nothing at all. A
+   * claim written BEFORE the call turns that silence into a sentence.
+   */
+  it("leaves a row saying so when the call never comes back", async () => {
+    const cookie = await signIn();
+    let hang: () => void = () => undefined;
+    const torn = new Promise<Response>((resolve) => {
+      hang = () => {
+        resolve(geminiReply(JSON.stringify(DESCRIBED)));
+      };
+    });
+    stubGemini(() => torn);
+
+    const ctx = createExecutionContext();
+    const res = await app.request(
+      "/api/photos",
+      { method: "POST", body: photoForm({}), headers: { Cookie: cookie } },
+      withGeminiKey(),
+      ctx,
+    );
+    expect(res.status).toBe(201);
+    const id = photoSchema.parse(await res.json()).id;
+
+    // The describe is still in flight, and the row is already there — which is the
+    // whole point: an operator reading the console mid-pass sees a reason, not a blank.
+    expect(await storedDescription(id)).toMatchObject({
+      status: "failed",
+      failure: NEVER_CAME_BACK,
+    });
+
+    hang();
+    await waitOnExecutionContext(ctx);
+    expect(await storedDescription(id)).toMatchObject({ status: "ok" });
+  });
+
+  // The description is the ONLY record of the photograph the jury sees, so a retry
+  // that died on its way to asking must not have traded a good one for a placeholder.
+  it("never trades a good description for its own claim", async () => {
+    stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const good = await storedDescription(id);
+    expect(good?.status).toBe("ok");
+
+    stubGemini(() => new Response("upstream is down", { status: 500 }));
+    expect((await describeAgain(cookie, id, withGeminiKey())).status).toBe(200);
+
+    const after = await storedDescription(id);
+    expect(after?.status).toBe("failed");
+    // The TEXT survived the failed retry; only the status and the reason moved.
+    expect(after?.description).toBe(good?.description);
+  });
+});
+
+describe("the operator's model override", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("spends the model the console picked, and the default without one", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    expect(
+      (await describeAgain(cookie, id, withGeminiKey(), PICKED_MODEL)).status,
+    ).toBe(200);
+    expect(fetched.mock.calls.at(-1)?.[0]).toContain(
+      `/${PICKED_MODEL}:generateContent`,
+    );
+
+    expect((await describeAgain(cookie, id, withGeminiKey())).status).toBe(200);
+    expect(fetched.mock.calls.at(-1)?.[0]).toContain(
+      `/${GEMINI_MODEL}:generateContent`,
+    );
+  });
+
+  // An allowlist rather than a free string: what a browser sends here is a model name
+  // the worker pays Google to run.
+  it("refuses a model that is not on the list", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const before = fetched.mock.calls.length;
+
+    const res = await describeAgain(
+      cookie,
+      id,
+      withGeminiKey(),
+      "gemini-9-ultra",
+    );
+    expect(res.status).toBe(400);
+    expect(fetched.mock.calls).toHaveLength(before);
   });
 });

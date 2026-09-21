@@ -193,8 +193,16 @@
   would rank a day this snap is not yet in, on the days it ranks at all — but the upload still waits
   on neither; a failure stores
   a row that SAYS it failed (`lib/photo-description.ts`), since a missing one reads as "not described
-  yet" forever. It UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are
-  one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`
+  yet" forever. **A pass CLAIMS that row before it asks Gemini anything**, with
+  `NEVER_CAME_BACK` on it: `waitUntil` can be torn down mid-call, and with nothing written first
+  those snaps read "Not described" on the console — indistinguishable from a pass that never ran,
+  which is exactly the silence an operator reported. The claim is `onConflictDoNothing`, never an
+  upsert, and a FAILED outcome writes the status and the reason and LEAVES THE TEXT: the description
+  is the only record of the photograph the jury sees, so a retry that broke must not cost the
+  reading that worked, the same rule `rankDay` follows over a day's previous verdicts. The claim
+  throwing is how a photograph that has GONE is told from one that is merely unread — `photo_id` is
+  a real foreign key. The final write UPSERTs, so `POST /api/admin/photos/:id/describe` and the
+  upload's first pass are one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`
   array — never as a field on `photoSchema`, whose masking is the player's. **The description is the
   ONLY record of the photograph the jury ever sees**: a snap the describer never read is a snap the
   jury cannot rank.
@@ -245,6 +253,13 @@
   nothing to invalidate; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
   only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
   worker — Google reports no billing figures — so a price per image never crosses the wire.
+  **Both manual jury routes take an optional `model`** (`juryRunSchema`), and nothing else does:
+  the upload's own describe has no operator behind it to choose one. It is an ALLOWLIST in
+  `shared/api.ts` (`JURY_MODELS`) rather than a free string, because what a browser sends there is
+  a model name the worker pays Google to run; GA text-and-vision ids only, no preview (withdrawn
+  without notice) and no `*-image` (answers with a picture, not the JSON both calls parse). The
+  schema is `.nullish()` because a POST with no body is the common case and `parseJsonBody` answers
+  null for it. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list together.
   **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
   with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
   and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing

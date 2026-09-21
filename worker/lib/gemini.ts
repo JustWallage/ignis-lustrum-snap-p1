@@ -469,8 +469,9 @@ export async function requestRanking(
   keys: readonly string[],
   jury: Jury,
   snaps: readonly DescribedSnap[],
+  model: string = GEMINI_MODEL,
 ): Promise<RankedVerdict[]> {
-  const parts = await generateContent(keys, GEMINI_MODEL, {
+  const parts = await generateContent(keys, model, {
     parts: [{ text: rankingInstructions(jury, snaps) }],
     generationConfig: {
       responseMimeType: "application/json",
@@ -549,8 +550,9 @@ const describedSchema = z.record(z.string(), z.string().trim().min(1));
 export async function requestDescription(
   keys: readonly string[],
   image: GeminiImage,
+  model: string = GEMINI_MODEL,
 ): Promise<string> {
-  const parts = await generateContent(keys, GEMINI_MODEL, {
+  const parts = await generateContent(keys, model, {
     parts: aboutOne(DESCRIPTION_INSTRUCTIONS, image),
     generationConfig: {
       responseMimeType: "application/json",
