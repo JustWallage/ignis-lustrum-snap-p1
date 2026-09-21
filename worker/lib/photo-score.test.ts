@@ -311,8 +311,9 @@ describe("the AI jury", () => {
     expect(res.status).toBe(201);
     const id = photoSchema.parse(await res.json()).id;
     // The DESCRIPTION is what an upload now waits on nothing for; the ranking is not
-    // this snap's to trigger at all, one friend in on a roster of four.
-    expect(await storedDescription(id)).toBeNull();
+    // this snap's to trigger at all, one friend in on a roster of four. The row is
+    // already CLAIMED at this point and says the describer has not come back.
+    expect((await storedDescription(id))?.status).toBe("failed");
 
     answer();
     await waitOnExecutionContext(ctx);

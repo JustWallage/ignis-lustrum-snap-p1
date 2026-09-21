@@ -231,6 +231,23 @@
   ring) rather than `GbPending`'s marching pixels, and it is per PRESS: `running` holds which action
   is going, not merely that one is, because an operator waiting on a model call needs to see that it
   is their snap being read rather than that the console is busy.
+  **Describing a whole day is a loop in the PANEL, never a route that loops.** Fourteen describes in
+  one request is fourteen Gemini calls inside one Worker invocation, which is the shape that was
+  already being torn down; firing them in parallel is the burst that spends the free tier's
+  per-minute quota and 429s most of them. So the sweep asks for one snap at a time through the
+  describe route that already exists, and `mutate()` after each answer IS the live readout — the
+  grid fills in under the operator rather than after them. It stands down on the first refusal
+  rather than spending the rest of the quota on the same failure, and its cancel is a GENERATION
+  counter rather than a boolean: a ref read between awaits, bumped by both Stop and a fresh sweep,
+  so a superseded sweep also stops writing the readout. (A boolean ref is also what
+  `no-unnecessary-condition` narrows to `false` after the reset assignment.) The **model and key dropdowns**
+  beside it ride on every manual press from this panel and nothing else; a field left on its
+  default is OMITTED from the body rather than sent, so a plain press sends the same empty body
+  every other caller does and the route reads it as the app's own default. The app already
+  reaches for the BILLED key first everywhere, so what the key one decides is the FALLBACK: its
+  default may walk on to the free key when the billed project 429s, and `Billed only` may not —
+  the press made when the free key is known to be spent and falling back to it is a request
+  nobody wanted answered.
 - **The public gallery is the THIRD** (`/gallery`, `gallery/PublicGallery.tsx`), quarantined the
   same way under `pub-`, and it is the strictest of the three: `App` mounts it with **no
   `AuthProvider` at all**, so a page that never asks `/api/me` cannot start showing more to somebody

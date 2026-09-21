@@ -381,6 +381,56 @@ export const publicGallerySchema = z.object({
   photos: z.array(publicPhotoSchema),
 });
 
+/**
+ * The models the OPERATOR may point a manual describe or re-rank at, read off Google's
+ * own model list on 2026-09-21 and never written from memory — the same rule
+ * `worker/lib/gemini.ts` states over `GEMINI_MODEL`, which is the default and is in
+ * this list (`worker/lib/gemini.test.ts` holds the two together).
+ *
+ * GA text-and-vision only. A PREVIEW id is left out because it is withdrawn without
+ * notice and a dropdown full of 404s is worse than a short one, and the `*-image`
+ * models are left out because they answer with a picture rather than the JSON both
+ * calls parse. It is an ALLOWLIST rather than a free string: what a browser sends here
+ * is a model name the worker pays Google to run.
+ */
+export const JURY_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-pro",
+] as const;
+
+export const juryModelSchema = z.enum(JURY_MODELS);
+export type JuryModel = z.infer<typeof juryModelSchema>;
+
+/**
+ * WHICH key a manual run is allowed to spend. `default` is the standing rule — the free
+ * key first and the billed one only where a 429 says the free tier's day is gone — and
+ * `billed` skips straight to the billed key, which is the operator saying "I know, spend
+ * it". There is no `free` option: refusing to fall back is a way to get less work done
+ * for no saving, since a 429 costs nothing either way.
+ */
+const jurySpendSchema = z.enum(["default", "billed"]);
+export type JurySpend = z.infer<typeof jurySpendSchema>;
+
+/**
+ * Both manual jury routes take the same optional overrides, and a request with NO BODY
+ * AT ALL is the common case rather than the exception: only the console's dropdowns
+ * send one, and `parseJsonBody` answers `null` for everybody else. A bare
+ * `z.object(...)` rejects that null and would 400 every caller that never asked for
+ * anything in the first place.
+ */
+export const juryRunSchema = z
+  .object({
+    model: juryModelSchema.optional(),
+    spend: jurySpendSchema.optional(),
+  })
+  .nullish()
+  .transform((run) => run ?? {});
+export type JuryRun = z.infer<typeof juryRunSchema>;
+
 export const commentSubjectSchema = z.enum(["photo", "avatar"]);
 export type CommentSubject = z.infer<typeof commentSubjectSchema>;
 

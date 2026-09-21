@@ -5,7 +5,7 @@ import {
   photoScores,
   photos,
 } from "../../db/schema";
-import type { DayRanking } from "../../shared/api";
+import type { DayRanking, JuryRun } from "../../shared/api";
 import { juryForDay } from "../../shared/juries";
 import type { Bindings } from "../env";
 import { getDb, type Db } from "./db";
@@ -184,9 +184,10 @@ function fallbackFor(snaps: readonly DaySnap[]): RankedVerdict[] {
 export async function rankDay(
   env: Bindings,
   day: number,
+  asked: JuryRun = {},
 ): Promise<"ok" | "failed" | "overtaken"> {
   try {
-    return await rank(env, day);
+    return await rank(env, day, asked);
   } catch {
     return "failed";
   }
@@ -195,11 +196,12 @@ export async function rankDay(
 async function rank(
   env: Bindings,
   day: number,
+  asked: JuryRun,
 ): Promise<"ok" | "failed" | "overtaken"> {
   const db = getDb(env);
   const snaps = await snapsOfDay(db, day);
   if (snaps.length === 0) return "ok";
-  const keys = juryKeys(env);
+  const keys = juryKeys(env, asked.spend);
   const run = await claimRun(db, day);
 
   if (keys.length === 0) {
@@ -225,7 +227,12 @@ async function rank(
 
   let verdicts: RankedVerdict[];
   try {
-    verdicts = await requestRanking(keys, juryForDay(day), described);
+    verdicts = await requestRanking(
+      keys,
+      juryForDay(day),
+      described,
+      asked.model,
+    );
   } catch (error) {
     await finish(db, day, run, "failed", shortReason(error));
     return "failed";

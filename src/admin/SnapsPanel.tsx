@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   dayPhotosSchema,
   dayRankingSchema,
+  JURY_MODELS,
   photoDescriptionSchema,
   retirementSchema,
   type DayRanking,
+  type JuryModel,
+  type JurySpend,
   type PhotoDescription,
   type PhotoVerdict,
 } from "@shared/api";
@@ -112,6 +115,20 @@ export function SnapsPanel({
   const [running, setRunning] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
+  // Empty is "whatever the app runs on", which is what every caller but this dropdown
+  // sends: the route reads a missing model as no override rather than as a choice.
+  const [model, setModel] = useState<JuryModel | "">("");
+  // The same shape as the model above: `default` is what every other caller sends by
+  // sending nothing, and the app already reaches for the BILLED key first everywhere.
+  // So what this switch actually decides is the FALLBACK — `billed` drops the free key
+  // behind it, which is the press made when that key is known to be spent and falling
+  // back to it is a request nobody wanted answered.
+  const [spend, setSpend] = useState<JurySpend>("default");
+  // A GENERATION rather than a boolean: the sweep below reads it between awaits, and a
+  // state value captured in that closure would still say "go" after Stop. Bumping it is
+  // what both Stop and a fresh sweep do, so a superseded sweep also stands down instead
+  // of two of them writing the readout at once.
+  const sweep = useRef(0);
 
   // Empty means "the day the world is on", which is why the field is a string and not
   // the day itself: a cleared box has to stay cleared long enough to type another one.
@@ -128,6 +145,27 @@ export function SnapsPanel({
 
   const busy = running !== null;
 
+  /** The model and the key ride on EVERY manual press from this panel, and on nothing
+   * else: the upload's own describe has no operator behind it to choose either. A
+   * field left on its default is OMITTED rather than sent, so the body a plain press
+   * sends is the empty one every other caller sends. */
+  const runBody = () =>
+    JSON.stringify({
+      ...(model === "" ? {} : { model }),
+      ...(spend === "default" ? {} : { spend }),
+    });
+
+  const ask = async (path: string, refused: string): Promise<unknown> => {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: runBody(),
+    });
+    if (res.ok) return await res.json();
+    setRefusal(await readApiError(res, refused));
+    return null;
+  };
+
   const press = async (
     key: string,
     path: string,
@@ -137,10 +175,7 @@ export function SnapsPanel({
     setNote(null);
     setRefusal(null);
     try {
-      const res = await fetch(path, { method: "POST" });
-      if (res.ok) return await res.json();
-      setRefusal(await readApiError(res, refused));
-      return null;
+      return await ask(path, refused);
     } finally {
       setRunning(null);
     }
@@ -179,6 +214,49 @@ export function SnapsPanel({
     mutate();
   };
 
+  /**
+   * ONE AT A TIME, driven from here rather than from a route that loops: fourteen
+   * describes in one request is fourteen Gemini calls inside one Worker invocation,
+   * which is the shape that was already timing out — and firing them in PARALLEL is
+   * the burst that spends the free tier's per-minute quota and makes most of them 429.
+   * Sequential also buys the thing a batch route cannot: each answer lands as it
+   * arrives, so the grid fills in under the operator rather than after it.
+   */
+  const describeEach = async (ids: readonly number[]) => {
+    const mine = (sweep.current += 1);
+    setNote(null);
+    setRefusal(null);
+    let done = 0;
+    for (const id of ids) {
+      if (sweep.current !== mine) return;
+      done += 1;
+      setRunning(`describe:${String(id)}`);
+      setNote(`Reading ${String(done)} of ${String(ids.length)}…`);
+      const body = await ask(
+        `/api/admin/photos/${String(id)}/describe`,
+        DESCRIBE_REFUSED,
+      );
+      if (sweep.current !== mine) return;
+      // Every answer, not just the last: this refetch IS the live readout.
+      mutate();
+      // Only the ROUTE refusing stops the sweep — a 400 on the picked model, a 409,
+      // a 404 — because that one would repeat identically on every snap left. A
+      // description that came back FAILED does not: Gemini refusing one photograph
+      // says nothing about the next, and a spent quota answers each of them in
+      // milliseconds and costs nothing, so the honest thing is to finish and leave
+      // fourteen rows each carrying their own reason.
+      if (body === null) break;
+    }
+    setRunning(null);
+    setNote(`Read ${String(done)} of ${String(ids.length)}.`);
+  };
+
+  const stopSweep = () => {
+    sweep.current += 1;
+    setRunning(null);
+    setNote("Stopped.");
+  };
+
   const photos = list.data?.photos ?? [];
   const described = new Map(
     (list.data?.descriptions ?? []).map((row) => [row.photoId, row]),
@@ -204,6 +282,13 @@ export function SnapsPanel({
     list.data === undefined
       ? null
       : unjudgedNote(photos.length, list.data.verdicts);
+
+  /** Anything the jury cannot read yet: never described, or described and failed. A
+   * snap already read is left alone, so pressing this twice does not spend the quota
+   * re-reading what worked. */
+  const unread = photos
+    .filter((photo) => described.get(photo.id)?.status !== "ok")
+    .map((photo) => photo.id);
 
   return (
     <section className="ops-panel" data-testid="ops-snaps-panel">
@@ -243,6 +328,65 @@ export function SnapsPanel({
         <p className="ops-readout" data-testid="ops-ranked">
           {rankedText(list.data?.ranking)}
         </p>
+        <label className="ops-field">
+          Model
+          <select
+            className="ops-input"
+            data-testid="ops-model"
+            value={model}
+            disabled={busy}
+            onChange={(event) => {
+              // The empty option is not a model: it is the app's own default, which is
+              // what the route runs when no override arrives.
+              const picked = event.target.value;
+              setModel(JURY_MODELS.find((one) => one === picked) ?? "");
+            }}
+          >
+            <option value="">Default</option>
+            {JURY_MODELS.map((one) => (
+              <option key={one} value={one}>
+                {one}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="ops-field">
+          Key
+          <select
+            className="ops-input"
+            data-testid="ops-spend"
+            value={spend}
+            disabled={busy}
+            onChange={(event) => {
+              setSpend(event.target.value === "billed" ? "billed" : "default");
+            }}
+          >
+            <option value="default">Billed, free as backup</option>
+            <option value="billed">Billed only</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className="ops-btn"
+          data-testid="ops-describe-all"
+          aria-busy={busy}
+          disabled={busy || unread.length === 0}
+          onClick={() => {
+            void describeEach(unread);
+          }}
+        >
+          {`Describe the ${String(unread.length)} the jury cannot read`}
+        </button>
+        {busy && (
+          <button
+            type="button"
+            className="ops-btn"
+            data-testid="ops-describe-stop"
+            onClick={stopSweep}
+          >
+            Stop
+          </button>
+        )}
         <button
           type="button"
           className="ops-btn"

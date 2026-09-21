@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { JurySpend } from "../../shared/api";
 import type { Jury } from "../../shared/juries";
 import { AI_SCORE_MAX } from "../../shared/scoring";
 
@@ -114,20 +115,41 @@ export interface JuryKeyring {
 }
 
 /**
- * The keys the jury may spend, IN THE ORDER IT SPENDS THEM: the free one first, the
- * billed one only where the free one's daily quota is gone. The free tier's cap is per
- * Google project, so the billed key's own project is the one thing that answers a 429 —
- * which is why this is an ordered list and not a choice.
+ * The keys a call may spend, IN THE ORDER IT SPENDS THEM: the BILLED key first, the
+ * free one only where a 429 says the billed project's quota is gone. Only a 429 moves
+ * down a list (`askEveryKey`), because the free tier's cap is scoped to a Google
+ * PROJECT and a second project is the one thing that answers it.
+ *
+ * Billed FIRST is the whole rule now. It used to be the other way round, and what that
+ * cost was a day of photographs carrying nothing the jury could read: describing is one
+ * call per upload, fourteen to a day, which is exactly the burst the free tier's
+ * PER-MINUTE cap refuses. The free key is kept BEHIND rather than dropped, because the
+ * only way to reach it is a 429 on the billed project, where a description on the free
+ * key beats no description at all.
+ *
+ * `billed` is what DROPS that fallback, and only an operator pressing a button on the
+ * console can ask for it — a list of ONE, the same shape `lib/avatar.ts` hands
+ * `requestAvatar`. It exists for the press made when the free key is known to be spent:
+ * falling back to it then is a request nobody wanted answered.
  *
  * Only HALF of the old split is gone. Nothing hands these to `requestAvatar`: a
  * photograph drawn on the free key is still the bug the split exists to prevent, and
  * that direction has no fallback because the billed key going quiet is a player reading
  * "offline", not a bill.
  */
-export function juryKeys(env: JuryKeyring): string[] {
-  return [env.GEMINI_API_KEY, env.GEMINI_API_KEY_PAID].flatMap((key) =>
-    key === undefined || key === "" ? [] : [key],
-  );
+const SPEND_ORDER = {
+  default: ["GEMINI_API_KEY_PAID", "GEMINI_API_KEY"],
+  billed: ["GEMINI_API_KEY_PAID"],
+} as const satisfies Record<JurySpend, readonly (keyof JuryKeyring)[]>;
+
+export function juryKeys(
+  env: JuryKeyring,
+  spend: JurySpend = "default",
+): string[] {
+  return SPEND_ORDER[spend].flatMap((name) => {
+    const key = env[name];
+    return key === undefined || key === "" ? [] : [key];
+  });
 }
 
 /** base64, not bytes: the shape a Gemini inline-data part has to arrive in. */
@@ -469,8 +491,9 @@ export async function requestRanking(
   keys: readonly string[],
   jury: Jury,
   snaps: readonly DescribedSnap[],
+  model: string = GEMINI_MODEL,
 ): Promise<RankedVerdict[]> {
-  const parts = await generateContent(keys, GEMINI_MODEL, {
+  const parts = await generateContent(keys, model, {
     parts: [{ text: rankingInstructions(jury, snaps) }],
     generationConfig: {
       responseMimeType: "application/json",
@@ -549,8 +572,9 @@ const describedSchema = z.record(z.string(), z.string().trim().min(1));
 export async function requestDescription(
   keys: readonly string[],
   image: GeminiImage,
+  model: string = GEMINI_MODEL,
 ): Promise<string> {
-  const parts = await generateContent(keys, GEMINI_MODEL, {
+  const parts = await generateContent(keys, model, {
     parts: aboutOne(DESCRIPTION_INSTRUCTIONS, image),
     generationConfig: {
       responseMimeType: "application/json",

@@ -133,9 +133,16 @@
   object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
   500, and the console's describe REFUSES a row whose object has gone rather than reading an empty
   image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
-- **Two Gemini keys, and the fallback runs ONE WAY.** `juryKeys` (`lib/gemini.ts`) returns the
-  keys the jury may spend IN ORDER — `GEMINI_API_KEY` first, `GEMINI_API_KEY_PAID` only where the
-  free one's quota is gone — and the three jury calls take that list. `lib/avatar.ts` still hands
+- **Two Gemini keys, and the BILLED one goes first.** `juryKeys` (`lib/gemini.ts`) returns the keys
+  a call may spend IN ORDER, off `SPEND_ORDER`, and every jury call — the upload's describe, the
+  console's describe, the day's ranking, the bench — takes `GEMINI_API_KEY_PAID` and then
+  `GEMINI_API_KEY`. It used to run the other way round, and what that cost was a day of photographs
+  carrying nothing the jury could read: describing is one call per UPLOAD, fourteen to a day, and
+  that burst is exactly what the free tier's PER-MINUTE cap refuses. The free key is kept BEHIND
+  rather than dropped, because the only way to reach it is a 429 on the billed project, where a
+  description on the free key beats none. A manual `billed` run is the second list and holds the
+  billed key alone: what it drops is that FALLBACK, for the press made when the free key is known
+  to be spent. `lib/avatar.ts` still hands
   `requestAvatar` the billed key ALONE, and the single-element list is the rule rather than a
   convention: a photograph drawn on the free key is the half of the split that stays, because the
   billed key going quiet is a player reading "offline" and not a bill. **Only a 429 moves down the
@@ -193,8 +200,16 @@
   would rank a day this snap is not yet in, on the days it ranks at all — but the upload still waits
   on neither; a failure stores
   a row that SAYS it failed (`lib/photo-description.ts`), since a missing one reads as "not described
-  yet" forever. It UPSERTs, so `POST /api/admin/photos/:id/describe` and the upload's first pass are
-  one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`
+  yet" forever. **A pass CLAIMS that row before it asks Gemini anything**, with
+  `NEVER_CAME_BACK` on it: `waitUntil` can be torn down mid-call, and with nothing written first
+  those snaps read "Not described" on the console — indistinguishable from a pass that never ran,
+  which is exactly the silence an operator reported. The claim is `onConflictDoNothing`, never an
+  upsert, and a FAILED outcome writes the status and the reason and LEAVES THE TEXT: the description
+  is the only record of the photograph the jury sees, so a retry that broke must not cost the
+  reading that worked, the same rule `rankDay` follows over a day's previous verdicts. The claim
+  throwing is how a photograph that has GONE is told from one that is merely unread — `photo_id` is
+  a real foreign key. The final write UPSERTs, so `POST /api/admin/photos/:id/describe` and the
+  upload's first pass are one function, and the state reaches the console on `dayPhotosSchema`'s parallel `descriptions`
   array — never as a field on `photoSchema`, whose masking is the player's. **The description is the
   ONLY record of the photograph the jury ever sees**: a snap the describer never read is a snap the
   jury cannot rank.
@@ -245,12 +260,26 @@
   nothing to invalidate; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
   only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
   worker — Google reports no billing figures — so a price per image never crosses the wire.
+  **Both manual jury routes take an optional `model` and an optional `spend`** (`juryRunSchema`,
+  threaded through `describePhoto` and `rankDay` as one `JuryRun` rather than two parameters), and
+  nothing else does: the upload's own describe has no operator behind it to choose either. The
+  model is an ALLOWLIST in `shared/api.ts` (`JURY_MODELS`) rather than a free string, because what
+  a browser sends there is a model name the worker pays Google to run; GA text-and-vision ids only,
+  no preview (withdrawn without notice) and no `*-image` (answers with a picture, not the JSON both
+  calls parse). `spend: "billed"` hands `juryKeys` a list of one. Since the billed
+  key is already first for everything, the ONLY thing it changes is the fallback: a plain run may
+  walk on to the free key when the billed project 429s, a billed one may not. There is no `free`
+  option, because a run that refused to reach the billed key would be the failure this whole order
+  exists to stop. The schema is `.nullish()` because a POST with no body is the
+  common case and `parseJsonBody` answers null for it, and both routes refuse an unknown override
+  with the one `REFUSED_RUN` line. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list
+  together.
   **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
   with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
   and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing
-  broadcast — so a bench press cannot touch a day and appears in no estimate. It reads the jury's
-  own `GEMINI_API_KEY`, never the avatar machine's `GEMINI_API_KEY_PAID`, answers a readable
-  "offline" without one, and sits behind `rateLimiter` because a billed multimodal call with a
+  broadcast — so a bench press cannot touch a day and appears in no estimate. It spends `juryKeys` like
+  every other jury call, answers a readable "offline" with no key at all, and sits behind
+  `rateLimiter` because a billed multimodal call with a
   button in front of it is a button somebody holds down.
 - `/api/test/*` 404s outside local/e2e, failing closed on an unknown `ENVIRONMENT`. Each route
   exists because its state is otherwise unreachable; `reset` winds the stored event AND its pending
