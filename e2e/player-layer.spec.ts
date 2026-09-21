@@ -6,6 +6,7 @@ import {
   DEFAULT_TROUSERS,
   expect,
   joinAs,
+  lcd,
   pixelAtPoint,
   pressStart,
   spritePixel,
@@ -28,6 +29,28 @@ const ABOVE_VOTING: Point = { x: VOTING.x, y: VOTING.y - 1 };
  * bottom sits on the fixture's head, so it hangs into the tile above. */
 const COUNT = { x: VOTING.x + 0.5, y: VOTING.y - 0.4 };
 
+/**
+ * A friend's own screen answering is NOT this screen seeing them: the step crosses a
+ * socket into `RealtimeDO` and back, and only the next frame paints it. Against a
+ * WORKER DEPLOYED over the network that chain has run past the 5s an unqualified
+ * `expect.poll` allows — twice in CI on commits that touch no rendering, and the same
+ * test passes on a re-run of the identical sha, which is how it was told from a
+ * regression. Every other cross-network wait in this suite carries a figure like this
+ * one; this assertion was the outlier.
+ */
+const ARRIVES = { timeout: 30_000 };
+
+/** The roster BEFORE the pixels, so the two failures stay apart: a friend who never
+ * reached this screen is not the painter drawing them in the wrong order, and only
+ * the second one is the bug these assertions exist to catch. */
+async function standsHere(page: Page, who: string): Promise<void> {
+  await expect(lcd(page)).toHaveAttribute(
+    "aria-label",
+    new RegExp(who),
+    ARRIVES,
+  );
+}
+
 async function legsAt(page: Page, tile: Point): Promise<string> {
   const point = spritePixel(tile, LEGS.sx, LEGS.sy);
   return (await pixelAtPoint(page, point.x, point.y)).join();
@@ -45,8 +68,9 @@ test("your own sprite draws over a friend standing lower, and they keep the pain
 
   const voter = await joinAs(browser, "voter");
   await walk(voter, "ArrowDown", BELOW.x, BELOW.y);
+  await standsHere(page, "voter");
   await expect
-    .poll(async () => legsAt(page, BELOW))
+    .poll(async () => legsAt(page, BELOW), ARRIVES)
     .toBe(DEFAULT_TROUSERS.join());
 
   // The friend is one row lower, so the painter's order hands them the tile — and their
@@ -56,11 +80,12 @@ test("your own sprite draws over a friend standing lower, and they keep the pain
   const rival = await joinAs(browser, "rival");
   await walk(rival, "ArrowDown", BELOW.x, BELOW.y);
   await walk(rival, "ArrowDown", TWO_BELOW.x, TWO_BELOW.y);
+  await standsHere(page, "rival");
 
   // Between two friends the order is untouched, so the lower one's name still covers
   // the higher one's legs.
   await expect
-    .poll(async () => legsAt(page, BELOW))
+    .poll(async () => legsAt(page, BELOW), ARRIVES)
     .not.toBe(DEFAULT_TROUSERS.join());
   expect(await legsAt(page, SPAWN)).toBe(DEFAULT_TROUSERS.join());
 
