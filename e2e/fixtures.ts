@@ -10,6 +10,7 @@ import { eventStateSchema } from "../shared/events";
 import { juryForDay } from "../shared/juries";
 import {
   ARTIST,
+  GUIDE,
   JUKEBOX,
   MAP_H,
   MAP_W,
@@ -115,6 +116,15 @@ export async function walkToNeighbour(page: Page): Promise<void> {
   await walk(page, "ArrowDown", NEIGHBOUR.x, NEIGHBOUR.y - 1);
   await expect(
     page.getByText(/talk to chris|sign in to talk to chris/i),
+  ).toBeVisible();
+}
+
+export async function walkToGuide(page: Page): Promise<void> {
+  await walk(page, "ArrowDown", GUIDE.x, SPAWN.y + 1);
+  await walk(page, "ArrowDown", GUIDE.x, GUIDE.y - 1);
+  await walk(page, "ArrowDown", GUIDE.x, GUIDE.y - 1);
+  await expect(
+    page.getByText(/ask nico about the trip|sign in to ask nico/i),
   ).toBeVisible();
 }
 

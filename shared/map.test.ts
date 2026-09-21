@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ARTIST,
+  GUIDE,
   isWalkable,
   isWalkableTile,
   JUKEBOX,
@@ -34,7 +35,7 @@ const INTERIOR: Point[] = [
 
 const FIXTURES: Point[] = [SHELF, TROPHY];
 
-const PEOPLE: Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR];
+const PEOPLE: Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR, GUIDE];
 
 const SHORE: Point[] = [
   { x: 6, y: 5 },
@@ -127,6 +128,20 @@ describe("the map", () => {
     }
     expect(isWalkable(NEIGHBOUR.x, NEIGHBOUR.y - 1)).toBe(true);
     expect(tileAt(NEIGHBOUR.x, NEIGHBOUR.y - 1)).toBe("P");
+  });
+
+  it("stands the guide beside the neighbour, one tile to the left", () => {
+    expect(GUIDE).toEqual({ x: NEIGHBOUR.x - 1, y: NEIGHBOUR.y });
+    expect(isWalkable(GUIDE.x, GUIDE.y)).toBe(false);
+    for (const neighbour of around(GUIDE)) {
+      expect(
+        stepTarget(neighbour, GUIDE),
+        `from ${neighbour.x},${neighbour.y}`,
+      ).toBeNull();
+    }
+    // Straight down from the spawn, so walking up to him crosses nobody else.
+    expect(GUIDE.x).toBe(SPAWN.x);
+    expect(isWalkable(GUIDE.x, GUIDE.y - 1)).toBe(true);
   });
 
   it("stands the trophy indoors, in the room's other corner", () => {
@@ -393,7 +408,8 @@ describe("stepTarget", () => {
     expect(stepTarget({ x: 6, y: 4 }, JURY)).toBeNull();
     expect(stepTarget({ x: 2, y: 6 }, VOTING)).toBeNull();
     expect(stepTarget({ x: 7, y: 7 }, ARTIST)).toBeNull();
-    expect(stepTarget({ x: 4, y: 7 }, NEIGHBOUR)).toBeNull();
+    expect(stepTarget({ x: 5, y: 6 }, NEIGHBOUR)).toBeNull();
+    expect(stepTarget({ x: 3, y: 7 }, GUIDE)).toBeNull();
     expect(stepTarget({ x: 1, y: 2 }, TROPHY)).toBeNull();
   });
 

@@ -1,25 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NPC_NAME, npcChatResponseSchema, type NpcTurn } from "@shared/npc";
+import { npcChatResponseSchema, type NpcKind, type NpcTurn } from "@shared/npc";
 import { apiFetch } from "@/lib/api";
-import { chatTurn, type ChatTurn } from "@/lib/npc-chat";
+import { chatTurn, speakerOf, type ChatTurn } from "@/lib/npc-chat";
 
-const SAYS = `${NPC_NAME.toUpperCase()}:`;
+const GREETINGS: Record<NpcKind, ChatTurn> = {
+  neighbour: chatTurn(
+    "neighbour",
+    "There you are. I have been watching the whole street go past with cameras.",
+    "So what have you been pointing yours at?",
+    ["Nothing good yet", "Today's theme", "Everyone else's snaps"],
+  ),
+  guide: chatTurn(
+    "guide",
+    "Hola parceros! Nico hier, jullie reisleider. Het hele programma zit in mijn hoofd.",
+    "Waar kan ik je mee helpen?",
+    ["Wat doen we vandaag?", "En morgen dan?", "Wat moet ik meenemen?"],
+  ),
+};
 
-const GREETING: ChatTurn = chatTurn(
-  SAYS,
-  "There you are. I have been watching the whole street go past with cameras.",
-  "So what have you been pointing yours at?",
-  ["Nothing good yet", "Today's theme", "Everyone else's snaps"],
-);
+const THINKING: Record<NpcKind, readonly string[]> = {
+  neighbour: [`${speakerOf("neighbour")} Hm. Let me think about that…`],
+  guide: [`${speakerOf("guide")} Momentje, ik kijk het even na…`],
+};
 
-const THINKING: readonly string[] = [`${SAYS} Hm. Let me think about that…`];
-
-const UNREACHABLE: ChatTurn = chatTurn(
-  SAYS,
-  "…did the wind take that?",
-  "Try me again?",
-  ["Say it again"],
-);
+const UNREACHABLE: Record<NpcKind, ChatTurn> = {
+  neighbour: chatTurn(
+    "neighbour",
+    "…did the wind take that?",
+    "Try me again?",
+    ["Say it again"],
+  ),
+  guide: chatTurn("guide", "…daar viel het bereik weg.", "Nog een keer?", [
+    "Nog een keer",
+  ]),
+};
 
 export interface NpcChat {
   id: string;
@@ -29,56 +43,63 @@ export interface NpcChat {
   send: (text: string) => void;
 }
 
-export function useNpcChat(chatting: boolean): NpcChat {
+/** `who` is null while nobody is being talked to, and changing it is what ends a
+ * conversation: there is one transcript and it belongs to whoever is in front of you. */
+export function useNpcChat(who: NpcKind | null): NpcChat {
   const [turns, setTurns] = useState<readonly NpcTurn[]>([]);
-  const [turn, setTurn] = useState<ChatTurn>(GREETING);
+  const [turn, setTurn] = useState<ChatTurn | null>(null);
   const [pending, setPending] = useState(false);
   const [said, setSaid] = useState(0);
   // A reply landing after the player walked off is dropped: the transcript is gone.
-  const chattingRef = useRef(chatting);
-  chattingRef.current = chatting;
+  const chattingRef = useRef(who);
+  chattingRef.current = who;
 
   useEffect(() => {
-    if (chatting) return;
+    if (who !== null) return;
     setTurns([]);
-    setTurn(GREETING);
+    setTurn(null);
     setPending(false);
     setSaid(0);
-  }, [chatting]);
+  }, [who]);
 
   const send = useCallback(
     (text: string) => {
+      if (who === null) return;
       setPending(true);
       setSaid((count) => count + 1);
       void apiFetch("/api/npc/chat", npcChatResponseSchema, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, turns }),
+        body: JSON.stringify({ who, message: text, turns }),
       })
         .then((answer) => {
-          if (!chattingRef.current) return;
+          if (chattingRef.current !== who) return;
           setTurns(answer.turns);
           setTurn(
-            chatTurn(SAYS, answer.reaction, answer.question, answer.options),
+            chatTurn(who, answer.reaction, answer.question, answer.options),
           );
         })
         .catch(() => {
-          if (!chattingRef.current) return;
-          setTurn(UNREACHABLE);
+          if (chattingRef.current !== who) return;
+          setTurn(UNREACHABLE[who]);
         })
         .finally(() => {
-          if (chattingRef.current) setPending(false);
+          if (chattingRef.current === who) setPending(false);
         });
     },
-    [turns],
+    [turns, who],
   );
 
+  // Nothing is on screen while `who` is null, so the fallback only ever picks which
+  // greeting nobody is reading.
+  const kind = who ?? "neighbour";
+  const shown = turn ?? GREETINGS[kind];
   return {
     // Carries the turn AND whether one is in flight, because the answers are replaced
     // with the pages: a cursor left on the fourth of three would point past the end.
     id: `chat:${String(said)}:${pending ? "wait" : "said"}`,
-    pages: pending ? THINKING : turn.pages,
-    options: turn.options,
+    pages: pending ? THINKING[kind] : shown.pages,
+    options: shown.options,
     pending,
     send,
   };

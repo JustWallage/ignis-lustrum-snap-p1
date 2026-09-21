@@ -2,30 +2,37 @@ import { asc } from "drizzle-orm";
 import { Hono } from "hono";
 import { users } from "../../db/schema";
 import {
-  NPC_NAME,
+  NPC_NAMES,
   npcChatRequestSchema,
   npcChatResponseSchema,
   recentTurns,
 } from "../../shared/npc";
 import type { AppEnv, Bindings } from "../env";
 import { getDb } from "../lib/db";
+import { readGameState } from "../lib/game-state";
 import { parseJsonBody } from "../lib/http";
-import { npcRateLimit, npcTurn, saidAsTurn } from "../lib/npc";
+import { npcRateLimit, npcTurn, saidAsTurn, type NpcWorld } from "../lib/npc";
+
+/** The day the guide's "vandaag" resolves against is the TOWN's clock — the one
+ * `game_state` row — and never the wall-clock date, which the trip is not run on. */
+const FALLBACK_DAY = 1;
 
 /**
  * The names, from the table that says who actually exists. NOT from `USERS_JSON`,
  * which is a credential blob: the passwords never come near the prompt builder if the
- * builder cannot reach them. A roster nobody can read leaves him exactly as he was.
+ * builder cannot reach them. A world nobody can read leaves them exactly as they were.
  */
-async function roster(env: Bindings): Promise<string[]> {
+async function world(env: Bindings): Promise<NpcWorld> {
+  const db = getDb(env);
   try {
-    const rows = await getDb(env)
+    const rows = await db
       .select({ name: users.name })
       .from(users)
       .orderBy(asc(users.name));
-    return rows.map((row) => row.name);
+    const state = await readGameState(db);
+    return { roster: rows.map((row) => row.name), day: state.day };
   } catch {
-    return [];
+    return { roster: [], day: FALLBACK_DAY };
   }
 }
 
@@ -36,15 +43,16 @@ export const npcRoutes = new Hono<AppEnv>();
 npcRoutes.post("/chat", async (c) => {
   const asked = npcChatRequestSchema.safeParse(await parseJsonBody(c.req.raw));
   if (!asked.success) {
-    // Includes a transcript trying to carry a `system` role, and an over-long typed
-    // answer: both refused by PARSING, so neither reaches the model.
+    // Includes a transcript trying to carry a `system` role, an unknown `who` and an
+    // over-long typed answer: all refused by PARSING, so none reaches the model.
     return c.json({ error: "That is not something to say" }, 400);
   }
+  const who = asked.data.who;
   // Per user rather than per socket or IP: the budget belongs to whoever spends it.
   // After the parse and before the model, which is where a loop costs something.
   if (!npcRateLimit.allow(String(c.get("user").id))) {
     return c.json(
-      { error: `${NPC_NAME} needs a moment. Try again shortly.` },
+      { error: `${NPC_NAMES[who]} needs a moment. Try again shortly.` },
       429,
     );
   }
@@ -55,7 +63,7 @@ npcRoutes.post("/chat", async (c) => {
   ]);
   // A picked option and a typed sentence are the same thing by the time they arrive:
   // there is no second conversation mode.
-  const said = await npcTurn(c.env, history, await roster(c.env));
+  const said = await npcTurn(c.env, who, history, await world(c.env));
   return c.json(
     npcChatResponseSchema.parse({
       ...said,

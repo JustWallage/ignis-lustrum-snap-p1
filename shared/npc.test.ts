@@ -54,23 +54,50 @@ describe("a turn of conversation", () => {
 describe("a chat request", () => {
   it("carries a message and whatever the browser remembers", () => {
     const parsed = npcChatRequestSchema.safeParse({
+      who: "neighbour",
       message: "who won yesterday?",
       turns: turns(2),
     });
     expect(parsed.success).toBe(true);
   });
 
+  it("says which of the two it is addressed to, and nothing else", () => {
+    for (const who of ["neighbour", "guide"]) {
+      expect(
+        npcChatRequestSchema.safeParse({ who, message: "hi", turns: [] })
+          .success,
+        who,
+      ).toBe(true);
+    }
+    for (const who of [undefined, "", "jury", "artist", 1]) {
+      expect(
+        npcChatRequestSchema.safeParse({ who, message: "hi", turns: [] })
+          .success,
+        String(who),
+      ).toBe(false);
+    }
+  });
+
   it("refuses a request with no message at all", () => {
-    expect(npcChatRequestSchema.safeParse({ turns: [] }).success).toBe(false);
     expect(
-      npcChatRequestSchema.safeParse({ message: "", turns: [] }).success,
+      npcChatRequestSchema.safeParse({ who: "neighbour", turns: [] }).success,
+    ).toBe(false);
+    expect(
+      npcChatRequestSchema.safeParse({
+        who: "neighbour",
+        message: "",
+        turns: [],
+      }).success,
     ).toBe(false);
   });
 
   it("refuses a transcript nobody could have produced", () => {
     expect(
-      npcChatRequestSchema.safeParse({ message: "hi", turns: turns(500) })
-        .success,
+      npcChatRequestSchema.safeParse({
+        who: "neighbour",
+        message: "hi",
+        turns: turns(500),
+      }).success,
     ).toBe(false);
   });
 
@@ -78,12 +105,14 @@ describe("a chat request", () => {
     expect(NPC_SAID_MAX).toBeLessThan(NPC_LINE_MAX);
     expect(
       npcChatRequestSchema.safeParse({
+        who: "guide",
         message: "x".repeat(NPC_SAID_MAX),
         turns: [],
       }).success,
     ).toBe(true);
     expect(
       npcChatRequestSchema.safeParse({
+        who: "guide",
         message: "x".repeat(NPC_SAID_MAX + 1),
         turns: [],
       }).success,
@@ -123,7 +152,7 @@ describe("a turn of his", () => {
 
   it("refuses a part that would not fit the screen it is going to", () => {
     for (const [field, max] of [
-      ["reaction", NPC_REACTION_MAX],
+      ["reaction", NPC_REACTION_MAX.guide],
       ["question", NPC_QUESTION_MAX],
     ] as const) {
       expect(
@@ -140,6 +169,24 @@ describe("a turn of his", () => {
         options: ["x".repeat(NPC_OPTION_MAX + 1)],
       }).success,
     ).toBe(false);
+  });
+
+  it("bounds the wire at the longest of the two speakers, not the shortest", () => {
+    // The guide's cap is the ceiling and the neighbour's is enforced in `capSaid`:
+    // a schema written to the neighbour's 80 would refuse every answer Nico gives.
+    expect(NPC_REACTION_MAX.neighbour).toBeLessThan(NPC_REACTION_MAX.guide);
+    expect(
+      npcChatResponseSchema.safeParse({
+        ...TURN,
+        reaction: "x".repeat(NPC_REACTION_MAX.guide),
+      }).success,
+    ).toBe(true);
+  });
+
+  it("holds a whole guide turn inside one transcript line", () => {
+    expect(NPC_REACTION_MAX.guide + NPC_QUESTION_MAX).toBeLessThan(
+      NPC_LINE_MAX,
+    );
   });
 });
 

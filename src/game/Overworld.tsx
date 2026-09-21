@@ -6,6 +6,7 @@ import { juryForDay, type Jury } from "@shared/juries";
 import { NO_VOTE_MULTIPLIER } from "@shared/scoring";
 import {
   ARTIST,
+  GUIDE,
   JUKEBOX,
   JURY,
   MAP_H,
@@ -21,7 +22,7 @@ import {
   type Direction,
   type Point,
 } from "@shared/map";
-import { NPC_NAME, NPC_SAID_MAX } from "@shared/npc";
+import { NPC_NAMES, NPC_SAID_MAX, type NpcKind } from "@shared/npc";
 import { ArchiveDialog } from "@/components/ArchiveDialog";
 import { BallotOverlay } from "@/components/BallotOverlay";
 import { EventOverlay } from "@/components/EventOverlay";
@@ -50,6 +51,7 @@ import { KEY_DIRS, isCancelKey, isConfirmKey, isSelectKey } from "@/game/keys";
 import { MENU_ITEMS, visibleItems, type MenuItemId } from "@/game/menu";
 import {
   ARTIST_SPRITE,
+  GUIDE_SPRITE,
   NEIGHBOUR_SPRITE,
   npcSprite,
   PLAYER_H,
@@ -103,7 +105,7 @@ import { readApiError } from "@/lib/api";
 import { noVoteWarning } from "@/lib/ballot";
 import { IMAGE_ACCEPT } from "@/lib/image";
 import { isCabinetLit } from "@/lib/jukebox";
-import { SAY_MY_OWN } from "@/lib/npc-chat";
+import { CHAT_COPY } from "@/lib/npc-chat";
 import { deleteSnap, juryGapOn } from "@/lib/photos";
 import { installInstructions, promptInstall } from "@/lib/pwa";
 import {
@@ -133,8 +135,8 @@ type Dialog =
   | { kind: "avatar-splash"; state: AvatarState }
   | { kind: "trophy" }
   | { kind: "jukebox" }
-  | { kind: "chat" }
-  | { kind: "chat-say" }
+  | { kind: "chat"; who: NpcKind }
+  | { kind: "chat-say"; who: NpcKind }
   /** `warning` is the jury's gap, read once when the host picks START rather than held
    * live: it is an admin read, and the only moment it changes anything is this one. */
   | { kind: "confirm"; action: HostAction; warning?: string }
@@ -302,13 +304,21 @@ function neighbor(pos: Point, dir: Direction): Point {
 }
 
 type Interactable =
-  "jury" | "voting" | "artist" | "neighbour" | "shelf" | "trophy" | "jukebox";
+  | "jury"
+  | "voting"
+  | "artist"
+  | "neighbour"
+  | "guide"
+  | "shelf"
+  | "trophy"
+  | "jukebox";
 
 function interactableAt(p: Point): Interactable | null {
   if (p.x === JURY.x && p.y === JURY.y) return "jury";
   if (p.x === VOTING.x && p.y === VOTING.y) return "voting";
   if (p.x === ARTIST.x && p.y === ARTIST.y) return "artist";
   if (p.x === NEIGHBOUR.x && p.y === NEIGHBOUR.y) return "neighbour";
+  if (p.x === GUIDE.x && p.y === GUIDE.y) return "guide";
   if (p.x === SHELF.x && p.y === SHELF.y) return "shelf";
   if (p.x === TROPHY.x && p.y === TROPHY.y) return "trophy";
   if (p.x === JUKEBOX.x && p.y === JUKEBOX.y) return "jukebox";
@@ -319,7 +329,8 @@ const OPENS: Record<Interactable, Dialog> = {
   jury: { kind: "talk" },
   voting: { kind: "votetalk" },
   artist: { kind: "artist" },
-  neighbour: { kind: "chat" },
+  neighbour: { kind: "chat", who: "neighbour" },
+  guide: { kind: "chat", who: "guide" },
   shelf: { kind: "archive" },
   trophy: { kind: "trophy" },
   jukebox: { kind: "jukebox" },
@@ -360,8 +371,12 @@ function promptFor(
         : "A· SIGN IN FOR AN AVATAR";
     case "neighbour":
       return signedIn
-        ? `A· TALK TO ${NPC_NAME.toUpperCase()}`
-        : `A· SIGN IN TO TALK TO ${NPC_NAME.toUpperCase()}`;
+        ? `A· TALK TO ${NPC_NAMES.neighbour.toUpperCase()}`
+        : `A· SIGN IN TO TALK TO ${NPC_NAMES.neighbour.toUpperCase()}`;
+    case "guide":
+      return signedIn
+        ? `A· ASK ${NPC_NAMES.guide.toUpperCase()} ABOUT THE TRIP`
+        : `A· SIGN IN TO ASK ${NPC_NAMES.guide.toUpperCase()}`;
     case "shelf":
       return signedIn
         ? "A· READ THE ARCHIVE"
@@ -439,7 +454,7 @@ export function Overworld() {
   const champion = useChampion(gameState?.day);
   const town = useTownAvatars();
   const chat = useNpcChat(
-    dialog?.kind === "chat" || dialog?.kind === "chat-say",
+    dialog?.kind === "chat" || dialog?.kind === "chat-say" ? dialog.who : null,
   );
   const jukebox = useJukebox();
   useRecordPlayback(jukebox, muted);
@@ -872,7 +887,9 @@ export function Overworld() {
                   cancel,
                 ],
         };
-      case "chat":
+      case "chat": {
+        const { who } = dialog;
+        const copy = CHAT_COPY[who];
         return {
           id: chat.id,
           pages: chat.pages,
@@ -882,17 +899,18 @@ export function Overworld() {
                 ...chat.options.map((option) => ({
                   label: option,
                   onPick:
-                    option === SAY_MY_OWN
+                    option === copy.sayMyOwn
                       ? () => {
-                          setDialog({ kind: "chat-say" });
+                          setDialog({ kind: "chat-say", who });
                         }
                       : () => {
                           chat.send(option);
                         },
                 })),
-                { label: "Goodbye", onPick: closeDialog },
+                { label: copy.goodbye, onPick: closeDialog },
               ],
         };
+      }
       case "votetalk":
         return {
           id: "votetalk",
@@ -1153,6 +1171,12 @@ export function Overworld() {
           y: NEIGHBOUR.y * TILE,
           label: null,
         },
+        {
+          img: npcSprite(GUIDE_SPRITE, true),
+          x: centered(GUIDE.x * TILE),
+          y: GUIDE.y * TILE,
+          label: null,
+        },
         ...[...roster.current.values()].map((friend) => {
           const pose = poseAt(friend, friend.stride, now);
           return {
@@ -1324,7 +1348,7 @@ export function Overworld() {
                   onSay={chat.send}
                   maxLength={NPC_SAID_MAX}
                   onClose={() => {
-                    setDialog({ kind: "chat" });
+                    setDialog({ kind: "chat", who: dialog.who });
                   }}
                 />
               ) : dialogue === null ? (
