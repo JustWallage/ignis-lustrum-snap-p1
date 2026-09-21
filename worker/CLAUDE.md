@@ -133,17 +133,16 @@
   object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
   500, and the console's describe REFUSES a row whose object has gone rather than reading an empty
   image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
-- **Two Gemini keys, and the order depends on WHAT is being asked.** `juryKeys` (`lib/gemini.ts`)
-  returns the keys a call may spend IN ORDER, off `SPEND_ORDER`'s three lists, and only a 429 moves
-  down one. `default` is `GEMINI_API_KEY` then `GEMINI_API_KEY_PAID`, and the day's ranking takes
-  it: that is ONE call a day, so the free tier's cap is not what it is up against.
-  **`describing` is REVERSED — the billed key first** — because a day is fourteen images, one per
-  upload, and that burst is what spends the free tier's PER-MINUTE cap and left snaps carrying
-  nothing the jury could read. It is an order and not a choice: the free key stays behind it, where
-  a 429 on the billed project can still reach it and a description beats none. `describing` is the
-  app's own rule and is NOT on the wire — `jurySpendSchema` has only the two an operator may ask
-  for, and `describePhoto` reads a missing `spend` as it. A manual `billed` run is the third list,
-  holding the billed key alone. `lib/avatar.ts` still hands
+- **Two Gemini keys, and the BILLED one goes first.** `juryKeys` (`lib/gemini.ts`) returns the keys
+  a call may spend IN ORDER, off `SPEND_ORDER`, and every jury call — the upload's describe, the
+  console's describe, the day's ranking, the bench — takes `GEMINI_API_KEY_PAID` and then
+  `GEMINI_API_KEY`. It used to run the other way round, and what that cost was a day of photographs
+  carrying nothing the jury could read: describing is one call per UPLOAD, fourteen to a day, and
+  that burst is exactly what the free tier's PER-MINUTE cap refuses. The free key is kept BEHIND
+  rather than dropped, because the only way to reach it is a 429 on the billed project, where a
+  description on the free key beats none. A manual `billed` run is the second list and holds the
+  billed key alone: what it drops is that FALLBACK, for the press made when the free key is known
+  to be spent. `lib/avatar.ts` still hands
   `requestAvatar` the billed key ALONE, and the single-element list is the rule rather than a
   convention: a photograph drawn on the free key is the half of the split that stays, because the
   billed key going quiet is a player reading "offline" and not a bill. **Only a 429 moves down the
@@ -267,20 +266,20 @@
   model is an ALLOWLIST in `shared/api.ts` (`JURY_MODELS`) rather than a free string, because what
   a browser sends there is a model name the worker pays Google to run; GA text-and-vision ids only,
   no preview (withdrawn without notice) and no `*-image` (answers with a picture, not the JSON both
-  calls parse). `spend: "billed"` is the operator taking the bill on ONE press — it hands
-  `juryKeys` a list of one, so a billed run cannot quietly fall back to the free key it was told
-  to skip, which is the only thing it changes for a DESCRIBE, since reading a photograph already
-  reaches for the billed key first. There is no `free` option, since refusing the fallback gets
-  less work done for no saving (a 429 is free either way). The schema is `.nullish()` because a POST with no body is the
+  calls parse). `spend: "billed"` hands `juryKeys` a list of one. Since the billed
+  key is already first for everything, the ONLY thing it changes is the fallback: a plain run may
+  walk on to the free key when the billed project 429s, a billed one may not. There is no `free`
+  option, because a run that refused to reach the billed key would be the failure this whole order
+  exists to stop. The schema is `.nullish()` because a POST with no body is the
   common case and `parseJsonBody` answers null for it, and both routes refuse an unknown override
   with the one `REFUSED_RUN` line. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list
   together.
   **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
   with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
   and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing
-  broadcast — so a bench press cannot touch a day and appears in no estimate. It reads the jury's
-  own `GEMINI_API_KEY`, never the avatar machine's `GEMINI_API_KEY_PAID`, answers a readable
-  "offline" without one, and sits behind `rateLimiter` because a billed multimodal call with a
+  broadcast — so a bench press cannot touch a day and appears in no estimate. It spends `juryKeys` like
+  every other jury call, answers a readable "offline" with no key at all, and sits behind
+  `rateLimiter` because a billed multimodal call with a
   button in front of it is a button somebody holds down.
 - `/api/test/*` 404s outside local/e2e, failing closed on an unknown `ENVIRONMENT`. Each route
   exists because its state is otherwise unreachable; `reset` winds the stored event AND its pending

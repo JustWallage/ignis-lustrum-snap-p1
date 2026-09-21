@@ -52,33 +52,25 @@ describe("juryRunSchema", () => {
 describe("juryKeys", () => {
   const both = { GEMINI_API_KEY: "free", GEMINI_API_KEY_PAID: "billed" };
 
-  // The day's ranking is ONE call, so the free tier's cap is not what it is up
-  // against and taking the free key first costs it nothing.
-  it("spends the free key first and the billed one behind it", () => {
-    expect(juryKeys(both)).toEqual(["free", "billed"]);
-    expect(juryKeys(both, "default")).toEqual(["free", "billed"]);
+  // Billed FIRST, for every call the jury makes. It used to be the other way round,
+  // and what that cost was a day of photographs carrying nothing the jury could read:
+  // describing is one call per upload, which is the burst the free tier's per-minute
+  // cap refuses. The free key stays behind it as the only thing a 429 can reach.
+  it("spends the billed key first and keeps the free one behind it", () => {
+    expect(juryKeys(both)).toEqual(["billed", "free"]);
+    expect(juryKeys(both, "default")).toEqual(["billed", "free"]);
   });
 
-  // Reading photographs is fourteen images a day, which is the burst that spends the
-  // free tier's per-minute cap — so that one direction is REVERSED, and the free key
-  // stays behind it as the only thing a 429 on the billed project can reach.
-  it("reads a photograph on the billed key, free behind it", () => {
-    expect(juryKeys(both, "describing")).toEqual(["billed", "free"]);
-  });
-
-  // A list of ONE: `askEveryKey` walks it in order, so a billed run carrying the free
-  // key behind it would fall BACK to the very key the operator paid to skip.
-  it("hands a billed run the billed key and nothing to fall back to", () => {
+  // A list of ONE: `askEveryKey` walks it in order, so the fallback is the only thing
+  // this drops — which is the press made when the free key is known to be spent.
+  it("hands a billed run nothing to fall back to", () => {
     expect(juryKeys(both, "billed")).toEqual(["billed"]);
   });
 
   it("drops a key that is unset or empty rather than asking with it", () => {
+    // The free key alone still works: the order is an ORDER, and an order over one
+    // key is that key.
     expect(juryKeys({ GEMINI_API_KEY: "free" })).toEqual(["free"]);
-    // The free key alone still describes: the reversal is an ORDER, and an order over
-    // one key is that key.
-    expect(juryKeys({ GEMINI_API_KEY: "free" }, "describing")).toEqual([
-      "free",
-    ]);
     expect(juryKeys({ GEMINI_API_KEY: "free" }, "billed")).toEqual([]);
     expect(juryKeys({ GEMINI_API_KEY: "", GEMINI_API_KEY_PAID: "" })).toEqual(
       [],

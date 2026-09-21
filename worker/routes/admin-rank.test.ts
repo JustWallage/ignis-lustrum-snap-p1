@@ -15,6 +15,8 @@ import {
   DESCRIBING,
   eventAction,
   geminiCallAsking,
+  geminiCallsAsking,
+  geminiDayReply,
   geminiReply,
   JURY_KEY,
   keyOf,
@@ -346,25 +348,42 @@ describe("the operator's run for the whole day", () => {
     );
   });
 
-  // A whole day is the run where the choice pays: re-reading fourteen snaps on a free
-  // key whose day is gone is fourteen 429s, and the operator is standing at the button
-  // that spends the bill instead.
-  it("spends the billed key alone when the operator asked for it", async () => {
+  // The billed key is the app's rule for every jury call, so what the operator's
+  // choice actually decides is the FALLBACK: a plain run may reach the free key on a
+  // 429, a billed one may not.
+  it("asks on the billed key either way, and only a plain run may fall back", async () => {
     const cookie = await rankableDay();
     const fetched = stubGeminiDay();
 
-    expect(
-      (await postRank(cookie, 1, withGeminiKey(), { spend: "billed" })).status,
-    ).toBe(200);
+    expect((await postRank(cookie, 1)).status).toBe(200);
     expect(keyOf(geminiCallAsking(fetched.mock.calls, RANKING).init)).toBe(
       PAID_KEY,
     );
 
-    const plain = stubGeminiDay();
+    // The billed project is out. A plain run walks on to the free key; a billed one
+    // has nowhere to walk to and takes the failure.
+    const spent = (url: string, init: RequestInit) =>
+      keyOf(init) === PAID_KEY
+        ? new Response("quota", { status: 429 })
+        : geminiDayReply(url, init);
+
+    const plain = stubGemini(spent);
     expect((await postRank(cookie, 1)).status).toBe(200);
-    expect(keyOf(geminiCallAsking(plain.mock.calls, RANKING).init)).toBe(
-      JURY_KEY,
-    );
+    expect(
+      geminiCallsAsking(plain.mock.calls, RANKING).map(({ init }) =>
+        keyOf(init),
+      ),
+    ).toEqual([PAID_KEY, JURY_KEY]);
+
+    const billed = stubGemini(spent);
+    expect(
+      (await postRank(cookie, 1, withGeminiKey(), { spend: "billed" })).status,
+    ).toBe(200);
+    expect(
+      geminiCallsAsking(billed.mock.calls, RANKING).map(({ init }) =>
+        keyOf(init),
+      ),
+    ).toEqual([PAID_KEY]);
   });
 
   it("refuses an override the jury has no name for, and asks nobody", async () => {

@@ -243,12 +243,11 @@
   `no-unnecessary-condition` narrows to `false` after the reset assignment.) The **model and key dropdowns**
   beside it ride on every manual press from this panel and nothing else; a field left on its
   default is OMITTED from the body rather than sent, so a plain press sends the same empty body
-  every other caller does and the route reads it as the app's own default. Its default is the
-  app's own rule for that run and not a key — DESCRIBING already reaches for the billed key first,
-  RANKING does not — so a plain press reads a photograph exactly as an upload does. Picking the
-  billed key takes the bill on one press and drops the fallback with it, because a billed run that
-  quietly spent the free key would be the console answering a question the operator already
-  answered.
+  every other caller does and the route reads it as the app's own default. The app already
+  reaches for the BILLED key first everywhere, so what the key one decides is the FALLBACK: its
+  default may walk on to the free key when the billed project 429s, and `Billed only` may not —
+  the press made when the free key is known to be spent and falling back to it is a request
+  nobody wanted answered.
 - **The public gallery is the THIRD** (`/gallery`, `gallery/PublicGallery.tsx`), quarantined the
   same way under `pub-`, and it is the strictest of the three: `App` mounts it with **no
   `AuthProvider` at all**, so a page that never asks `/api/me` cannot start showing more to somebody
