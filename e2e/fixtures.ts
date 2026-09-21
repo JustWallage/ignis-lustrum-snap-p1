@@ -460,14 +460,28 @@ export const USERS = {
   judge: "judge-password-123",
 } as const;
 
+/**
+ * POLLED, for the reason `seedUsers` is: signing in is the first thing nearly every
+ * spec does, so it is the request that meets a Worker deployed seconds ago — and a
+ * single 5xx from a cold isolate failed tests that had not begun, in specs that were
+ * never about signing in. It still has to reach a 2xx; it is merely allowed to take
+ * a second attempt to get there.
+ */
 export async function apiSignIn(
   page: Page,
   name: keyof typeof USERS = "tester",
 ): Promise<void> {
-  const login = await page.request.post("/api/login", {
-    data: { name, password: USERS[name] },
-  });
-  expect(login.ok()).toBeTruthy();
+  await expect
+    .poll(
+      async () =>
+        (
+          await page.request.post("/api/login", {
+            data: { name, password: USERS[name] },
+          })
+        ).ok(),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 }
 
 export async function apiUpload(

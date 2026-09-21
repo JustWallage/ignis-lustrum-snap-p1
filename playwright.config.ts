@@ -64,8 +64,23 @@ const EVENT_SPECS = [
 
 const chrome = { ...devices["Desktop Chrome"] };
 
+/**
+ * The BUDGETS are the difference between these two projects, not just the server.
+ * Every request here is a round trip to Cloudflare, where `sharded` below talks to a
+ * workerd on the same machine — so the same spec does the same work against a clock
+ * that was sized for localhost. Three separate CI failures on commits touching no app
+ * code were all exactly that, and nothing else: a test whose whole 30s went before a
+ * click's own auto-wait could finish, `seedUsers` polling for 30s inside a test budget
+ * of the same 30s (so the poll could never spend itself and a cold Worker's 503 was
+ * fatal on the first try), and a 5s `expect` on a value that arrives over a socket.
+ * Raised for the DEPLOYED run ONLY: locally the tight numbers are honest, and a slow
+ * test there is a real one. Nothing is retried or skipped by this — a broken
+ * assertion fails exactly as it did, it just is not raced by the network.
+ */
 const deployed = {
   workers: shards,
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
   projects: [
     { name: "event", testMatch: EVENT_SPECS, use: chrome },
     { name: "town", testIgnore: EVENT_SPECS, use: chrome },
