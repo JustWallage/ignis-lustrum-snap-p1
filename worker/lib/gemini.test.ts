@@ -52,9 +52,18 @@ describe("juryRunSchema", () => {
 describe("juryKeys", () => {
   const both = { GEMINI_API_KEY: "free", GEMINI_API_KEY_PAID: "billed" };
 
+  // The day's ranking is ONE call, so the free tier's cap is not what it is up
+  // against and taking the free key first costs it nothing.
   it("spends the free key first and the billed one behind it", () => {
     expect(juryKeys(both)).toEqual(["free", "billed"]);
     expect(juryKeys(both, "default")).toEqual(["free", "billed"]);
+  });
+
+  // Reading photographs is fourteen images a day, which is the burst that spends the
+  // free tier's per-minute cap — so that one direction is REVERSED, and the free key
+  // stays behind it as the only thing a 429 on the billed project can reach.
+  it("reads a photograph on the billed key, free behind it", () => {
+    expect(juryKeys(both, "describing")).toEqual(["billed", "free"]);
   });
 
   // A list of ONE: `askEveryKey` walks it in order, so a billed run carrying the free
@@ -65,6 +74,11 @@ describe("juryKeys", () => {
 
   it("drops a key that is unset or empty rather than asking with it", () => {
     expect(juryKeys({ GEMINI_API_KEY: "free" })).toEqual(["free"]);
+    // The free key alone still describes: the reversal is an ORDER, and an order over
+    // one key is that key.
+    expect(juryKeys({ GEMINI_API_KEY: "free" }, "describing")).toEqual([
+      "free",
+    ]);
     expect(juryKeys({ GEMINI_API_KEY: "free" }, "billed")).toEqual([]);
     expect(juryKeys({ GEMINI_API_KEY: "", GEMINI_API_KEY_PAID: "" })).toEqual(
       [],

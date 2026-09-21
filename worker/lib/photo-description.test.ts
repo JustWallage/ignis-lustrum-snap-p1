@@ -119,7 +119,7 @@ describe("the photograph's description", () => {
 
     expect(url).toContain(`/${GEMINI_MODEL}:generateContent`);
     expect(z.record(z.string(), z.string()).parse(init.headers)).toMatchObject({
-      "x-goog-api-key": "test-key",
+      "x-goog-api-key": PAID_KEY,
     });
   });
 
@@ -250,9 +250,25 @@ describe("the photograph's description", () => {
     expect(geminiCallsAsking(fetched.mock.calls, DESCRIBING)).toHaveLength(2);
   });
 
-  it("moves to the billed key when the free one's quota is gone, and not before", async () => {
+  // Reading a photograph goes to the BILLED key first — fourteen images a day is the
+  // burst that spends the free tier's per-minute cap, which is what left snaps with
+  // nothing the jury could read. Nothing else in the app reaches for it unasked.
+  it("reads a photograph on the billed key without being asked to", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+
+    expect((await storedDescription(id))?.status).toBe("ok");
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
+        keyOf(init),
+      ),
+    ).toEqual([PAID_KEY]);
+  });
+
+  it("falls back to the free key when the billed one's quota is gone, and not before", async () => {
     const fetched = stubGemini((_url, init) =>
-      keyOf(init) === JURY_KEY
+      keyOf(init) === PAID_KEY
         ? quotaSpent()
         : geminiReply(JSON.stringify(DESCRIBED)),
     );
@@ -262,15 +278,17 @@ describe("the photograph's description", () => {
     const stored = await storedDescription(id);
     expect(stored?.status).toBe("ok");
     expect(stored?.failure).toBeNull();
-    // The free key FIRST and exactly once, then the billed one: an order, not a choice.
+    // The billed key FIRST and exactly once, then the free one: an order, not a choice.
+    // It is kept BEHIND rather than dropped because a 429 on the billed project is the
+    // one place the free key is better than no description at all.
     expect(
       geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
         keyOf(init),
       ),
-    ).toEqual([JURY_KEY, PAID_KEY]);
+    ).toEqual([PAID_KEY, JURY_KEY]);
   });
 
-  it("keeps the billed key out of every refusal a second key cannot answer", async () => {
+  it("keeps the second key out of every refusal it cannot answer", async () => {
     for (const [why, reply] of [
       ["a 400", () => new Response("{}", { status: 400 })],
       ["a 503 on every attempt", () => new Response("busy", { status: 503 })],
@@ -285,7 +303,7 @@ describe("the photograph's description", () => {
           keyOf(init),
         ),
       );
-      expect([...spent], why).toEqual([JURY_KEY]);
+      expect([...spent], why).toEqual([PAID_KEY]);
       vi.unstubAllGlobals();
       await resetWorld();
     }
@@ -303,7 +321,7 @@ describe("the photograph's description", () => {
       geminiCallsAsking(fetched.mock.calls, DESCRIBING).map(({ init }) =>
         keyOf(init),
       ),
-    ).toEqual([JURY_KEY, PAID_KEY]);
+    ).toEqual([PAID_KEY, JURY_KEY]);
   });
 
   it("does not spend a button press three times on a quota that reopens on the day", async () => {
@@ -548,28 +566,10 @@ describe("the operator's key override", () => {
     vi.unstubAllGlobals();
   });
 
-  // The whole point of the choice: a day re-read on a free key whose quota is gone is
-  // fourteen 429s, so the console can skip the key it already knows is spent. It is a
-  // list of ONE and not a reordering — a billed run that quietly fell back to the free
-  // key would be the console answering a question the operator already answered.
-  it("spends the billed key alone, without asking the free one first", async () => {
-    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
-    const cookie = await signIn();
-    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
-    const before = geminiCallsAsking(fetched.mock.calls, DESCRIBING).length;
-
-    expect(
-      (await describeAgain(cookie, id, withGeminiKey(), { spend: "billed" }))
-        .status,
-    ).toBe(200);
-    expect(
-      geminiCallsAsking(fetched.mock.calls, DESCRIBING)
-        .slice(before)
-        .map(({ init }) => keyOf(init)),
-    ).toEqual([PAID_KEY]);
-  });
-
-  it("takes the free key first when nothing asked for the billed one", async () => {
+  // `default` on the wire is the app's own rule for the run, not the free key: for a
+  // photograph that rule already reaches for the billed one, so leaving the dropdown
+  // alone describes exactly as an upload does.
+  it("reads the console's plain press the way an upload reads", async () => {
     const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
     const cookie = await signIn();
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
@@ -583,7 +583,31 @@ describe("the operator's key override", () => {
       geminiCallsAsking(fetched.mock.calls, DESCRIBING)
         .slice(before)
         .map(({ init }) => keyOf(init)),
-    ).toEqual([JURY_KEY]);
+    ).toEqual([PAID_KEY]);
+  });
+
+  // The billed key ALONE: the fallback an unasked describe carries is what the
+  // operator is switching off, so a 429 here must not reach the free key.
+  it("gives a billed run nothing to fall back to", async () => {
+    const fetched = stubGemini((_url, init) =>
+      keyOf(init) === PAID_KEY
+        ? quotaSpent()
+        : geminiReply(JSON.stringify(DESCRIBED)),
+    );
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const before = geminiCallsAsking(fetched.mock.calls, DESCRIBING).length;
+
+    expect(
+      (await describeAgain(cookie, id, withGeminiKey(), { spend: "billed" }))
+        .status,
+    ).toBe(200);
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING)
+        .slice(before)
+        .map(({ init }) => keyOf(init)),
+    ).toEqual([PAID_KEY]);
+    expect((await storedDescription(id))?.status).toBe("failed");
   });
 
   it("refuses a key the jury has no name for", async () => {

@@ -115,32 +115,48 @@ export interface JuryKeyring {
 }
 
 /**
- * The keys the jury may spend, IN THE ORDER IT SPENDS THEM: the free one first, the
- * billed one only where the free one's daily quota is gone. The free tier's cap is per
- * Google project, so the billed key's own project is the one thing that answers a 429 —
- * which is why this is an ordered list and not a choice.
+ * The keys a call may spend, IN THE ORDER IT SPENDS THEM. Only a 429 moves down a list
+ * (`askEveryKey`), because the free tier's cap is scoped to a Google PROJECT and the
+ * billed key's own project is the one thing that answers it.
  *
- * `billed` is the ONE thing that reorders it, and only an operator pressing a button on
- * the console can ask for it: a whole day re-read on the free key after its quota is
- * gone is fourteen 429s, and the console is where somebody is standing who can decide
- * that the bill is worth it. It is a list of ONE, the same shape `lib/avatar.ts` hands
- * `requestAvatar`, so there is no falling BACK to the free key — asking for the billed
- * key and silently getting the other one is the opposite of a decision.
+ * - `default` — free first. The whole-day ranking runs on it: that is ONE call a day,
+ *   so the free tier's cap is not what it is up against and the saving is free.
+ * - `describing` — BILLED first. A day is fourteen images, one per upload, which is the
+ *   burst that spends the free tier's per-minute cap and left snaps carrying nothing
+ *   the jury could read. The free key stays BEHIND it rather than being dropped: it can
+ *   only ever be reached by a 429 on the billed project, where it is strictly better
+ *   than no description at all.
+ * - `billed` — the billed key ALONE, and only an operator pressing a button on the
+ *   console can ask for it. The same shape `lib/avatar.ts` hands `requestAvatar`, with
+ *   no falling BACK, because asking for the billed key and silently getting the other
+ *   one is the opposite of a decision.
  *
  * Only HALF of the old split is gone. Nothing hands these to `requestAvatar`: a
  * photograph drawn on the free key is still the bug the split exists to prevent, and
  * that direction has no fallback because the billed key going quiet is a player reading
  * "offline", not a bill.
  */
+const SPEND_ORDER = {
+  default: ["GEMINI_API_KEY", "GEMINI_API_KEY_PAID"],
+  describing: ["GEMINI_API_KEY_PAID", "GEMINI_API_KEY"],
+  billed: ["GEMINI_API_KEY_PAID"],
+} as const satisfies Record<
+  JurySpend | "describing",
+  readonly (keyof JuryKeyring)[]
+>;
+
+/** The wire's two plus the one nothing may ask for: `describing` is the app's own rule
+ * for a photograph, not a choice a browser makes. */
+export type KeySpend = keyof typeof SPEND_ORDER;
+
 export function juryKeys(
   env: JuryKeyring,
-  spend: JurySpend = "default",
+  spend: KeySpend = "default",
 ): string[] {
-  const keys =
-    spend === "billed"
-      ? [env.GEMINI_API_KEY_PAID]
-      : [env.GEMINI_API_KEY, env.GEMINI_API_KEY_PAID];
-  return keys.flatMap((key) => (key === undefined || key === "" ? [] : [key]));
+  return SPEND_ORDER[spend].flatMap((name) => {
+    const key = env[name];
+    return key === undefined || key === "" ? [] : [key];
+  });
 }
 
 /** base64, not bytes: the shape a Gemini inline-data part has to arrive in. */

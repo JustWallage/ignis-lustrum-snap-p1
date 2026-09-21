@@ -133,10 +133,17 @@
   object-delete, so the only thing that can leak is an orphan. A missing object is a 404, never a
   500, and the console's describe REFUSES a row whose object has gone rather than reading an empty
   image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
-- **Two Gemini keys, and the fallback runs ONE WAY.** `juryKeys` (`lib/gemini.ts`) returns the
-  keys the jury may spend IN ORDER — `GEMINI_API_KEY` first, `GEMINI_API_KEY_PAID` only where the
-  free one's quota is gone — and the three jury calls take that list. A manual run's `spend`
-  is the ONE thing that reorders it, into a list holding the billed key alone. `lib/avatar.ts` still hands
+- **Two Gemini keys, and the order depends on WHAT is being asked.** `juryKeys` (`lib/gemini.ts`)
+  returns the keys a call may spend IN ORDER, off `SPEND_ORDER`'s three lists, and only a 429 moves
+  down one. `default` is `GEMINI_API_KEY` then `GEMINI_API_KEY_PAID`, and the day's ranking takes
+  it: that is ONE call a day, so the free tier's cap is not what it is up against.
+  **`describing` is REVERSED — the billed key first** — because a day is fourteen images, one per
+  upload, and that burst is what spends the free tier's PER-MINUTE cap and left snaps carrying
+  nothing the jury could read. It is an order and not a choice: the free key stays behind it, where
+  a 429 on the billed project can still reach it and a description beats none. `describing` is the
+  app's own rule and is NOT on the wire — `jurySpendSchema` has only the two an operator may ask
+  for, and `describePhoto` reads a missing `spend` as it. A manual `billed` run is the third list,
+  holding the billed key alone. `lib/avatar.ts` still hands
   `requestAvatar` the billed key ALONE, and the single-element list is the rule rather than a
   convention: a photograph drawn on the free key is the half of the split that stays, because the
   billed key going quiet is a player reading "offline" and not a bill. **Only a 429 moves down the
@@ -262,8 +269,9 @@
   no preview (withdrawn without notice) and no `*-image` (answers with a picture, not the JSON both
   calls parse). `spend: "billed"` is the operator taking the bill on ONE press — it hands
   `juryKeys` a list of one, so a billed run cannot quietly fall back to the free key it was told
-  to skip — and there is no `free` option, since refusing the fallback gets less work done for no
-  saving (a 429 is free either way). The schema is `.nullish()` because a POST with no body is the
+  to skip, which is the only thing it changes for a DESCRIBE, since reading a photograph already
+  reaches for the billed key first. There is no `free` option, since refusing the fallback gets
+  less work done for no saving (a 429 is free either way). The schema is `.nullish()` because a POST with no body is the
   common case and `parseJsonBody` answers null for it, and both routes refuse an unknown override
   with the one `REFUSED_RUN` line. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list
   together.

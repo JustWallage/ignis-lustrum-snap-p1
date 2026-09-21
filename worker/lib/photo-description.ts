@@ -75,7 +75,12 @@ export async function describePhoto(
   // BEFORE the call, or a pass the runtime tears down mid-flight writes nothing and the
   // console cannot tell it from a pass that never started.
   if (!(await claimDescription(db, photo.id))) return "gone";
-  const keys = juryKeys(env, run.spend);
+  // `describing` and not the app-wide default: a photograph is the one call that comes
+  // fourteen to a day, and the free tier's per-minute cap is what left them unread. The
+  // wire's `default` lands here too, because it MEANS the app's own rule for the run —
+  // sending it and omitting it have to be the same press, or the console has two ways
+  // to say "nothing special" that spend different keys.
+  const keys = juryKeys(env, run.spend === "billed" ? "billed" : "describing");
   let described: string | null = null;
   let failure: string | null = NO_KEY;
   if (keys.length > 0) {

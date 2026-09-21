@@ -119,8 +119,9 @@ export function SnapsPanel({
   // sends: the route reads a missing model as no override rather than as a choice.
   const [model, setModel] = useState<JuryModel | "">("");
   // The same shape as the model above: `default` is what every other caller sends by
-  // sending nothing, and picking the billed key is the operator saying the bill is
-  // worth it for THIS press.
+  // sending nothing, which is the app's own rule for that run rather than one key —
+  // reading a photograph already reaches for the billed key, ranking a day does not.
+  // Picking the billed key is the operator saying the bill is worth it for THIS press.
   const [spend, setSpend] = useState<JurySpend>("default");
   // A GENERATION rather than a boolean: the sweep below reads it between awaits, and a
   // state value captured in that closure would still say "go" after Stop. Bumping it is
@@ -359,7 +360,7 @@ export function SnapsPanel({
               setSpend(event.target.value === "billed" ? "billed" : "default");
             }}
           >
-            <option value="default">Free key first</option>
+            <option value="default">Default</option>
             <option value="billed">Billed key</option>
           </select>
         </label>
