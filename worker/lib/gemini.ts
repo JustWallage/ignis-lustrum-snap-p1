@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { JurySpend } from "../../shared/api";
 import type { Jury } from "../../shared/juries";
 import { AI_SCORE_MAX } from "../../shared/scoring";
 
@@ -119,15 +120,27 @@ export interface JuryKeyring {
  * Google project, so the billed key's own project is the one thing that answers a 429 —
  * which is why this is an ordered list and not a choice.
  *
+ * `billed` is the ONE thing that reorders it, and only an operator pressing a button on
+ * the console can ask for it: a whole day re-read on the free key after its quota is
+ * gone is fourteen 429s, and the console is where somebody is standing who can decide
+ * that the bill is worth it. It is a list of ONE, the same shape `lib/avatar.ts` hands
+ * `requestAvatar`, so there is no falling BACK to the free key — asking for the billed
+ * key and silently getting the other one is the opposite of a decision.
+ *
  * Only HALF of the old split is gone. Nothing hands these to `requestAvatar`: a
  * photograph drawn on the free key is still the bug the split exists to prevent, and
  * that direction has no fallback because the billed key going quiet is a player reading
  * "offline", not a bill.
  */
-export function juryKeys(env: JuryKeyring): string[] {
-  return [env.GEMINI_API_KEY, env.GEMINI_API_KEY_PAID].flatMap((key) =>
-    key === undefined || key === "" ? [] : [key],
-  );
+export function juryKeys(
+  env: JuryKeyring,
+  spend: JurySpend = "default",
+): string[] {
+  const keys =
+    spend === "billed"
+      ? [env.GEMINI_API_KEY_PAID]
+      : [env.GEMINI_API_KEY, env.GEMINI_API_KEY_PAID];
+  return keys.flatMap((key) => (key === undefined || key === "" ? [] : [key]));
 }
 
 /** base64, not bytes: the shape a Gemini inline-data part has to arrive in. */

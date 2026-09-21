@@ -66,14 +66,14 @@ async function describeAgain(
   cookie: string,
   id: number,
   bindings: object,
-  model?: string,
+  run?: object,
 ) {
   return app.request(
     `/api/admin/photos/${String(id)}/describe`,
     {
       method: "POST",
       headers: { Cookie: cookie, "Content-Type": "application/json" },
-      ...(model === undefined ? {} : { body: JSON.stringify({ model }) }),
+      ...(run === undefined ? {} : { body: JSON.stringify(run) }),
     },
     bindings,
   );
@@ -511,7 +511,11 @@ describe("the operator's model override", () => {
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
 
     expect(
-      (await describeAgain(cookie, id, withGeminiKey(), PICKED_MODEL)).status,
+      (
+        await describeAgain(cookie, id, withGeminiKey(), {
+          model: PICKED_MODEL,
+        })
+      ).status,
     ).toBe(200);
     expect(fetched.mock.calls.at(-1)?.[0]).toContain(
       `/${PICKED_MODEL}:generateContent`,
@@ -531,12 +535,66 @@ describe("the operator's model override", () => {
     const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
     const before = fetched.mock.calls.length;
 
-    const res = await describeAgain(
-      cookie,
-      id,
-      withGeminiKey(),
-      "gemini-9-ultra",
-    );
+    const res = await describeAgain(cookie, id, withGeminiKey(), {
+      model: "gemini-9-ultra",
+    });
+    expect(res.status).toBe(400);
+    expect(fetched.mock.calls).toHaveLength(before);
+  });
+});
+
+describe("the operator's key override", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // The whole point of the choice: a day re-read on a free key whose quota is gone is
+  // fourteen 429s, so the console can skip the key it already knows is spent. It is a
+  // list of ONE and not a reordering — a billed run that quietly fell back to the free
+  // key would be the console answering a question the operator already answered.
+  it("spends the billed key alone, without asking the free one first", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const before = geminiCallsAsking(fetched.mock.calls, DESCRIBING).length;
+
+    expect(
+      (await describeAgain(cookie, id, withGeminiKey(), { spend: "billed" }))
+        .status,
+    ).toBe(200);
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING)
+        .slice(before)
+        .map(({ init }) => keyOf(init)),
+    ).toEqual([PAID_KEY]);
+  });
+
+  it("takes the free key first when nothing asked for the billed one", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const before = geminiCallsAsking(fetched.mock.calls, DESCRIBING).length;
+
+    expect(
+      (await describeAgain(cookie, id, withGeminiKey(), { spend: "default" }))
+        .status,
+    ).toBe(200);
+    expect(
+      geminiCallsAsking(fetched.mock.calls, DESCRIBING)
+        .slice(before)
+        .map(({ init }) => keyOf(init)),
+    ).toEqual([JURY_KEY]);
+  });
+
+  it("refuses a key the jury has no name for", async () => {
+    const fetched = stubGemini(() => geminiReply(JSON.stringify(DESCRIBED)));
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie, { bindings: withGeminiKey() });
+    const before = fetched.mock.calls.length;
+
+    const res = await describeAgain(cookie, id, withGeminiKey(), {
+      spend: "somebody-elses",
+    });
     expect(res.status).toBe(400);
     expect(fetched.mock.calls).toHaveLength(before);
   });

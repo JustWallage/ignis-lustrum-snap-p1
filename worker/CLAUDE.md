@@ -135,7 +135,8 @@
   image. Nothing else in the console hands Gemini bytes: the jury reads descriptions.
 - **Two Gemini keys, and the fallback runs ONE WAY.** `juryKeys` (`lib/gemini.ts`) returns the
   keys the jury may spend IN ORDER — `GEMINI_API_KEY` first, `GEMINI_API_KEY_PAID` only where the
-  free one's quota is gone — and the three jury calls take that list. `lib/avatar.ts` still hands
+  free one's quota is gone — and the three jury calls take that list. A manual run's `spend`
+  is the ONE thing that reorders it, into a list holding the billed key alone. `lib/avatar.ts` still hands
   `requestAvatar` the billed key ALONE, and the single-element list is the rule rather than a
   convention: a photograph drawn on the free key is the half of the split that stays, because the
   billed key going quiet is a player reading "offline" and not a bill. **Only a 429 moves down the
@@ -253,13 +254,19 @@
   nothing to invalidate; retirement broadcasts `photo_deleted` per snap AND pushes the state, because
   only `state_changed` carries the submission count. The bill is an ESTIMATE computed in the
   worker — Google reports no billing figures — so a price per image never crosses the wire.
-  **Both manual jury routes take an optional `model`** (`juryRunSchema`), and nothing else does:
-  the upload's own describe has no operator behind it to choose one. It is an ALLOWLIST in
-  `shared/api.ts` (`JURY_MODELS`) rather than a free string, because what a browser sends there is
-  a model name the worker pays Google to run; GA text-and-vision ids only, no preview (withdrawn
-  without notice) and no `*-image` (answers with a picture, not the JSON both calls parse). The
-  schema is `.nullish()` because a POST with no body is the common case and `parseJsonBody` answers
-  null for it. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list together.
+  **Both manual jury routes take an optional `model` and an optional `spend`** (`juryRunSchema`,
+  threaded through `describePhoto` and `rankDay` as one `JuryRun` rather than two parameters), and
+  nothing else does: the upload's own describe has no operator behind it to choose either. The
+  model is an ALLOWLIST in `shared/api.ts` (`JURY_MODELS`) rather than a free string, because what
+  a browser sends there is a model name the worker pays Google to run; GA text-and-vision ids only,
+  no preview (withdrawn without notice) and no `*-image` (answers with a picture, not the JSON both
+  calls parse). `spend: "billed"` is the operator taking the bill on ONE press — it hands
+  `juryKeys` a list of one, so a billed run cannot quietly fall back to the free key it was told
+  to skip — and there is no `free` option, since refusing the fallback gets less work done for no
+  saving (a 429 is free either way). The schema is `.nullish()` because a POST with no body is the
+  common case and `parseJsonBody` answers null for it, and both routes refuse an unknown override
+  with the one `REFUSED_RUN` line. `worker/lib/gemini.test.ts` holds `GEMINI_MODEL` and the list
+  together.
   **`POST /api/admin/bench` is the one exception to all of it**: the only Gemini call in the app
   with no snap behind it. It scores a picked image against a jury picked BY INDEX out of `JURIES`
   and stores NOTHING — no `photos` row, no `photo_scores` row, nothing counted, nothing

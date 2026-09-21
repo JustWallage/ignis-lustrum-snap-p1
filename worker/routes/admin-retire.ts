@@ -26,6 +26,10 @@ import { rankDay, readDayRanking } from "../lib/photo-score";
 import { toPhoto } from "../lib/serialize";
 import { EVENT_IS_LIVE } from "./admin-clock";
 
+/** Both manual jury routes refuse an unknown override with this one line, and the
+ * describe route imports it from here because `admin.ts` already imports this file. */
+export const REFUSED_RUN = "That is not a model or a key the jury may spend";
+
 export const adminPhotoRoutes = new Hono<AppEnv>();
 
 export const adminDayRoutes = new Hono<AppEnv>();
@@ -162,12 +166,12 @@ adminDayRoutes.post("/:day/rank", async (c) => {
   if (!asked.success) return c.json({ error: "Not found" }, 404);
   const run = juryRunSchema.safeParse(await parseJsonBody(c.req.raw));
   if (!run.success) {
-    return c.json({ error: "That is not a model the jury may spend" }, 400);
+    return c.json({ error: REFUSED_RUN }, 400);
   }
   if (isEventRunning(await readEventState(c.env))) {
     return c.json({ error: EVENT_IS_LIVE }, 409);
   }
   const db = getDb(c.env);
-  await rankDay(c.env, asked.data, run.data.model);
+  await rankDay(c.env, asked.data, run.data);
   return c.json(dayRankingSchema.parse(await readDayRanking(db, asked.data)));
 });

@@ -234,7 +234,7 @@ test("the console sweeps the day's unread snaps one at a time, live", async ({
   await expect(failed).toHaveCount(3);
 });
 
-test("the console offers the jury's models and defaults to none", async ({
+test("the console offers the jury's models and keys, and defaults to neither", async ({
   page,
 }) => {
   await apiUpload(page, "tester");
@@ -248,6 +248,13 @@ test("the console offers the jury's models and defaults to none", async ({
   await expect(model.locator("option")).toContainText(["Default"]);
   await model.selectOption("gemini-3.6-flash");
   await expect(model).toHaveValue("gemini-3.6-flash");
+
+  // Spending the bill is a CHOICE, so the dropdown opens on the standing rule and the
+  // operator has to move it.
+  const spend = panel.getByTestId("ops-spend");
+  await expect(spend).toHaveValue("default");
+  await spend.selectOption("billed");
+  await expect(spend).toHaveValue("billed");
 });
 
 test("the console warns about the day's unjudged snaps", async ({ page }) => {

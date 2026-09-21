@@ -833,10 +833,15 @@ export async function postRank(
   cookie: string,
   day: number,
   bindings: object = withGeminiKey(),
+  run?: object,
 ): Promise<Response> {
   return app.request(
     `/api/admin/days/${String(day)}/rank`,
-    { method: "POST", headers: { Cookie: cookie } },
+    {
+      method: "POST",
+      headers: { Cookie: cookie, "Content-Type": "application/json" },
+      ...(run === undefined ? {} : { body: JSON.stringify(run) }),
+    },
     bindings,
   );
 }

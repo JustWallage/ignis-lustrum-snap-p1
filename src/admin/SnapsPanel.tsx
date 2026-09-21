@@ -7,6 +7,7 @@ import {
   retirementSchema,
   type DayRanking,
   type JuryModel,
+  type JurySpend,
   type PhotoDescription,
   type PhotoVerdict,
 } from "@shared/api";
@@ -117,6 +118,10 @@ export function SnapsPanel({
   // Empty is "whatever the app runs on", which is what every caller but this dropdown
   // sends: the route reads a missing model as no override rather than as a choice.
   const [model, setModel] = useState<JuryModel | "">("");
+  // The same shape as the model above: `default` is what every other caller sends by
+  // sending nothing, and picking the billed key is the operator saying the bill is
+  // worth it for THIS press.
+  const [spend, setSpend] = useState<JurySpend>("default");
   // A GENERATION rather than a boolean: the sweep below reads it between awaits, and a
   // state value captured in that closure would still say "go" after Stop. Bumping it is
   // what both Stop and a fresh sweep do, so a superseded sweep also stands down instead
@@ -138,9 +143,15 @@ export function SnapsPanel({
 
   const busy = running !== null;
 
-  /** The model rides on EVERY manual press from this panel, and on nothing else: the
-   * upload's own describe has no operator behind it to choose one. */
-  const runBody = () => JSON.stringify(model === "" ? {} : { model });
+  /** The model and the key ride on EVERY manual press from this panel, and on nothing
+   * else: the upload's own describe has no operator behind it to choose either. A
+   * field left on its default is OMITTED rather than sent, so the body a plain press
+   * sends is the empty one every other caller sends. */
+  const runBody = () =>
+    JSON.stringify({
+      ...(model === "" ? {} : { model }),
+      ...(spend === "default" ? {} : { spend }),
+    });
 
   const ask = async (path: string, refused: string): Promise<unknown> => {
     const res = await fetch(path, {
@@ -335,6 +346,21 @@ export function SnapsPanel({
                 {one}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="ops-field">
+          Key
+          <select
+            className="ops-input"
+            data-testid="ops-spend"
+            value={spend}
+            disabled={busy}
+            onChange={(event) => {
+              setSpend(event.target.value === "billed" ? "billed" : "default");
+            }}
+          >
+            <option value="default">Free key first</option>
+            <option value="billed">Billed key</option>
           </select>
         </label>
         <button

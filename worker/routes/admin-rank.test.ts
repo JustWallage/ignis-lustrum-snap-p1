@@ -4,19 +4,26 @@ import {
   apiErrorSchema,
   dayPhotosSchema,
   dayRankingSchema,
+  JURY_MODELS,
 } from "../../shared/api";
 import { app } from "../index";
+import { GEMINI_MODEL } from "../lib/gemini";
 import { NO_KEY } from "../lib/photo-description";
 import { NO_KEY as NO_JURY_KEY } from "../lib/photo-score";
 import {
   DESCRIBED,
   DESCRIBING,
   eventAction,
+  geminiCallAsking,
   geminiReply,
+  JURY_KEY,
+  keyOf,
+  PAID_KEY,
   postRank,
   promptOf,
   RANKED_CRITIQUE,
   rankedScore,
+  RANKING,
   resetWorld,
   setDay,
   signIn,
@@ -300,5 +307,74 @@ describe("the day's jury batch", () => {
     expect(
       dayPhotosSchema.parse(JSON.parse(day)).photos.map((one) => one.aiScore),
     ).toEqual([null]);
+  });
+});
+
+/** Any GA model off the allowlist that is NOT the default, so a run picking one is
+ * being told apart from a run picking nothing. */
+const PICKED_MODEL = JURY_MODELS.find((one) => one !== GEMINI_MODEL) ?? "";
+
+describe("the operator's run for the whole day", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function rankableDay(): Promise<string> {
+    const cookie = await signIn();
+    const id = await uploadPhotoId(cookie);
+    stubGeminiDay();
+    await describeSnap(cookie, id);
+    return cookie;
+  }
+
+  it("asks the model the console picked, and the app's own without one", async () => {
+    const cookie = await rankableDay();
+    const fetched = stubGeminiDay();
+
+    expect(
+      (await postRank(cookie, 1, withGeminiKey(), { model: PICKED_MODEL }))
+        .status,
+    ).toBe(200);
+    expect(geminiCallAsking(fetched.mock.calls, RANKING).url).toContain(
+      `/${PICKED_MODEL}:generateContent`,
+    );
+
+    const plain = stubGeminiDay();
+    expect((await postRank(cookie, 1)).status).toBe(200);
+    expect(geminiCallAsking(plain.mock.calls, RANKING).url).toContain(
+      `/${GEMINI_MODEL}:generateContent`,
+    );
+  });
+
+  // A whole day is the run where the choice pays: re-reading fourteen snaps on a free
+  // key whose day is gone is fourteen 429s, and the operator is standing at the button
+  // that spends the bill instead.
+  it("spends the billed key alone when the operator asked for it", async () => {
+    const cookie = await rankableDay();
+    const fetched = stubGeminiDay();
+
+    expect(
+      (await postRank(cookie, 1, withGeminiKey(), { spend: "billed" })).status,
+    ).toBe(200);
+    expect(keyOf(geminiCallAsking(fetched.mock.calls, RANKING).init)).toBe(
+      PAID_KEY,
+    );
+
+    const plain = stubGeminiDay();
+    expect((await postRank(cookie, 1)).status).toBe(200);
+    expect(keyOf(geminiCallAsking(plain.mock.calls, RANKING).init)).toBe(
+      JURY_KEY,
+    );
+  });
+
+  it("refuses an override the jury has no name for, and asks nobody", async () => {
+    const cookie = await rankableDay();
+    const fetched = stubGeminiDay();
+
+    for (const run of [{ model: "gemini-9-ultra" }, { spend: "free" }]) {
+      const res = await postRank(cookie, 1, withGeminiKey(), run);
+      expect(res.status).toBe(400);
+    }
+    expect(fetched.mock.calls).toHaveLength(0);
   });
 });

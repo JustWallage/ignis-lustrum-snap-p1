@@ -32,7 +32,7 @@ import { rateLimiter } from "../lib/rate-limit";
 import { adminBowserRoutes } from "./admin-bowser";
 import { adminClockRoutes } from "./admin-clock";
 import { adminImagesRoutes } from "./admin-images";
-import { adminDayRoutes, adminPhotoRoutes } from "./admin-retire";
+import { adminDayRoutes, adminPhotoRoutes, REFUSED_RUN } from "./admin-retire";
 import { adminRigRoutes } from "./admin-rig";
 
 export const adminRoutes = new Hono<AppEnv>();
@@ -231,7 +231,7 @@ adminRoutes.put("/photos/:id/veto", async (c) => {
 adminRoutes.post("/photos/:id/describe", async (c) => {
   const asked = juryRunSchema.safeParse(await parseJsonBody(c.req.raw));
   if (!asked.success) {
-    return c.json({ error: "That is not a model the jury may spend" }, 400);
+    return c.json({ error: REFUSED_RUN }, 400);
   }
   const photo = await pickPhoto(getDb(c.env), c.req.param("id"));
   if (photo === undefined) {
@@ -248,7 +248,7 @@ adminRoutes.post("/photos/:id/describe", async (c) => {
       data: bytesToBase64(bytes),
       contentType: photo.contentType,
     },
-    asked.data.model,
+    asked.data,
   );
   if (done === "gone") {
     return c.json({ error: "Not found" }, 404);

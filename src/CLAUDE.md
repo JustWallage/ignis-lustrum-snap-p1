@@ -240,9 +240,13 @@
   rather than spending the rest of the quota on the same failure, and its cancel is a GENERATION
   counter rather than a boolean: a ref read between awaits, bumped by both Stop and a fresh sweep,
   so a superseded sweep also stops writing the readout. (A boolean ref is also what
-  `no-unnecessary-condition` narrows to `false` after the reset assignment.) The **model dropdown**
-  beside it rides on every manual press from this panel and nothing else; empty means no override
-  at all, which is what the route reads as the app's own default.
+  `no-unnecessary-condition` narrows to `false` after the reset assignment.) The **model and key dropdowns**
+  beside it ride on every manual press from this panel and nothing else; a field left on its
+  default is OMITTED from the body rather than sent, so a plain press sends the same empty body
+  every other caller does and the route reads it as the app's own default. The key one is the
+  operator taking the bill on one press — a whole day re-read on a free tier whose day is gone is
+  fourteen 429s — and it never falls back, because a billed run that quietly spent the free key
+  would be the console answering a question the operator already answered.
 - **The public gallery is the THIRD** (`/gallery`, `gallery/PublicGallery.tsx`), quarantined the
   same way under `pub-`, and it is the strictest of the three: `App` mounts it with **no
   `AuthProvider` at all**, so a page that never asks `/api/me` cannot start showing more to somebody

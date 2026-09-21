@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { photoDescriptions } from "../../db/schema";
-import type { PhotoDescription } from "../../shared/api";
+import type { JuryRun, PhotoDescription } from "../../shared/api";
 import type { Bindings } from "../env";
 import { getDb, type Db } from "./db";
 import {
@@ -69,18 +69,18 @@ async function claimDescription(db: Db, photoId: number): Promise<boolean> {
 export async function describePhoto(
   env: Bindings,
   photo: GeminiImage & { id: number },
-  model?: string,
+  run: JuryRun = {},
 ): Promise<DescribedPhoto | "gone"> {
   const db = getDb(env);
   // BEFORE the call, or a pass the runtime tears down mid-flight writes nothing and the
   // console cannot tell it from a pass that never started.
   if (!(await claimDescription(db, photo.id))) return "gone";
-  const keys = juryKeys(env);
+  const keys = juryKeys(env, run.spend);
   let described: string | null = null;
   let failure: string | null = NO_KEY;
   if (keys.length > 0) {
     try {
-      described = await requestDescription(keys, photo, model);
+      described = await requestDescription(keys, photo, run.model);
       failure = null;
     } catch (error) {
       failure = shortReason(error);

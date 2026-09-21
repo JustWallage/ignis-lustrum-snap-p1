@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { JURY_MODELS, juryModelSchema, juryRunSchema } from "../../shared/api";
-import { GEMINI_IMAGE_MODEL, GEMINI_MODEL } from "./gemini";
+import { GEMINI_IMAGE_MODEL, GEMINI_MODEL, juryKeys } from "./gemini";
 
 describe("the jury's models", () => {
   // The default is what every caller with no operator behind it spends, so an
@@ -35,6 +35,39 @@ describe("juryRunSchema", () => {
     });
     expect(juryRunSchema.safeParse({ model: "gemini-9-ultra" }).success).toBe(
       false,
+    );
+  });
+
+  it("takes the two keys it knows and refuses a third", () => {
+    expect(juryRunSchema.parse({ spend: "billed" })).toEqual({
+      spend: "billed",
+    });
+    expect(juryRunSchema.parse({ spend: "default" })).toEqual({
+      spend: "default",
+    });
+    expect(juryRunSchema.safeParse({ spend: "free" }).success).toBe(false);
+  });
+});
+
+describe("juryKeys", () => {
+  const both = { GEMINI_API_KEY: "free", GEMINI_API_KEY_PAID: "billed" };
+
+  it("spends the free key first and the billed one behind it", () => {
+    expect(juryKeys(both)).toEqual(["free", "billed"]);
+    expect(juryKeys(both, "default")).toEqual(["free", "billed"]);
+  });
+
+  // A list of ONE: `askEveryKey` walks it in order, so a billed run carrying the free
+  // key behind it would fall BACK to the very key the operator paid to skip.
+  it("hands a billed run the billed key and nothing to fall back to", () => {
+    expect(juryKeys(both, "billed")).toEqual(["billed"]);
+  });
+
+  it("drops a key that is unset or empty rather than asking with it", () => {
+    expect(juryKeys({ GEMINI_API_KEY: "free" })).toEqual(["free"]);
+    expect(juryKeys({ GEMINI_API_KEY: "free" }, "billed")).toEqual([]);
+    expect(juryKeys({ GEMINI_API_KEY: "", GEMINI_API_KEY_PAID: "" })).toEqual(
+      [],
     );
   });
 });
