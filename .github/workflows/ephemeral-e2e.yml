@@ -31,8 +31,16 @@ on:
 
 jobs:
   ephemeral-e2e:
+    # The `town` half is the long one: ~16 minutes of tests on top of ~2.5 of
+    # deploying this job's own Worker. At 20 the cap was BELOW the suite plus one
+    # spec's retries, so a single flaky test against the network cancelled the job
+    # mid-run — and a cancelled job never prints the list reporter's summary, so the
+    # failure that caused it is invisible in the log. Two main runs died that way,
+    # on a different spec each time. This is headroom for the report, not for a
+    # slower suite: nothing here is retried, skipped or quarantined, and a spec that
+    # really fails still fails.
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
