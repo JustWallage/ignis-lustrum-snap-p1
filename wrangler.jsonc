@@ -95,7 +95,7 @@
       "durable_objects": {
         "bindings": [{ "name": "REALTIME_DO", "class_name": "RealtimeDO" }],
       },
-      // Workers AI, for the one NPC you can hold a conversation with. PRODUCTION
+      // Workers AI, for the two NPCs you can hold a conversation with. PRODUCTION
       // ONLY, and not by choice: an `ai` binding has no local emulation at all, so
       // wrangler answers one by opening a REMOTE proxy session — which needs
       // Cloudflare credentials. Declare it in the top-level (local) block and

@@ -119,12 +119,23 @@
   window rather than an access control. Putting one on refuses OUTSIDE `submission`, with a reason, the way
   the clock route refuses; a stop is refused by nothing but that cooldown, because it can make no
   noise.
-- `lib/gemini.ts` (REST) and `lib/npc.ts` (Workers AI) are not interchangeable. **Verify both model
-  ids against the provider's docs, never from memory.** `AVATAR_IMAGE_SIZE` is a PRICE. Gemini
+- `lib/gemini.ts` (REST) and `lib/npc.ts` (Workers AI) are not interchangeable. **Verify every model
+  id against the provider's docs, never from memory.** `AVATAR_IMAGE_SIZE` is a PRICE. Gemini
   throws and callers decide differently on purpose; for the NPC, offline is a normal path.
-- **The neighbour's roster is `select name from users`, never `USERS_JSON`** — that var is a
+- **An NPC's roster is `select name from users`, never `USERS_JSON`** — that var is a
   credential blob, and the prompt builder cannot leak a password it has no way to reach. NAMES only,
-  and an unreadable roster drops the names line and nothing else.
+  and an unreadable world drops the names line and nothing else.
+- **`NPC_MODELS` is one model PER CHARACTER, and the caps are too.** The neighbour gossips on the
+  8B in one line; the guide answers off a briefing on `@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
+  which is on the list Workers AI publishes as supporting JSON MODE — the mode BOTH are asked in,
+  and a model that refuses it lands in the same catch a dead one does: asleep, every turn, with
+  nothing in the logs to say why. `lib/trip.ts` is the whole
+  of what the guide knows: the booklet cut to the schedule, the times and the things that go wrong
+  without them, in Dutch because he answers in Dutch. He is told to answer from it and to say he
+  will ask Katlyn rather than invent a pick-up time — an invented time is somebody standing in the
+  wrong street at six in the morning. **His "vandaag" is the town's `game_state` day and never the
+  wall clock**: trip day N is game day N, and a day past the last one says the trip is over rather
+  than inventing a sixteenth.
 - **`AI` is production-only, not by choice**: no local emulation, so declaring it in `local` stops
   `pnpm test:unit` and in `e2e` stops `pnpm dev:e2e`. `remote: false` does not help. **`IMAGES` is
   the opposite case and must not copy it**: miniflare simulates R2 in both the vitest pool and

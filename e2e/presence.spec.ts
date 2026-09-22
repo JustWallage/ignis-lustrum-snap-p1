@@ -58,7 +58,9 @@ test("friends walk the same screen, pass through each other, and leave", async (
 
   await walk(page, "ArrowDown", SPAWN.x, SPAWN.y + 1);
   await walk(page, "ArrowDown", STAGE.x, STAGE.y);
-  await walk(page, "ArrowDown", STAGE.x, STAGE.y + 1);
+  // Off the stage SIDEWAYS: the tile below it is the guide's, so walking on would
+  // bump and leave tester standing on the pixel this test is about to read.
+  await walk(page, "ArrowLeft", STAGE.x - 1, STAGE.y);
 
   await rival.context().close();
   await expect(lcd(page)).not.toHaveAttribute("aria-label", /rival/);

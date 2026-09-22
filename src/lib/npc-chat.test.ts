@@ -1,6 +1,6 @@
 import { NPC_OPTION_MAX } from "@shared/npc";
 import { describe, expect, it } from "vitest";
-import { chatPages, chatTurn, SAY_MY_OWN } from "./npc-chat";
+import { chatPages, chatTurn, CHAT_COPY, speakerOf } from "./npc-chat";
 
 const PAGE_MAX = chatPages("x".repeat(500))[0]?.length ?? 0;
 
@@ -46,10 +46,10 @@ describe("chatPages", () => {
 });
 
 describe("chatTurn", () => {
-  const SAYS = "CHRIS:";
+  const SAY_MY_OWN = CHAT_COPY.neighbour.sayMyOwn;
 
   it("renders a turn into pages that fit and choices that can be pressed", () => {
-    const turn = chatTurn(SAYS, "Oh, that one.", "Who took it, then?", [
+    const turn = chatTurn("neighbour", "Oh, that one.", "Who took it, then?", [
       "No idea",
       "Rival did",
     ]);
@@ -57,9 +57,21 @@ describe("chatTurn", () => {
     expect(turn.options).toEqual(["No idea", "Rival did", SAY_MY_OWN]);
   });
 
+  it("names the speaker it was asked for, and offers their own last row", () => {
+    const turn = chatTurn("guide", "Vandaag is dag drie.", "Nog iets?", [
+      "Hoe laat vertrekken we?",
+    ]);
+    expect(speakerOf("guide")).toBe("NICO:");
+    expect(turn.pages[0]).toBe("NICO: Vandaag is dag drie.");
+    expect(turn.options[turn.options.length - 1]).toBe(
+      CHAT_COPY.guide.sayMyOwn,
+    );
+    expect(CHAT_COPY.guide.sayMyOwn).not.toBe(SAY_MY_OWN);
+  });
+
   it("puts the type-your-own entry last, always", () => {
     for (const options of [[], ["one"], ["one", "two", "three"]]) {
-      const turn = chatTurn(SAYS, "Hm.", "Well?", options);
+      const turn = chatTurn("neighbour", "Hm.", "Well?", options);
       expect(turn.options[turn.options.length - 1]).toBe(SAY_MY_OWN);
       expect(turn.options.filter((o) => o === SAY_MY_OWN)).toHaveLength(1);
       expect(turn.options.length).toBe(options.length + 1);
@@ -67,7 +79,7 @@ describe("chatTurn", () => {
   });
 
   it("never renders a blank pickable row, or more than three of them", () => {
-    const turn = chatTurn(SAYS, "Hm.", "Well?", [
+    const turn = chatTurn("neighbour", "Hm.", "Well?", [
       "  ",
       "",
       "fine",
@@ -84,7 +96,7 @@ describe("chatTurn", () => {
   });
 
   it("cannot overflow a text box however long the model wrote", () => {
-    const turn = chatTurn(SAYS, "waffle ".repeat(60), "waffle ".repeat(60), [
+    const turn = chatTurn("guide", "waffle ".repeat(60), "waffle ".repeat(60), [
       "x".repeat(200),
     ]);
     for (const page of turn.pages) {

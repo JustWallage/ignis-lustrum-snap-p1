@@ -43,6 +43,13 @@ const HEAD_FRONT = [
   "...ssssss...",
 ];
 
+/** The row `HEAD_FRONT` spends on eyes, and the only row shades change. */
+const EYE_ROW = 5;
+
+const HEAD_SHADES = HEAD_FRONT.map((row, y) =>
+  y === EYE_ROW ? "..oooooooo.." : row,
+);
+
 const HEAD_BACK = [
   "....hhhh....",
   "..hhhhhhhh..",
@@ -203,9 +210,10 @@ export function playerSprites(): SpriteSet {
   return cached;
 }
 
-function hattedHead(hat: JurySprite["hat"]): string[] {
-  if (hat === "none") return HEAD_FRONT;
-  return [...HATS[hat], ...HEAD_FRONT.slice(HATS[hat].length)];
+function hattedHead(hat: JurySprite["hat"], shades: boolean): string[] {
+  const head = shades ? HEAD_SHADES : HEAD_FRONT;
+  if (hat === "none") return head;
+  return [...HATS[hat], ...head.slice(HATS[hat].length)];
 }
 
 export const VOTING_SPRITE: JurySprite = {
@@ -224,6 +232,12 @@ export const NEIGHBOUR_SPRITE: JurySprite = {
   hat: "sunhat",
   hair: "ginger",
   outfit: "khaki",
+};
+
+export const GUIDE_SPRITE: JurySprite = {
+  hat: "cap",
+  hair: "dark",
+  outfit: "teal",
 };
 
 const PORTRAIT_H = PLAYER_H - LEGS_STAND.length;
@@ -301,12 +315,15 @@ export function avatarSprites(image: HTMLImageElement): SpriteSet | null {
 
 const people = new Map<string, HTMLCanvasElement>();
 
-export function npcSprite(sprite: JurySprite): HTMLCanvasElement {
-  const key = `${sprite.hat}/${sprite.hair}/${sprite.outfit}`;
+export function npcSprite(
+  sprite: JurySprite,
+  shades = false,
+): HTMLCanvasElement {
+  const key = `${sprite.hat}/${sprite.hair}/${sprite.outfit}/${String(shades)}`;
   const cached = people.get(key);
   if (cached !== undefined) return cached;
   const built = buildSprite(
-    frame(hattedHead(sprite.hat), BODY_FRONT, LEGS_STAND),
+    frame(hattedHead(sprite.hat, shades), BODY_FRONT, LEGS_STAND),
     jurySpriteRamp(sprite),
   );
   people.set(key, built);

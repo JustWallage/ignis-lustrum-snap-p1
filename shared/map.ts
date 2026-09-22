@@ -41,13 +41,15 @@ export const ARTIST: Point = { x: 8, y: 7 };
 
 export const NEIGHBOUR: Point = { x: 5, y: 7 };
 
+export const GUIDE: Point = { x: 4, y: 7 };
+
 export const SHELF: Point = { x: 3, y: 1 };
 
 export const TROPHY: Point = { x: 1, y: 1 };
 
 export const JUKEBOX: Point = { x: 8, y: 1 };
 
-const OCCUPIED: readonly Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR];
+const OCCUPIED: readonly Point[] = [JURY, VOTING, ARTIST, NEIGHBOUR, GUIDE];
 
 const DOOR: Point = { x: 2, y: 3 };
 

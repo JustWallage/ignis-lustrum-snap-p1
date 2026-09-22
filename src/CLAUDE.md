@@ -22,7 +22,7 @@
   rather than painted over the opaque overlay — an NPC conversation open when the countdown lands
   used to run on under it and, because SELECT is dead while a dialog is up, took Abort event away
   from the host. What the menu raises must say yes: the host's confirmation is that same box.
-- `interactableAt` + `OPENS` (a total `Record`) are why an eighth interactable cannot exist without
+- `interactableAt` + `OPENS` (a total `Record`) are why a ninth interactable cannot exist without
   deciding what walking up to it does.
 - `useFilePicker` is the ONE picker primitive: `open()` must be called inside the real press, or
   Safari refuses (a deferred `click()` loses the gesture), and it is a plain hidden
@@ -199,7 +199,15 @@
   one surface that passes `CommentThread` `canPost={false}`**, because it only ever shows your OWN
   snap and a comment there is signed — which is the thing the caption exists to spare you. The
   thread still reads.
-- `SAY_MY_OWN` is always the LAST neighbour option: the free-text path is demoted, not deleted.
+- **The town holds TWO conversations and one of everything that runs them** — `useNpcChat`,
+  `chatTurn`, the `chat` / `chat-say` dialogs and `/api/npc/chat` — keyed by `NpcKind`, so a third
+  character is a key rather than a second pipeline. The DIALOG carries `who` and the hook takes it,
+  which is what ends a conversation: there is one transcript and it belongs to whoever you are
+  standing in front of, so walking from Chris to Nico cannot hand one of them the other's memory.
+  `CHAT_COPY` holds the two rows the shell adds rather than the model — the free-text entry and the
+  goodbye — because **Nico answers in Dutch and an English button under a Dutch answer is the shell
+  talking over him**. `sayMyOwn` is always the LAST option: the free-text path is demoted, not
+  deleted.
 - **The archive is deliberately not a Game Boy** (#99). Every class is prefixed `arc-` and used
   nowhere else, so the modern look is quarantined by naming — with ONE crossing, the artist's
   wardrobe, which is `AvatarGallery` inside a `.gb-window`. Sharing the one shelf is what keeps a
