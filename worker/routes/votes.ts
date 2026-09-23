@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { photos, votes } from "../../db/schema";
+import { photos, users, votes } from "../../db/schema";
 import {
   ballotSchema,
   voteCandidateListSchema,
@@ -32,17 +32,35 @@ votesRoutes.get("/candidates", async (c) => {
   const db = getDb(c.env);
   const { day } = await readGameState(db);
   const userId = c.get("user").id;
-  const rows = await db
-    .select({
-      id: photos.id,
-      caption: photos.caption,
-      mine: sql<number>`(${photos.userId} = ${userId})`,
-    })
-    .from(photos)
-    .where(eq(photos.day, day))
-    .orderBy(asc(photos.id));
+  const [rows, waiting] = await Promise.all([
+    db
+      .select({
+        id: photos.id,
+        caption: photos.caption,
+        mine: sql<number>`(${photos.userId} = ${userId})`,
+      })
+      .from(photos)
+      .where(eq(photos.day, day))
+      .orderBy(asc(photos.id)),
+    db
+      .select({ name: users.name })
+      .from(users)
+      .where(
+        notInArray(
+          users.id,
+          db
+            .select({ userId: photos.userId })
+            .from(photos)
+            .where(eq(photos.day, day)),
+        ),
+      )
+      .orderBy(asc(users.name)),
+  ]);
   return c.json(
-    voteCandidateListSchema.parse({ candidates: rows.map(toVoteCandidate) }),
+    voteCandidateListSchema.parse({
+      candidates: rows.map(toVoteCandidate),
+      waitingOn: waiting.map((row) => row.name),
+    }),
   );
 });
 

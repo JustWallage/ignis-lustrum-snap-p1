@@ -45,7 +45,7 @@
   image route whose `Cache-Control` is `public` and NOT `immutable` — five minutes, because these
   bytes can be withdrawn where every other image URL's cannot.
 - **Anonymity is server-side.** `uploader: null` unless it is yours or the day is revealed;
-  `/api/votes/candidates` selects no uploader column at all. `toPhoto` masks name and verdict as
+  `/api/votes/candidates` selects no uploader column at all — its `waitingOn` names who has NOT handed one in today, as a separate list never paired with a candidate, and early in a day that list narrows who took the few snaps there are, accepted so the town can chase the stragglers. `toPhoto` masks name and verdict as
   TWO decisions — your own snap always carries your name, and no verdict until the day is out,
   admins included. Commenters ARE named on any day: the secret is whose snap it is — which is
   exactly why `photos.caption` exists and is NOT behind either masking: a photographer explaining

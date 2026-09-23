@@ -121,6 +121,9 @@ test("the NPC explains the ballot, then hands over a full screen of snaps", asyn
   await expect(
     dialog.getByTestId("vote-candidates").getByRole("button"),
   ).toHaveCount(3);
+  await expect(dialog.getByTestId("vote-waiting")).toHaveText(
+    "Still to hand one in: judge.",
+  );
   for (const name of ["tester", "rival", "voter"]) {
     await expect(dialog).not.toContainText(name);
   }

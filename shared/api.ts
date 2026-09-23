@@ -95,6 +95,7 @@ export type VoteCandidate = z.infer<typeof voteCandidateSchema>;
 
 export const voteCandidateListSchema = z.object({
   candidates: z.array(voteCandidateSchema),
+  waitingOn: z.array(z.string()),
 });
 
 export const MAX_PICKS = 3;

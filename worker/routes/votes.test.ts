@@ -51,6 +51,16 @@ describe("voting", () => {
     expect(JSON.stringify(forMeRaw)).not.toContain("rival");
   });
 
+  it("names who has not handed one in today, and nobody who has", async () => {
+    const voter = await signIn("voter");
+    await uploadPhotoId(await signIn());
+
+    const { waitingOn } = voteCandidateListSchema.parse(
+      await getJson("/api/votes/candidates", voter),
+    );
+    expect(waitingOn).toEqual(["judge", "rival", "voter"]);
+  });
+
   it("shows the same field the public count promises, submitted or not", async () => {
     const mine = await signIn();
     await uploadPhotoId(mine);

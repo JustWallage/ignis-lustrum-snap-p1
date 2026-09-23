@@ -220,6 +220,13 @@ export function BallotOverlay({ onClose }: { onClose: () => void }) {
           Tap a snap to judge it full screen. No photographer is named until the
           reveal.
         </p>
+        {candidates.data !== undefined && (
+          <p className="shrink-0 text-xs" data-testid="vote-waiting">
+            {candidates.data.waitingOn.length === 0
+              ? "Everybody has handed a snap in."
+              : `Still to hand one in: ${candidates.data.waitingOn.join(", ")}.`}
+          </p>
+        )}
         {error !== "" && (
           <p className="gb-error shrink-0" role="alert">
             {error}
