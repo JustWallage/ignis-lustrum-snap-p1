@@ -328,6 +328,17 @@ export async function rankCurrent(page: Page, rank: 1 | 2 | 3): Promise<void> {
   await expect(page.getByTestId("vote-save")).toHaveText("SAVED");
 }
 
+/** Waits on the PUT, not the click: a read of `/api/photos/mine` fired straight after
+ * the press races the write against a deployed Worker and reads the caption back null. */
+export async function saveCaption(page: Page, line: string): Promise<void> {
+  const put = page.waitForResponse(
+    (res) => res.request().method() === "PUT" && res.url().endsWith("/caption"),
+  );
+  await page.getByTestId("caption-input").fill(line);
+  await page.getByTestId("caption-save").click();
+  expect((await put).ok()).toBeTruthy();
+}
+
 export async function readDialogue(page: Page) {
   const choices = page.getByTestId("dialogue-choices");
   for (let press = 0; press < 10 && !(await choices.isVisible()); press += 1) {

@@ -7,6 +7,7 @@ import {
   handSnapToJury,
   pressStart,
   readDialogue,
+  saveCaption,
   test,
   TINY_PNG,
   TODAY,
@@ -64,8 +65,7 @@ test("talking to the jury requires sign-in, then shares a snap in one tap", asyn
   // The box that used to hold a comment field holds the CAPTION: this window only ever
   // shows your own snap, so commenting on it here would sign it.
   await expect(dialog.getByPlaceholder("Add a comment…")).toHaveCount(0);
-  await dialog.getByTestId("caption-input").fill("From the roof");
-  await dialog.getByTestId("caption-save").click();
+  await saveCaption(page, "From the roof");
   const mine = await page.request.get("/api/photos/mine");
   expect(mine.ok()).toBeTruthy();
   expect(await mine.json()).toMatchObject({

@@ -6,6 +6,7 @@ import {
   openSnapViewer,
   pressStart,
   readDialogue,
+  saveCaption,
   test,
   walkToJury,
   walkToVotingNpc,
@@ -81,8 +82,7 @@ test("the snap window captions instead of commenting", async ({ page }) => {
   await expect(page.getByTestId("comment-thread")).toBeVisible();
   await expect(page.getByPlaceholder("Add a comment…")).toHaveCount(0);
 
-  await page.getByTestId("caption-input").fill(LINE);
-  await page.getByTestId("caption-save").click();
+  await saveCaption(page, LINE);
   await expect(page.getByTestId("caption-input")).toHaveValue(LINE);
 
   // Read back off the route, because the field would hold what was typed either way.
