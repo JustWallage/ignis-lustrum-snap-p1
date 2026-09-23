@@ -96,7 +96,7 @@ describe("the guide's prompt", () => {
     expect(prompt).toMatch(/Santo Domingo/);
   });
 
-  it("moves that day with the town's clock", () => {
+  it("moves that day with the day it is handed", () => {
     const first = systemPrompt("guide", { roster: [], day: 1 });
     const last = systemPrompt("guide", { roster: [], day: 15 });
     expect(first).toContain("VANDAAG is dag 1");

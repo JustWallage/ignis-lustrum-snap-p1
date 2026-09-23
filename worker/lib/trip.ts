@@ -11,6 +11,16 @@ interface TripDay {
   plan: string;
 }
 
+const TRIP_START = Date.UTC(2026, 8, 19);
+// Colombia keeps UTC−5 all year with no DST, so a fixed offset IS its calendar — and
+// the Worker's own clock is UTC, which would turn the day over at seven in the evening.
+const COLOMBIA_OFFSET_MS = -5 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function tripDay(now: number): number {
+  return Math.floor((now + COLOMBIA_OFFSET_MS - TRIP_START) / DAY_MS) + 1;
+}
+
 /** Indexed from 1: `ITINERARY[day - 1]` is that day. */
 const ITINERARY: readonly TripDay[] = [
   {

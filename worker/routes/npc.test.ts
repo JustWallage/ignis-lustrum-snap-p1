@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
   NPC_LINE_MAX,
@@ -407,17 +407,25 @@ describe("POST /api/npc/chat, as the guide", () => {
     expect(lastPrompt().response_format?.type).toBe("json_schema");
   });
 
-  it("hands him the town's clock as the day of the trip", async () => {
+  it("hands him Colombia's date as the day of the trip, not the town's clock", async () => {
     await setDay(7);
-    await chat(
-      cookie,
-      ASK,
-      stubAi(() => ({ response: "No." })),
-    );
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // Late evening in Bogotá, already the next day in UTC.
+    vi.setSystemTime(new Date("2026-09-23T23:30:00-05:00"));
+    try {
+      await chat(
+        cookie,
+        ASK,
+        stubAi(() => ({ response: "No." })),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
     const persona = lastMessages()[0]?.content ?? "";
     expect(persona).toContain("Nico");
-    expect(persona).toContain("VANDAAG is dag 7");
-    expect(persona).toContain("Punta Gallinas");
+    expect(persona).toContain(
+      "VANDAAG is dag 5 van de reis: woensdag 23-09-2026, Buritaca.",
+    );
   });
 
   it("gives him the room a schedule needs and the neighbour never gets", async () => {

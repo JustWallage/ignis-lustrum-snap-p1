@@ -9,13 +9,9 @@ import {
 } from "../../shared/npc";
 import type { AppEnv, Bindings } from "../env";
 import { getDb } from "../lib/db";
-import { readGameState } from "../lib/game-state";
 import { parseJsonBody } from "../lib/http";
 import { npcRateLimit, npcTurn, saidAsTurn, type NpcWorld } from "../lib/npc";
-
-/** The day the guide's "vandaag" resolves against is the TOWN's clock — the one
- * `game_state` row — and never the wall-clock date, which the trip is not run on. */
-const FALLBACK_DAY = 1;
+import { tripDay } from "../lib/trip";
 
 /**
  * The names, from the table that says who actually exists. NOT from `USERS_JSON`,
@@ -23,16 +19,15 @@ const FALLBACK_DAY = 1;
  * builder cannot reach them. A world nobody can read leaves them exactly as they were.
  */
 async function world(env: Bindings): Promise<NpcWorld> {
-  const db = getDb(env);
+  const day = tripDay(Date.now());
   try {
-    const rows = await db
+    const rows = await getDb(env)
       .select({ name: users.name })
       .from(users)
       .orderBy(asc(users.name));
-    const state = await readGameState(db);
-    return { roster: rows.map((row) => row.name), day: state.day };
+    return { roster: rows.map((row) => row.name), day };
   } catch {
-    return { roster: [], day: FALLBACK_DAY };
+    return { roster: [], day };
   }
 }
 

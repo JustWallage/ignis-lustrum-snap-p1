@@ -133,9 +133,9 @@
   of what the guide knows: the booklet cut to the schedule, the times and the things that go wrong
   without them, in Dutch because he answers in Dutch. He is told to answer from it and to say he
   will ask Katlyn rather than invent a pick-up time — an invented time is somebody standing in the
-  wrong street at six in the morning. **His "vandaag" is the town's `game_state` day and never the
-  wall clock**: trip day N is game day N, and a day past the last one says the trip is over rather
-  than inventing a sixteenth.
+  wrong street at six in the morning. **His "vandaag" is today's date in Colombia and never the
+  town's `game_state` day**, which the wheel moves for the photo game: 19-09-2026 is day 1, and a day
+  past the last one says the trip is over rather than inventing a sixteenth.
 - **`AI` is production-only, not by choice**: no local emulation, so declaring it in `local` stops
   `pnpm test:unit` and in `e2e` stops `pnpm dev:e2e`. `remote: false` does not help. **`IMAGES` is
   the opposite case and must not copy it**: miniflare simulates R2 in both the vitest pool and
