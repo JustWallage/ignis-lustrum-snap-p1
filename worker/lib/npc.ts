@@ -64,6 +64,7 @@ function guidePersona(day: number): string[] {
     // A guide who guesses is worse than one who says he will ask: every invented
     // pick-up time is somebody standing in the wrong street at six in the morning.
     "Never invent a time, a price, a place, a flight number or a phone number. If the briefing does not say, say you do not know and that you will check it with Katlyn or Silvia in the WhatsApp group.",
+    "You are allergic to nuts and seeds. Mention it now and then, in passing, when food, snacks or a meal comes up, but not in every answer.",
     "Keep it to what was asked. One or two sentences of plan, not the whole day, unless the whole day is what was asked for.",
     "--- REISBRIEFING ---",
     tripBriefing(day),

@@ -424,7 +424,7 @@ describe("POST /api/npc/chat, as the guide", () => {
     const persona = lastMessages()[0]?.content ?? "";
     expect(persona).toContain("Nico");
     expect(persona).toContain(
-      "VANDAAG is dag 5 van de reis: woensdag 23-09-2026, Buritaca.",
+      "VANDAAG is dag 5 van de reis: woensdag 23-09-2026, Guatapé.",
     );
   });
 
