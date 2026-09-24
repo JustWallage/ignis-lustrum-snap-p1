@@ -45,33 +45,33 @@ const ITINERARY: readonly TripDay[] = [
   },
   {
     date: "woensdag 23-09-2026",
-    place: "Buritaca",
-    plan: "Transfer Cocorná → luchthaven Medellín vertrekt 10:30 vanaf Entre Bosques, duurt 2 uur. Binnenlandse vlucht AV8436 Medellín → Santa Marta vertrekt 14:30 en landt 15:45; Lustrumfiesta checkt in en mailt de boarding passes naar de hoofdcontactpersoon. Transfer Santa Marta → Buritaca vertrekt 15:45, duurt 1,5 uur, naar Rio Hostel Buritaca. Het laatste stuk gaat mogelijk achterop een motor, want de weg is onverhard. Pin genoeg geld vóór Buritaca, daar zijn nauwelijks automaten. Geen maaltijden inbegrepen. Slapen: El Rio Hostal.",
+    place: "Guatapé",
+    plan: "Door omstandigheden in het noorden is het programma vanaf vandaag aangepast: niet naar Buritaca, maar naar Guatapé. Slapen: El Viajero.",
   },
   {
     date: "donderdag 24-09-2026",
-    place: "Buritaca",
-    plan: "Vrije dag. Tubing is optioneel bij te boeken, vraag het in de WhatsApp-groep. 's Avonds is er meestal een feest in het hostel met techno. Geen maaltijden inbegrepen. Slapen: El Rio Hostal.",
+    place: "Guatapé",
+    plan: "Vrije dag om van Guatapé te genieten. Je ontvangt vandaag per mail de nieuwe boarding passes voor de vlucht van morgen. Slapen: El Viajero, dezelfde accommodatie als gisteren.",
   },
   {
     date: "vrijdag 25-09-2026",
-    place: "Punta Gallinas (La Guajira)",
-    plan: "Transfer Buritaca → Riohacha vertrekt 6:00, duurt 2 uur, naar het kantoor van History Travelers SAS; ontbijt daar op eigen kosten. De 3-daagse 4x4-tour door La Guajira start tussen 8:30 en 9:00. Eerst de Taroa-duinen met een uur sandboarden, dan lokale lunch, daarna uitzichtpunt Casares en de vuurtoren van Punta Gallinas, het noordelijkste punt van Zuid-Amerika, bij zonsondergang. Soms is er een schildpadrelease. 's Avonds diner bij een kampvuur met verhalen over de Wayúu-cultuur. Hoofdbagage blijft achter bij de lokale partner, neem alleen een kleine rugzak voor 3 dagen en 2 nachten. Twee mensen uit de groep rijden zelf: rijbewijs meenemen. Meenemen: 2 tot 3 sets lichte kleding, zwemkleding, wandelschoenen of sandalen, slippers, handdoek, zonnebrand, zonnebril en pet, muggenspray, toiletspullen en medicijnen, een jasje voor 's avonds, powerbank en contant geld. Lunch en diner inbegrepen. Slapen: hostel.",
+    place: "Riohacha",
+    plan: "Transfer Guatapé → luchthaven Medellín vertrekt 9:25. Vlucht AV8516 Medellín → Riohacha vertrekt 13:25. Op de luchthaven van Riohacha staat om 14:50 een transfer klaar. Slapen: Tunebo Inn, met 3 vierpersoonskamers en 1 tweepersoonskamer; ontbijt inbegrepen.",
   },
   {
     date: "zaterdag 26-09-2026",
-    place: "Cabo de la Vela",
-    plan: "Dag 2 van de 4x4-tour, hele dag. Playa Arcoíris en Pilón de Azúcar, daarna Cabo de la Vela met strand en zwemmen. Kitesurfles is optioneel tegen bijbetaling. Aan het eind van de dag bierproeverij bij Hernando, een lokale brouwer. Ontbijt, lunch en diner inbegrepen. Slapen: hostel.",
+    place: "Punta Gallinas (La Guajira)",
+    plan: "Dag 1 van de 3-daagse 4x4-tour door La Guajira, ophalen rond 8:30 tot 9:00, hele dag activiteiten. Eerst de Taroa-duinen met een uur sandboarden, dan lokale lunch, daarna uitzichtpunt Casares en de vuurtoren van Punta Gallinas, het noordelijkste punt van Zuid-Amerika, bij zonsondergang. Soms is er een schildpadrelease. 's Avonds diner bij een kampvuur met verhalen over de Wayúu-cultuur. Hoofdbagage blijft achter bij de lokale partner, neem alleen een kleine rugzak voor 3 dagen en 2 nachten. Twee mensen uit de groep rijden zelf: rijbewijs meenemen. Meenemen: 2 tot 3 sets lichte kleding, zwemkleding, wandelschoenen of sandalen, slippers, handdoek, zonnebrand, zonnebril en pet, muggenspray, toiletspullen en medicijnen, een jasje voor 's avonds, powerbank en contant geld. Ontbijt bij Tunebo Inn; overnachting hoort bij de tour.",
   },
   {
     date: "zondag 27-09-2026",
-    place: "Palomino",
-    plan: "Dag 3 van de 4x4-tour, vertrek na het ontbijt. Via Camarones naar het flamingoreservaat, daarna lokale lunch. De tour eindigt bij Restaurante Los Cocos. Transfer Camarones → Palomino vertrekt 15:30, duurt 1,5 uur, naar Dreamer Palomino. Het laatste stuk is ongeveer 700 meter lopen vanwege wegwerkzaamheden; de chauffeur loopt mee. Ontbijt en lunch inbegrepen. Slapen: Dreamer Palomino.",
+    place: "Cabo de la Vela",
+    plan: "Dag 2 van de 4x4-tour, hele dag. Playa Arcoíris en Pilón de Azúcar, daarna Cabo de la Vela met strand en zwemmen. Kitesurfles is optioneel tegen bijbetaling. Aan het eind van de dag bierproeverij bij Hernando, een lokale brouwer. Overnachting hoort bij de tour.",
   },
   {
     date: "maandag 28-09-2026",
     place: "Palomino",
-    plan: "Vrije dag in Palomino. Massages en andere opties via de receptie. Belangrijk: het ontbijt staat morgen om 7:00 klaar vanwege het vroege vertrek, geef vandaag bij het restaurant je voorkeur door. Ontbijt inbegrepen. Slapen: Dreamer Palomino.",
+    plan: "Laatste dag van de 4x4-tour. Via Camarones naar het flamingoreservaat, daarna lokale lunch. De tour eindigt bij Restaurante Los Cocos. Transfer naar Palomino vertrekt 15:30, naar Dreamer Palomino. Het laatste stuk is ongeveer 700 meter lopen vanwege wegwerkzaamheden; de chauffeur loopt mee. Belangrijk: het ontbijt staat morgen om 7:00 klaar vanwege het vroege vertrek, geef vandaag bij het restaurant je voorkeur door. Slapen: Dreamer Palomino.",
   },
   {
     date: "dinsdag 29-09-2026",
@@ -111,7 +111,7 @@ const PRACTICAL: readonly string[] = [
   "Veiligheid: 'no des papaya', maak het niemand makkelijk. Geen opvallende sieraden, waardevolle spullen in een kluisje, 's nachts een Uber in plaats van lopen, en let op je drankje en je spullen in het uitgaansleven.",
   "Bagage op de binnenlandse vlucht: een persoonlijk item, 10 kg handbagage en 23 kg ruimbagage. Powerbanks en batterijen moeten in de handbagage.",
   "Paklijst naast gewone strandvakantiespullen: rugzak en dagrugzak, paspoort, pinpas en creditcard, geel vaccinatieboekje, zorgpas, wereldstekker, opladers, powerbank, speaker, boek of e-reader, camera of GoPro, zaklamp, handdoek, zonnebrand, paracetamol, imodium, ORS, hangslot, EHBO-setje, oordoppen, nekkussen, regenjas of poncho, lange broek en trui, pet of hoed, waterfles en wandelschoenen of stevige sneakers plus slippers.",
-  "Kamerverdeling: Masaya Medellin 1x8 en 1x6, Entre Bosques het hele huis met 1x5 en 4x3, El Rio Hostal 1x12 en 1x2, Dreamer Palomino 2x8, Playa Brava Teyumakke 14 hangmatten, Los Patios Cartagena 2x4 en 1x6.",
+  "Kamerverdeling: Masaya Medellin 1x8 en 1x6, Entre Bosques het hele huis met 1x5 en 4x3, El Viajero in Guatapé, Tunebo Inn 3x4 en 1x2, Dreamer Palomino 2x8, Playa Brava Teyumakke 14 hangmatten, Los Patios Cartagena 2x4 en 1x6.",
   "Het programma ligt vast. Tijden kunnen schuiven door weer, verkeer of lokale regels; Lustrumfiesta laat dat via de WhatsApp-groep weten.",
 ];
 

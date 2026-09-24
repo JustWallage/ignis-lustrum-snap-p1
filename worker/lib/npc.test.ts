@@ -120,7 +120,8 @@ describe("the guide's prompt", () => {
     const prompt = promptFor("guide");
     for (const fact of [
       "Comuna 13",
-      "AV8436",
+      "AV8516",
+      "Tunebo Inn",
       "La Guajira",
       "Tayrona",
       "Club de Pesca",
@@ -140,5 +141,6 @@ describe("the guide's prompt", () => {
     expect(prompt).toMatch(/never invent a time/i);
     expect(prompt).toMatch(/from the briefing below and from nothing else/i);
     expect(prompt).toMatch(/whatsapp/i);
+    expect(prompt).toMatch(/allergic to nuts and seeds/);
   });
 });
